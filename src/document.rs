@@ -1,11 +1,9 @@
 use id_tree::{NodeId, NodeIdError, Tree};
-use std::borrow::Cow;
 use std::fmt::{Debug, Formatter};
-use vector_map::VecMap;
 
 use crate::error::Error;
-use crate::name::{Name, NameId, NameLookup};
-use crate::namespace::{Namespace, NamespaceId, NamespaceLookup};
+use crate::name::{NameId, NameLookup};
+use crate::namespace::{NamespaceId, NamespaceLookup};
 use crate::prefix::{PrefixId, PrefixLookup};
 use crate::xmlnode::XmlNode;
 
