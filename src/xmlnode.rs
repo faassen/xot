@@ -3,6 +3,8 @@ use id_tree::Tree;
 use std::borrow::Cow;
 use vector_map::VecMap;
 
+use crate::idmap::{IdIndex, IdMap};
+
 pub enum XmlNode<'a> {
     Element(Element<'a>),
     Text(Cow<'a, str>),
@@ -11,8 +13,28 @@ pub enum XmlNode<'a> {
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct NameId(u16);
 
+impl IdIndex<NameId> for NameId {
+    fn to_id(index: usize) -> NameId {
+        NameId(index as u16)
+    }
+
+    fn from_id(id: NameId) -> usize {
+        id.0 as usize
+    }
+}
+
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct NamespaceId(u8);
+
+impl IdIndex<NamespaceId> for NamespaceId {
+    fn to_id(index: usize) -> NamespaceId {
+        NamespaceId(index as u8)
+    }
+
+    fn from_id(id: NamespaceId) -> usize {
+        id.0 as usize
+    }
+}
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub(crate) struct Name<'a> {
@@ -20,8 +42,23 @@ pub(crate) struct Name<'a> {
     namespace_id: NamespaceId,
 }
 
+impl<'a> Name<'a> {
+    pub(crate) fn new(name: &'a str, namespace_id: NamespaceId) -> Self {
+        Self {
+            name: name.into(),
+            namespace_id,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub(crate) struct Namespace<'a>(Cow<'a, str>);
+
+impl<'a> Namespace<'a> {
+    pub(crate) fn new(namespace_uri: &'a str) -> Self {
+        Self(namespace_uri.into())
+    }
+}
 
 pub(crate) type Attributes<'a> = VecMap<NameId, Cow<'a, str>>;
 pub(crate) type Prefixes<'a> = HashMap<Cow<'a, str>, NamespaceId>;
@@ -63,76 +100,9 @@ impl<'a> Element<'a> {
     }
 }
 
-pub(crate) struct Namespaces<'a> {
-    namespaces: Vec<Namespace<'a>>,
-    namespace_to_id: HashMap<Namespace<'a>, NamespaceId>,
-}
+pub(crate) type Namespaces<'a> = IdMap<NamespaceId, Namespace<'a>>;
 
-impl<'a> Namespaces<'a> {
-    pub(crate) fn new() -> Self {
-        Namespaces {
-            namespaces: Vec::new(),
-            namespace_to_id: HashMap::default(),
-        }
-    }
-
-    pub(crate) fn get_id(&mut self, namespace_uri: &'a str) -> NamespaceId {
-        let namespace = Namespace(Cow::Borrowed(namespace_uri));
-        let namespace_id = self.namespace_to_id.get(&namespace);
-        if let Some(namespace_id) = namespace_id {
-            *namespace_id
-        } else {
-            let namespace_id = NamespaceId(self.namespaces.len() as u8);
-            self.namespaces
-                .push(Namespace(Cow::Borrowed(namespace_uri)));
-            self.namespace_to_id.insert(namespace, namespace_id);
-            namespace_id
-        }
-    }
-
-    #[inline]
-    pub(crate) fn get_namespace(&self, namespace_id: NamespaceId) -> &Namespace<'a> {
-        &self.namespaces[namespace_id.0 as usize]
-    }
-}
-
-pub(crate) struct Names<'a> {
-    names: Vec<Name<'a>>,
-    name_to_id: HashMap<Name<'a>, NameId>,
-}
-
-impl<'a> Names<'a> {
-    pub(crate) fn new() -> Self {
-        Names {
-            names: Vec::new(),
-            name_to_id: HashMap::default(),
-        }
-    }
-
-    pub(crate) fn get_id(&mut self, name: &'a str, namespace_id: NamespaceId) -> NameId {
-        let name_value = Name {
-            name: Cow::Borrowed(name),
-            namespace_id,
-        };
-        let name_id = self.name_to_id.get(&name_value);
-        if let Some(name_id) = name_id {
-            *name_id
-        } else {
-            let name_id = NameId(self.names.len() as u16);
-            self.names.push(Name {
-                name: Cow::Borrowed(name),
-                namespace_id,
-            });
-            self.name_to_id.insert(name_value, name_id);
-            name_id
-        }
-    }
-
-    #[inline]
-    pub(crate) fn get_name(&self, name_id: NameId) -> &Name<'a> {
-        &self.names[name_id.0 as usize]
-    }
-}
+pub(crate) type Names<'a> = IdMap<NameId, Name<'a>>;
 
 pub(crate) type XmlTree<'a> = Tree<XmlNode<'a>>;
 

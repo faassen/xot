@@ -4,7 +4,7 @@ use id_tree::{InsertBehavior, Node, NodeId};
 use xmlparser::{ElementEnd, Token, Tokenizer};
 
 use crate::xmlnode::{
-    Document, Element, Names, NamespaceId, Namespaces, Prefixes, XmlNode, XmlTree,
+    Document, Element, Name, Names, Namespace, NamespaceId, Namespaces, Prefixes, XmlNode, XmlTree,
 };
 
 pub enum Error {
@@ -49,7 +49,8 @@ impl<'a> DocumentBuilder<'a> {
         // XXX what if prefix is not known
         let namespace_id = self.namespace_by_prefix(prefix);
         if let Some(namespace_id) = namespace_id {
-            let name_id = self.names.get_id(name, namespace_id);
+            let name = Name::new(name, namespace_id);
+            let name_id = self.names.get_id(name);
             self.current_element = Some(Element::new(name_id));
         }
     }
@@ -64,17 +65,17 @@ impl<'a> DocumentBuilder<'a> {
         }
     }
 
-    fn prefix(&mut self, prefix: &'a str, namespace: &'a str) {
-        let namespace_id = self.namespaces.get_id(namespace);
+    fn prefix(&mut self, prefix: &'a str, namespace_uri: &'a str) {
+        let namespace_id = self.namespaces.get_id(Namespace::new(namespace_uri));
         // XXX what if there is no current element
         // use prefixes map
         // use current_prefixes VecMap
         // take it when constructing the element
         // so maybe a current element context that we can take() as a whole
-        if let Some(current_element) = &mut self.current_element {
-            let prefix = prefix.to_string();
-            current_element.add_prefix(Cow::Owned(prefix), namespace_id);
-        }
+        // if let Some(current_element) = &mut self.current_element {
+        //     let prefix = prefix.to_string();
+        //     current_element.add_prefix(Cow::Owned(prefix), namespace_id);
+        // }
     }
 
     fn add(&mut self, xml_node: XmlNode<'a>) -> Result<(), Error> {
