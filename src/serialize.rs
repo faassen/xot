@@ -1,8 +1,9 @@
 use id_tree::NodeId;
 use std::io::Write;
 
+use crate::document::Document;
 use crate::error::Error;
-use crate::xmlnode::{Document, XmlNode};
+use crate::xmlnode::XmlNode;
 
 impl<'a> Document<'a> {
     pub fn serialize(

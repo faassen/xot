@@ -1,15 +1,12 @@
-use std::borrow::Cow;
-
 use id_tree::{InsertBehavior, Node, NodeId};
 use xmlparser::{ElementEnd, Token, Tokenizer};
 
+use crate::document::{namespace_by_prefix, Document, XmlTree};
 use crate::error::Error;
-use crate::name::{Name, NameId, NameLookup};
-use crate::namespace::{self, Namespace, NamespaceId, NamespaceLookup};
+use crate::name::{Name, NameLookup};
+use crate::namespace::{Namespace, NamespaceId, NamespaceLookup};
 use crate::prefix::{Prefix, PrefixId, PrefixLookup};
-use crate::xmlnode::{
-    namespace_by_prefix, Attributes, Document, Element, NamespaceInfo, Prefixes, XmlNode, XmlTree,
-};
+use crate::xmlnode::{Attributes, Element, NamespaceInfo, XmlNode};
 
 struct ElementBuilder<'a> {
     prefix: &'a str,
