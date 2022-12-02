@@ -1,7 +1,7 @@
-use indextree::{Arena, NodeId};
+use indextree::NodeId;
 use xmlparser::{ElementEnd, Token, Tokenizer};
 
-use crate::document::{namespace_by_prefix, Document};
+use crate::document::{namespace_by_prefix, Document, XmlArena};
 use crate::error::Error;
 use crate::name::{Name, NameLookup};
 use crate::namespace::{Namespace, NamespaceId, NamespaceLookup};
@@ -30,7 +30,6 @@ impl<'a> ElementBuilder<'a> {
     fn into_element(
         self,
         document_builder: &mut DocumentBuilder<'a>,
-        arena: &mut Arena<XmlNode<'a>>,
     ) -> Result<Element<'a>, Error> {
         let prefix_id = document_builder
             .prefix_lookup
@@ -40,7 +39,7 @@ impl<'a> ElementBuilder<'a> {
             .to_namespace
             .get(&prefix_id)
             .copied()
-            .or_else(|| document_builder.namespace_by_prefix(prefix_id, arena));
+            .or_else(|| document_builder.namespace_by_prefix(prefix_id));
         let namespace_id =
             namespace_id.ok_or_else(|| Error::UnknownPrefix(self.prefix.to_owned()))?;
         let name = Name::new(self.name, namespace_id);
@@ -54,6 +53,7 @@ impl<'a> ElementBuilder<'a> {
 }
 
 struct DocumentBuilder<'a> {
+    arena: &'a mut XmlArena<'a>,
     namespace_lookup: NamespaceLookup<'a>,
     prefix_lookup: PrefixLookup<'a>,
     no_namespace_id: NamespaceId,
@@ -65,7 +65,7 @@ struct DocumentBuilder<'a> {
 }
 
 impl<'a> DocumentBuilder<'a> {
-    fn new(arena: &mut Arena<XmlNode>) -> Self {
+    fn new(arena: &'a mut XmlArena<'a>) -> Self {
         let mut namespace_lookup = NamespaceLookup::new();
         // XXX absence of namespace is defined as the empty namespace,
         // we should forbid its construction otherwise?
@@ -76,6 +76,7 @@ impl<'a> DocumentBuilder<'a> {
 
         let root = arena.new_node(XmlNode::Root);
         DocumentBuilder {
+            arena,
             namespace_lookup,
             prefix_lookup,
             no_namespace_id,
@@ -89,6 +90,7 @@ impl<'a> DocumentBuilder<'a> {
 
     fn into_document(self) -> Document<'a> {
         Document {
+            arena: self.arena,
             namespace_lookup: self.namespace_lookup,
             prefix_lookup: self.prefix_lookup,
             name_lookup: self.name_lookup,
@@ -101,12 +103,8 @@ impl<'a> DocumentBuilder<'a> {
         self.element_builder = Some(ElementBuilder::new(prefix, name));
     }
 
-    fn namespace_by_prefix(
-        &self,
-        prefix_id: PrefixId,
-        arena: &Arena<XmlNode>,
-    ) -> Option<NamespaceId> {
-        namespace_by_prefix(self.current_node_id, prefix_id, arena).or_else(|| {
+    fn namespace_by_prefix(&self, prefix_id: PrefixId) -> Option<NamespaceId> {
+        namespace_by_prefix(self.current_node_id, prefix_id, self.arena).or_else(|| {
             if prefix_id == self.empty_prefix_id {
                 Some(self.no_namespace_id)
             } else {
@@ -124,26 +122,27 @@ impl<'a> DocumentBuilder<'a> {
         // XXX what if element builder is none?
     }
 
-    fn add(&mut self, xml_node: XmlNode<'a>, arena: &mut Arena<XmlNode<'a>>) -> NodeId {
-        let node_id = arena.new_node(xml_node);
-        self.current_node_id.append(node_id, arena);
+    fn add(&mut self, xml_node: XmlNode<'a>) -> NodeId {
+        let node_id = self.arena.new_node(xml_node);
+        self.current_node_id.append(node_id, self.arena);
         node_id
     }
 
-    fn open_element(&mut self, arena: &mut Arena<XmlNode<'a>>) -> Result<(), Error> {
+    fn open_element(&mut self) -> Result<(), Error> {
         let element_builder = self.element_builder.take().unwrap();
-        let element = XmlNode::Element(element_builder.into_element(self, arena)?);
-        let node_id = self.add(element, arena);
+        let element = XmlNode::Element(element_builder.into_element(self)?);
+        let node_id = self.add(element);
         self.current_node_id = node_id;
         Ok(())
     }
 
-    fn text(&mut self, content: &'a str, arena: &mut Arena<XmlNode<'a>>) {
-        self.add(XmlNode::Text(content.into()), arena);
+    fn text(&mut self, content: &'a str) {
+        self.add(XmlNode::Text(content.into()));
     }
 
-    fn close_element(&mut self, arena: &mut Arena<XmlNode>) {
-        let parent_node_id = arena
+    fn close_element(&mut self) {
+        let parent_node_id = self
+            .arena
             .get(self.current_node_id)
             .unwrap()
             .parent()
@@ -153,7 +152,7 @@ impl<'a> DocumentBuilder<'a> {
 }
 
 impl<'a> Document<'a> {
-    pub fn parse(xml: &'a str, arena: &mut Arena<XmlNode<'a>>) -> Result<Self, Error> {
+    pub fn parse(xml: &'a str, arena: &'a mut XmlArena<'a>) -> Result<Self, Error> {
         use Token::*;
 
         let mut builder = DocumentBuilder::new(arena);
@@ -172,7 +171,7 @@ impl<'a> Document<'a> {
                     }
                 }
                 Text { text } => {
-                    builder.text(text.as_str(), arena);
+                    builder.text(text.as_str());
                 }
                 ElementStart {
                     prefix,
@@ -186,14 +185,14 @@ impl<'a> Document<'a> {
 
                     match end {
                         Open => {
-                            builder.open_element(arena)?;
+                            builder.open_element()?;
                         }
                         Close(prefix, local) => {
                             // XXX check that we're closing the right element
-                            builder.close_element(arena);
+                            builder.close_element();
                         }
                         Empty => {
-                            builder.close_element(arena);
+                            builder.close_element();
                         }
                     }
                 }
