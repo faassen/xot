@@ -1,4 +1,5 @@
-use indextree::{Arena, NodeId};
+use indextree::{Arena, DebugPrettyPrint, NodeId};
+use std::fmt::Debug;
 
 use crate::error::Error;
 use crate::name::{NameId, NameLookup};
@@ -72,5 +73,11 @@ impl<'a> Document<'a> {
         })?;
         let prefix = self.prefix_lookup.get_value(prefix_id);
         Ok(format!("{}:{}", prefix, name.name))
+    }
+}
+
+impl<'a> Debug for Document<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.root_node_id().debug_pretty_print(self.arena).fmt(f)
     }
 }
