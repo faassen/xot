@@ -1,21 +1,45 @@
-use indextree::{Arena, DebugPrettyPrint, NodeId};
+use indextree::{Arena, NodeId};
 use std::fmt::Debug;
 
 use crate::error::Error;
 use crate::name::{NameId, NameLookup};
-use crate::namespace::{NamespaceId, NamespaceLookup};
+use crate::namespace::{Namespace, NamespaceId, NamespaceLookup};
 use crate::prefix::{PrefixId, PrefixLookup};
 use crate::xmlnode::XmlNode;
 
 pub type XmlArena<'a> = Arena<XmlNode<'a>>;
 
-pub struct Document<'a> {
-    pub(crate) arena: &'a mut XmlArena<'a>,
+pub struct XmlData<'a> {
+    pub(crate) arena: XmlArena<'a>,
     pub(crate) namespace_lookup: NamespaceLookup<'a>,
     pub(crate) prefix_lookup: PrefixLookup<'a>,
     pub(crate) name_lookup: NameLookup<'a>,
-    pub(crate) tree: NodeId,
     pub(crate) no_namespace_id: NamespaceId,
+}
+
+impl<'a> XmlData<'a> {
+    pub fn new() -> Self {
+        let mut namespace_lookup = NamespaceLookup::new();
+        let no_namespace_id = namespace_lookup.get_id(Namespace::new(""));
+        XmlData {
+            arena: XmlArena::new(),
+            namespace_lookup,
+            prefix_lookup: PrefixLookup::new(),
+            name_lookup: NameLookup::new(),
+            no_namespace_id,
+        }
+    }
+}
+
+impl<'a> Default for XmlData<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+pub struct Document<'a> {
+    pub(crate) data: &'a mut XmlData<'a>,
+    pub(crate) tree: NodeId,
 }
 
 pub(crate) fn prefix_by_namespace(
@@ -56,28 +80,31 @@ impl<'a> Document<'a> {
     }
 
     pub(crate) fn fullname(&self, node_id: NodeId, name_id: NameId) -> Result<String, Error> {
-        let name = self.name_lookup.get_value(name_id);
-        if name.namespace_id == self.no_namespace_id {
+        let name = self.data.name_lookup.get_value(name_id);
+        if name.namespace_id == self.data.no_namespace_id {
             return Ok(name.name.to_string());
         }
         // XXX this is relatively slow
-        let prefix_id = prefix_by_namespace(node_id, name.namespace_id, &self.arena);
+        let prefix_id = prefix_by_namespace(node_id, name.namespace_id, &self.data.arena);
         // if prefix_id cannot be found, then that's an error: we have removed
         // a prefix declaration even though it is still in use
         let prefix_id = prefix_id.ok_or_else(|| {
             Error::NoPrefixForNamespace(
-                self.namespace_lookup
+                self.data
+                    .namespace_lookup
                     .get_value(name.namespace_id)
                     .to_string(),
             )
         })?;
-        let prefix = self.prefix_lookup.get_value(prefix_id);
+        let prefix = self.data.prefix_lookup.get_value(prefix_id);
         Ok(format!("{}:{}", prefix, name.name))
     }
 }
 
 impl<'a> Debug for Document<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.root_node_id().debug_pretty_print(self.arena).fmt(f)
+        self.root_node_id()
+            .debug_pretty_print(&self.data.arena)
+            .fmt(f)
     }
 }

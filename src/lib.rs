@@ -8,5 +8,5 @@ mod prefix;
 mod serialize;
 mod xmlnode;
 
-pub use document::Document;
+pub use document::{Document, XmlData};
 pub use error::Error;
