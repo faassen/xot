@@ -8,12 +8,12 @@ use crate::prefix::PrefixId;
 
 #[derive(Debug)]
 pub enum XmlNode<'a> {
+    Root,
     Element(Element<'a>),
     Text(Cow<'a, str>),
 }
 
 pub(crate) type Attributes<'a> = VecMap<NameId, Cow<'a, str>>;
-pub(crate) type Prefixes = VecMap<PrefixId, NamespaceId>;
 
 #[derive(Debug)]
 pub(crate) struct NamespaceInfo {
@@ -43,13 +43,13 @@ pub struct Element<'a> {
 }
 
 impl<'a> Element<'a> {
-    pub(crate) fn new(name_id: NameId) -> Self {
-        Element {
-            name_id,
-            attributes: VecMap::new(),
-            namespace_info: NamespaceInfo::new(),
-        }
-    }
+    // pub(crate) fn new(name_id: NameId) -> Self {
+    //     Element {
+    //         name_id,
+    //         attributes: VecMap::new(),
+    //         namespace_info: NamespaceInfo::new(),
+    //     }
+    // }
 
     pub fn get_attributes(&'a self) -> &'a Attributes<'a> {
         &self.attributes

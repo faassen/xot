@@ -7,6 +7,6 @@ edition = "2021"
 
 [dependencies]
 ahash = "0.8.2"
-id_tree = "1.8.0"
+indextree = "4.5.0"
 vector-map = "1.0.1"
 xmlparser = "0.13.5"
