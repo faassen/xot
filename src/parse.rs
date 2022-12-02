@@ -3,32 +3,13 @@ use std::borrow::Cow;
 use id_tree::{InsertBehavior, Node, NodeId};
 use xmlparser::{ElementEnd, Token, Tokenizer};
 
+use crate::error::Error;
 use crate::name::{Name, NameId, NameLookup};
-use crate::namespace::{Namespace, NamespaceId, NamespaceLookup};
+use crate::namespace::{self, Namespace, NamespaceId, NamespaceLookup};
 use crate::prefix::{Prefix, PrefixId, PrefixLookup};
 use crate::xmlnode::{
     namespace_by_prefix, Attributes, Document, Element, NamespaceInfo, Prefixes, XmlNode, XmlTree,
 };
-
-pub enum Error {
-    UnknownPrefix(String),
-    IdTreeError(id_tree::NodeIdError),
-    ParserError(xmlparser::Error),
-}
-
-impl From<xmlparser::Error> for Error {
-    #[inline]
-    fn from(e: xmlparser::Error) -> Self {
-        Error::ParserError(e)
-    }
-}
-
-impl From<id_tree::NodeIdError> for Error {
-    #[inline]
-    fn from(e: id_tree::NodeIdError) -> Self {
-        Error::IdTreeError(e)
-    }
-}
 
 struct ElementBuilder<'a> {
     prefix: &'a str,
@@ -62,7 +43,8 @@ impl<'a> ElementBuilder<'a> {
             .get(&prefix_id)
             .copied()
             .or_else(|| document_builder.namespace_by_prefix(prefix_id));
-        let namespace_id = namespace_id.ok_or(Error::UnknownPrefix(self.prefix.to_owned()))?;
+        let namespace_id =
+            namespace_id.ok_or_else(|| Error::UnknownPrefix(self.prefix.to_owned()))?;
         let name = Name::new(self.name, namespace_id);
         let name_id = document_builder.name_lookup.get_id(name);
         Ok(Element {
@@ -76,6 +58,8 @@ impl<'a> ElementBuilder<'a> {
 struct DocumentBuilder<'a> {
     namespace_lookup: NamespaceLookup<'a>,
     prefix_lookup: PrefixLookup<'a>,
+    no_namespace_id: NamespaceId,
+    empty_prefix_id: PrefixId,
     name_lookup: NameLookup<'a>,
     tree: XmlTree<'a>,
     current_node_id: Option<NodeId>,
@@ -84,9 +68,19 @@ struct DocumentBuilder<'a> {
 
 impl<'a> DocumentBuilder<'a> {
     fn new() -> Self {
+        let mut namespace_lookup = NamespaceLookup::new();
+        // XXX absence of namespace is defined as the empty namespace,
+        // we should forbid its construction otherwise?
+        let no_namespace_id = namespace_lookup.get_id(Namespace::new(""));
+
+        let mut prefix_lookup = PrefixLookup::new();
+        let empty_prefix_id = prefix_lookup.get_id(Prefix::new(""));
+
         DocumentBuilder {
-            namespace_lookup: NamespaceLookup::new(),
-            prefix_lookup: PrefixLookup::new(),
+            namespace_lookup,
+            prefix_lookup,
+            no_namespace_id,
+            empty_prefix_id,
             name_lookup: NameLookup::new(),
             tree: XmlTree::new(),
             current_node_id: None,
@@ -100,6 +94,7 @@ impl<'a> DocumentBuilder<'a> {
             prefix_lookup: self.prefix_lookup,
             name_lookup: self.name_lookup,
             tree: self.tree,
+            no_namespace_id: self.no_namespace_id,
         }
     }
 
@@ -111,6 +106,13 @@ impl<'a> DocumentBuilder<'a> {
         self.current_node_id
             .as_ref()
             .and_then(|node_id| namespace_by_prefix(&self.tree, node_id, prefix_id).unwrap())
+            .or_else(|| {
+                if prefix_id == self.empty_prefix_id {
+                    Some(self.no_namespace_id)
+                } else {
+                    None
+                }
+            })
     }
 
     fn prefix(&mut self, prefix: &'a str, namespace_uri: &'a str) {
@@ -122,20 +124,20 @@ impl<'a> DocumentBuilder<'a> {
         // XXX what if element builder is none?
     }
 
-    fn add(&mut self, xml_node: XmlNode<'a>) -> Result<(), Error> {
+    fn add(&mut self, xml_node: XmlNode<'a>) -> Result<NodeId, Error> {
         let behavior = match self.current_node_id {
             Some(ref current_node_id) => InsertBehavior::UnderNode(current_node_id),
             None => InsertBehavior::AsRoot,
         };
-        let new_node_id = self.tree.insert(Node::new(xml_node), behavior)?;
-        self.current_node_id = Some(new_node_id);
-        Ok(())
+        let node_id = self.tree.insert(Node::new(xml_node), behavior)?;
+        Ok(node_id)
     }
 
     fn open_element(&mut self) -> Result<(), Error> {
         let element_builder = self.element_builder.take().unwrap();
         let element = XmlNode::Element(element_builder.into_element(self)?);
-        self.add(element)?;
+        let node_id = self.add(element)?;
+        self.current_node_id = Some(node_id);
         Ok(())
     }
 
@@ -153,7 +155,7 @@ impl<'a> DocumentBuilder<'a> {
 }
 
 impl<'a> Document<'a> {
-    fn parse(xml: &'a str) -> Result<Self, Error> {
+    pub fn parse(xml: &'a str) -> Result<Self, Error> {
         use Token::*;
 
         let mut builder = DocumentBuilder::new();
