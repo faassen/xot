@@ -27,7 +27,7 @@ impl<'a> XmlData<'a> {
         XmlData {
             arena: XmlArena::new(),
             namespace_lookup,
-            prefix_lookup: PrefixLookup::new(),
+            prefix_lookup,
             name_lookup: NameLookup::new(),
             no_namespace_id,
             empty_prefix_id,
@@ -100,8 +100,12 @@ impl<'a> Document<'a> {
                     .to_string(),
             )
         })?;
-        let prefix = self.data.prefix_lookup.get_value(prefix_id);
-        Ok(format!("{}:{}", prefix, name.name))
+        if prefix_id == self.data.empty_prefix_id {
+            Ok(format!("{}", name.name))
+        } else {
+            let prefix = self.data.prefix_lookup.get_value(prefix_id);
+            Ok(format!("{}:{}", prefix, name.name))
+        }
     }
 }
 

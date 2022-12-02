@@ -150,7 +150,8 @@ impl<'a> Document<'a> {
                 } => {
                     if prefix.as_str() == "xmlns" {
                         builder.prefix(local.as_str(), value.as_str());
-                    } else {
+                    } else if local.as_str() == "xmlns" {
+                        builder.prefix("", value.as_str());
                     }
                 }
                 Text { text } => {
