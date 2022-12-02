@@ -3,9 +3,9 @@ use std::borrow::Cow;
 use id_tree::{InsertBehavior, Node, NodeId};
 use xmlparser::{ElementEnd, Token, Tokenizer};
 
-use crate::xmlnode::{
-    Document, Element, Name, Names, Namespace, NamespaceId, Namespaces, Prefixes, XmlNode, XmlTree,
-};
+use crate::name::{Name, NameId, Names};
+use crate::namespace::{Namespace, NamespaceId, Namespaces};
+use crate::xmlnode::{Document, Element, Prefixes, XmlNode, XmlTree};
 
 pub enum Error {
     IdTreeError(id_tree::NodeIdError),
