@@ -21,6 +21,11 @@ impl<'a> Document<'a> {
             XmlNode::Element(element) => {
                 let fullname = self.fullname(node_id, element.name_id)?;
                 write!(w, "<{}", fullname)?;
+                for (prefix_id, namespace_id) in element.namespace_info.to_namespace.iter() {
+                    let prefix = self.data.prefix_lookup.get_value(*prefix_id);
+                    let namespace = self.data.namespace_lookup.get_value(*namespace_id);
+                    write!(w, " xmlns:{}=\"{}\"", prefix, namespace)?;
+                }
                 let mut children_ids = node_id.children(&self.data.arena).peekable();
                 if children_ids.peek().is_none() {
                     write!(w, "/>")?;

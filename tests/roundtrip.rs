@@ -11,3 +11,16 @@ fn roundtrip() {
     let output_xml = String::from_utf8(buf).unwrap();
     assert_eq!(xml, output_xml);
 }
+
+#[test]
+fn roundtrip_ns() {
+    let mut data = XmlData::new();
+    let xml =
+        r#"<foo:root xmlns:foo="http://example.com"><foo:a>1</foo:a><foo:b>2</foo:b></foo:root>"#;
+    let doc = Document::parse(xml, &mut data).unwrap();
+
+    let mut buf = Vec::new();
+    doc.serialize(doc.root_node_id(), &mut buf).unwrap();
+    let output_xml = String::from_utf8(buf).unwrap();
+    assert_eq!(xml, output_xml);
+}
