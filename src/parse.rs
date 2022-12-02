@@ -3,11 +3,15 @@ use std::borrow::Cow;
 use id_tree::{InsertBehavior, Node, NodeId};
 use xmlparser::{ElementEnd, Token, Tokenizer};
 
-use crate::name::{Name, NameId, Names};
-use crate::namespace::{Namespace, NamespaceId, Namespaces};
-use crate::xmlnode::{Document, Element, Prefixes, XmlNode, XmlTree};
+use crate::name::{Name, NameId, NameLookup};
+use crate::namespace::{Namespace, NamespaceId, NamespaceLookup};
+use crate::prefix::{Prefix, PrefixId, PrefixLookup};
+use crate::xmlnode::{
+    namespace_by_prefix, Attributes, Document, Element, NamespaceInfo, Prefixes, XmlNode, XmlTree,
+};
 
 pub enum Error {
+    UnknownPrefix(String),
     IdTreeError(id_tree::NodeIdError),
     ParserError(xmlparser::Error),
 }
@@ -26,56 +30,96 @@ impl From<id_tree::NodeIdError> for Error {
     }
 }
 
+struct ElementBuilder<'a> {
+    prefix: &'a str,
+    name: &'a str,
+    namespace_info: NamespaceInfo,
+    // XXX this can't be attributes but has to be map of prefix, name
+    // to value that can later be converted once namespaces are known
+    attributes: Attributes<'a>,
+}
+
+impl<'a> ElementBuilder<'a> {
+    fn new(prefix: &'a str, name: &'a str) -> Self {
+        ElementBuilder {
+            prefix,
+            name,
+            namespace_info: NamespaceInfo::new(),
+            attributes: Attributes::new(),
+        }
+    }
+
+    fn into_element(
+        self,
+        document_builder: &mut DocumentBuilder<'a>,
+    ) -> Result<Element<'a>, Error> {
+        let prefix_id = document_builder
+            .prefix_lookup
+            .get_id(Prefix::new(self.prefix));
+        let namespace_id = self
+            .namespace_info
+            .to_namespace
+            .get(&prefix_id)
+            .copied()
+            .or_else(|| document_builder.namespace_by_prefix(prefix_id));
+        let namespace_id = namespace_id.ok_or(Error::UnknownPrefix(self.prefix.to_owned()))?;
+        let name = Name::new(self.name, namespace_id);
+        let name_id = document_builder.name_lookup.get_id(name);
+        Ok(Element {
+            name_id,
+            namespace_info: self.namespace_info,
+            attributes: self.attributes,
+        })
+    }
+}
+
 struct DocumentBuilder<'a> {
-    namespaces: Namespaces<'a>,
-    names: Names<'a>,
+    namespace_lookup: NamespaceLookup<'a>,
+    prefix_lookup: PrefixLookup<'a>,
+    name_lookup: NameLookup<'a>,
     tree: XmlTree<'a>,
     current_node_id: Option<NodeId>,
-    current_element: Option<Element<'a>>,
+    element_builder: Option<ElementBuilder<'a>>,
 }
 
 impl<'a> DocumentBuilder<'a> {
     fn new() -> Self {
         DocumentBuilder {
-            namespaces: Namespaces::new(),
-            names: Names::new(),
+            namespace_lookup: NamespaceLookup::new(),
+            prefix_lookup: PrefixLookup::new(),
+            name_lookup: NameLookup::new(),
             tree: XmlTree::new(),
             current_node_id: None,
-            current_element: None,
+            element_builder: None,
         }
     }
 
-    fn element(&mut self, name: &'a str, prefix: &'a str) {
-        // XXX what if prefix is not known
-        let namespace_id = self.namespace_by_prefix(prefix);
-        if let Some(namespace_id) = namespace_id {
-            let name = Name::new(name, namespace_id);
-            let name_id = self.names.get_id(name);
-            self.current_element = Some(Element::new(name_id));
+    fn into_document(self) -> Document<'a> {
+        Document {
+            namespace_lookup: self.namespace_lookup,
+            prefix_lookup: self.prefix_lookup,
+            name_lookup: self.name_lookup,
+            tree: self.tree,
         }
     }
 
-    fn namespace_by_prefix(&self, prefix: &'a str) -> Option<NamespaceId> {
-        // XXX what if there is no current element?
-        if let Some(current_element) = &self.current_element {
-            current_element.get_prefixes().get(prefix).copied()
-            // XXX should chain with parents if not found
-        } else {
-            None
-        }
+    fn element(&mut self, prefix: &'a str, name: &'a str) {
+        self.element_builder = Some(ElementBuilder::new(prefix, name));
+    }
+
+    fn namespace_by_prefix(&self, prefix_id: PrefixId) -> Option<NamespaceId> {
+        self.current_node_id
+            .as_ref()
+            .and_then(|node_id| namespace_by_prefix(&self.tree, node_id, prefix_id).unwrap())
     }
 
     fn prefix(&mut self, prefix: &'a str, namespace_uri: &'a str) {
-        let namespace_id = self.namespaces.get_id(Namespace::new(namespace_uri));
-        // XXX what if there is no current element
-        // use prefixes map
-        // use current_prefixes VecMap
-        // take it when constructing the element
-        // so maybe a current element context that we can take() as a whole
-        // if let Some(current_element) = &mut self.current_element {
-        //     let prefix = prefix.to_string();
-        //     current_element.add_prefix(Cow::Owned(prefix), namespace_id);
-        // }
+        let prefix_id = self.prefix_lookup.get_id(Prefix::new(prefix));
+        let namespace_id = self.namespace_lookup.get_id(Namespace::new(namespace_uri));
+        if let Some(element_builder) = &mut self.element_builder {
+            element_builder.namespace_info.add(prefix_id, namespace_id);
+        }
+        // XXX what if element builder is none?
     }
 
     fn add(&mut self, xml_node: XmlNode<'a>) -> Result<(), Error> {
@@ -89,8 +133,14 @@ impl<'a> DocumentBuilder<'a> {
     }
 
     fn open_element(&mut self) -> Result<(), Error> {
-        let element = self.current_element.take().unwrap();
-        self.add(XmlNode::Element(element))?;
+        let element_builder = self.element_builder.take().unwrap();
+        let element = XmlNode::Element(element_builder.into_element(self)?);
+        self.add(element)?;
+        Ok(())
+    }
+
+    fn text(&mut self, content: &'a str) -> Result<(), Error> {
+        self.add(XmlNode::Text(content.into()))?;
         Ok(())
     }
 
@@ -122,14 +172,14 @@ impl<'a> Document<'a> {
                     }
                 }
                 Text { text } => {
-                    let text_node = XmlNode::Text(text.as_str().into());
+                    builder.text(text.as_str())?;
                 }
                 ElementStart {
                     prefix,
                     local,
                     span,
                 } => {
-                    builder.element(local.as_str(), prefix.as_str());
+                    builder.element(prefix.as_str(), local.as_str());
                 }
                 ElementEnd { end, span } => {
                     use self::ElementEnd::*;
@@ -151,11 +201,6 @@ impl<'a> Document<'a> {
             }
         }
 
-        todo!();
-        // Ok(Document {
-        //     namespaces: builder.namespaces,
-        //     names: builder.names,
-        //     tree: builder.tree,
-        // })
+        Ok(builder.into_document())
     }
 }

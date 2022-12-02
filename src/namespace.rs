@@ -16,7 +16,7 @@ impl IdIndex<NamespaceId> for NamespaceId {
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub(crate) struct Namespace<'a>(Cow<'a, str>);
+pub struct Namespace<'a>(Cow<'a, str>);
 
 impl<'a> Namespace<'a> {
     pub(crate) fn new(namespace_uri: &'a str) -> Self {
@@ -24,4 +24,4 @@ impl<'a> Namespace<'a> {
     }
 }
 
-pub(crate) type Namespaces<'a> = IdMap<NamespaceId, Namespace<'a>>;
+pub(crate) type NamespaceLookup<'a> = IdMap<NamespaceId, Namespace<'a>>;
