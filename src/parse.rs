@@ -55,10 +55,6 @@ impl<'a> ElementBuilder<'a> {
 
 struct DocumentBuilder<'a> {
     data: &'a mut XmlData<'a>,
-
-    no_namespace_id: NamespaceId,
-    empty_prefix_id: PrefixId,
-
     tree: NodeId,
     current_node_id: NodeId,
     element_builder: Option<ElementBuilder<'a>>,
@@ -66,19 +62,9 @@ struct DocumentBuilder<'a> {
 
 impl<'a> DocumentBuilder<'a> {
     fn new(data: &'a mut XmlData<'a>) -> Self {
-        let mut namespace_lookup = NamespaceLookup::new();
-        // XXX absence of namespace is defined as the empty namespace,
-        // we should forbid its construction otherwise?
-        let no_namespace_id = namespace_lookup.get_id(Namespace::new(""));
-
-        let mut prefix_lookup = PrefixLookup::new();
-        let empty_prefix_id = prefix_lookup.get_id(Prefix::new(""));
-
         let root = data.arena.new_node(XmlNode::Root);
         DocumentBuilder {
             data,
-            no_namespace_id,
-            empty_prefix_id,
             tree: root,
             current_node_id: root,
             element_builder: None,
@@ -98,8 +84,8 @@ impl<'a> DocumentBuilder<'a> {
 
     fn namespace_by_prefix(&self, prefix_id: PrefixId) -> Option<NamespaceId> {
         namespace_by_prefix(self.current_node_id, prefix_id, &self.data.arena).or_else(|| {
-            if prefix_id == self.empty_prefix_id {
-                Some(self.no_namespace_id)
+            if prefix_id == self.data.empty_prefix_id {
+                Some(self.data.no_namespace_id)
             } else {
                 None
             }

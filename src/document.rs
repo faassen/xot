@@ -4,7 +4,7 @@ use std::fmt::Debug;
 use crate::error::Error;
 use crate::name::{NameId, NameLookup};
 use crate::namespace::{Namespace, NamespaceId, NamespaceLookup};
-use crate::prefix::{PrefixId, PrefixLookup};
+use crate::prefix::{Prefix, PrefixId, PrefixLookup};
 use crate::xmlnode::XmlNode;
 
 pub type XmlArena<'a> = Arena<XmlNode<'a>>;
@@ -15,18 +15,22 @@ pub struct XmlData<'a> {
     pub(crate) prefix_lookup: PrefixLookup<'a>,
     pub(crate) name_lookup: NameLookup<'a>,
     pub(crate) no_namespace_id: NamespaceId,
+    pub(crate) empty_prefix_id: PrefixId,
 }
 
 impl<'a> XmlData<'a> {
     pub fn new() -> Self {
         let mut namespace_lookup = NamespaceLookup::new();
         let no_namespace_id = namespace_lookup.get_id(Namespace::new(""));
+        let mut prefix_lookup = PrefixLookup::new();
+        let empty_prefix_id = prefix_lookup.get_id(Prefix::new(""));
         XmlData {
             arena: XmlArena::new(),
             namespace_lookup,
             prefix_lookup: PrefixLookup::new(),
             name_lookup: NameLookup::new(),
             no_namespace_id,
+            empty_prefix_id,
         }
     }
 }
