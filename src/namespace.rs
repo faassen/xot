@@ -4,11 +4,11 @@ use std::fmt::{Display, Formatter};
 use crate::idmap::{IdIndex, IdMap};
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct NamespaceId(u8);
+pub struct NamespaceId(u16);
 
 impl IdIndex<NamespaceId> for NamespaceId {
     fn to_id(index: usize) -> NamespaceId {
-        NamespaceId(index as u8)
+        NamespaceId(index as u16)
     }
 
     fn from_id(id: NamespaceId) -> usize {

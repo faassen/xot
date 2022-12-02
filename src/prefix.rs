@@ -4,11 +4,11 @@ use std::fmt::{Display, Formatter};
 use crate::idmap::{IdIndex, IdMap};
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct PrefixId(u8);
+pub struct PrefixId(u16);
 
 impl IdIndex<PrefixId> for PrefixId {
     fn to_id(index: usize) -> PrefixId {
-        PrefixId(index as u8)
+        PrefixId(index as u16)
     }
 
     fn from_id(id: PrefixId) -> usize {
