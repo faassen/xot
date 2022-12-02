@@ -3,9 +3,9 @@ use xmlparser::{ElementEnd, Token, Tokenizer};
 
 use crate::document::{namespace_by_prefix, Document, XmlData};
 use crate::error::Error;
-use crate::name::{Name, NameLookup};
-use crate::namespace::{Namespace, NamespaceId, NamespaceLookup};
-use crate::prefix::{Prefix, PrefixId, PrefixLookup};
+use crate::name::Name;
+use crate::namespace::{Namespace, NamespaceId};
+use crate::prefix::{Prefix, PrefixId};
 use crate::xmlnode::{Attributes, Element, NamespaceInfo, XmlNode};
 
 struct ElementBuilder<'a> {
