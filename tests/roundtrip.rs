@@ -30,7 +30,6 @@ fn roundtrip_some_ns() {
     let mut data = XmlData::new();
     let xml = r#"<root xmlns:foo="http://example.com"><a>1</a><foo:b>2</foo:b></root>"#;
     let doc = Document::parse(xml, &mut data).unwrap();
-
     let mut buf = Vec::new();
     doc.serialize(doc.root_node_id(), &mut buf).unwrap();
     let output_xml = String::from_utf8(buf).unwrap();

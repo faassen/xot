@@ -83,6 +83,10 @@ impl<'a> Document<'a> {
         self.tree
     }
 
+    pub fn arena_mut(&mut self) -> &mut XmlArena<'a> {
+        &mut self.data.arena
+    }
+
     pub(crate) fn fullname(&self, node_id: NodeId, name_id: NameId) -> Result<String, Error> {
         let name = self.data.name_lookup.get_value(name_id);
         if name.namespace_id == self.data.no_namespace_id {
