@@ -1,5 +1,3 @@
-use crate::namespace::Namespace;
-
 #[derive(Debug)]
 pub enum Error {
     NoPrefixForNamespace(String),
