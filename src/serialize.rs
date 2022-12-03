@@ -1,4 +1,4 @@
-use indextree::NodeId;
+use indextree::{NodeEdge, NodeId};
 use std::io::Write;
 
 use crate::document::Document;
@@ -11,13 +11,23 @@ impl<'a> Document<'a> {
         node_id: NodeId,
         w: &mut impl Write,
     ) -> Result<(), Error> {
-        let xml_node = self.data.arena.get(node_id).unwrap().get();
-        match xml_node {
-            XmlNode::Root => {
-                for child in node_id.children(&self.data.arena) {
-                    self.serialize(child, w)?;
+        for edge in node_id.traverse(&self.data.arena) {
+            match edge {
+                NodeEdge::Start(node_id) => {
+                    self.handle_edge_start(node_id, w)?;
+                }
+                NodeEdge::End(node_id) => {
+                    self.handle_edge_end(node_id, w)?;
                 }
             }
+        }
+        Ok(())
+    }
+
+    fn handle_edge_start(&self, node_id: NodeId, w: &mut impl Write) -> Result<(), Error> {
+        let xml_node = self.data.arena.get(node_id).unwrap().get();
+        match xml_node {
+            XmlNode::Root => {}
             XmlNode::Element(element) => {
                 let fullname = self.fullname(node_id, element.name_id)?;
                 write!(w, "<{}", fullname)?;
@@ -34,20 +44,30 @@ impl<'a> Document<'a> {
                         )?;
                     }
                 }
-                let mut children_ids = node_id.children(&self.data.arena).peekable();
-                if children_ids.peek().is_none() {
+                if node_id.children(&self.data.arena).next().is_none() {
                     write!(w, "/>")?;
                 } else {
                     write!(w, ">")?;
-                    for child_id in children_ids {
-                        self.serialize(child_id, w)?;
-                    }
-                    write!(w, "</{}>", fullname)?;
                 }
             }
             XmlNode::Text(text) => {
                 write!(w, "{}", text)?;
             }
+        }
+        Ok(())
+    }
+
+    fn handle_edge_end(&self, node_id: NodeId, w: &mut impl Write) -> Result<(), Error> {
+        let xml_node = self.data.arena.get(node_id).unwrap().get();
+        match xml_node {
+            XmlNode::Root => {}
+            XmlNode::Element(element) => {
+                if node_id.children(&self.data.arena).next().is_some() {
+                    let fullname = self.fullname(node_id, element.name_id)?;
+                    write!(w, "</{}>", fullname)?;
+                }
+            }
+            XmlNode::Text(text) => {}
         }
         Ok(())
     }
