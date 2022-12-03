@@ -14,7 +14,7 @@ struct ElementBuilder<'a> {
     prefix: &'a str,
     name: &'a str,
     namespace_info: NamespaceInfo,
-    attributes: HashMap<(String, String), Cow<'a, str>>,
+    attributes: HashMap<(Cow<'a, str>, Cow<'a, str>), Cow<'a, str>>,
 }
 
 impl<'a> ElementBuilder<'a> {
@@ -39,7 +39,7 @@ impl<'a> ElementBuilder<'a> {
         for ((prefix, name), value) in self.attributes.drain() {
             let name_id =
                 document_builder.get_attribute_name_id(prefix, name, &self.namespace_info)?;
-            attributes.insert(name_id, value.into());
+            attributes.insert(name_id, value);
         }
         Ok(attributes)
     }
@@ -169,18 +169,17 @@ impl<'a> DocumentBuilder<'a> {
 
     fn get_attribute_name_id(
         &mut self,
-        prefix: String,
-        name: String,
+        prefix: Cow<'a, str>,
+        name: Cow<'a, str>,
         namespace_info: &NamespaceInfo,
     ) -> Result<NameId, Error> {
-        // XXX a hack to be able to send it to error later
-        let prefix_copy = prefix.clone();
-        let prefix_id = self.data.prefix_lookup.get_id(Prefix::new(prefix.into()));
+        let prefix_name = prefix.clone();
+        let prefix_id = self.data.prefix_lookup.get_id(Prefix::new(prefix));
         // an unprefixed attribute is in no namespace, not
         // in the default namespace
         // https://stackoverflow.com/questions/3312390/xml-default-namespaces-for-unqualified-attribute-names
         if prefix_id == self.data.empty_prefix_id {
-            let name = Name::new(name.into(), self.data.no_namespace_id);
+            let name = Name::new(name, self.data.no_namespace_id);
             return Ok(self.data.name_lookup.get_id(name));
         }
         // XXX this is relatively slow
@@ -191,8 +190,9 @@ impl<'a> DocumentBuilder<'a> {
             .get(&prefix_id)
             .copied()
             .or_else(|| self.namespace_by_prefix(prefix_id));
-        let namespace_id = namespace_id.ok_or(Error::UnknownPrefix(prefix_copy))?;
-        let name = Name::new(name.into(), namespace_id);
+        let namespace_id =
+            namespace_id.ok_or_else(|| Error::UnknownPrefix(prefix_name.into_owned()))?;
+        let name = Name::new(name, namespace_id);
         Ok(self.data.name_lookup.get_id(name))
     }
 }
