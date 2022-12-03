@@ -10,3 +10,4 @@ mod xmlnode;
 
 pub use document::{Document, XmlData};
 pub use error::Error;
+pub use xmlnode::XmlNode;

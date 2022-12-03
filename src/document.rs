@@ -83,8 +83,20 @@ impl<'a> Document<'a> {
         self.tree
     }
 
+    pub fn arena(&self) -> &XmlArena {
+        &self.data.arena
+    }
+
     pub fn arena_mut(&mut self) -> &mut XmlArena<'a> {
         &mut self.data.arena
+    }
+
+    pub fn xml_node(&self, node_id: NodeId) -> &XmlNode {
+        self.data.arena.get(node_id).unwrap().get()
+    }
+
+    pub fn xml_node_mut(&mut self, node_id: NodeId) -> &'a mut XmlNode {
+        self.data.arena.get_mut(node_id).unwrap().get_mut()
     }
 
     // XXX probably break this into convenience methods
