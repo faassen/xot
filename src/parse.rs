@@ -8,17 +8,17 @@ use crate::error::Error;
 use crate::name::{Name, NameId};
 use crate::namespace::{Namespace, NamespaceId};
 use crate::prefix::{Prefix, PrefixId};
-use crate::xmlnode::{Attributes, Element, NamespaceInfo, XmlNode};
+use crate::xmlnode::{Attributes, Element, NamespaceInfo, ToNamespace, XmlNode};
 
 struct ElementBuilder<'a> {
-    prefix: &'a str,
-    name: &'a str,
+    prefix: Cow<'a, str>,
+    name: Cow<'a, str>,
     namespace_info: NamespaceInfo,
     attributes: HashMap<(Cow<'a, str>, Cow<'a, str>), Cow<'a, str>>,
 }
 
 impl<'a> ElementBuilder<'a> {
-    fn new(prefix: &'a str, name: &'a str) -> Self {
+    fn new(prefix: Cow<'a, str>, name: Cow<'a, str>) -> Self {
         ElementBuilder {
             prefix,
             name,
@@ -27,18 +27,16 @@ impl<'a> ElementBuilder<'a> {
         }
     }
 
-    fn get_name_id(&self, document_builder: &mut DocumentBuilder<'a>) -> Result<NameId, Error> {
-        document_builder.get_name_id(self.prefix, self.name, &self.namespace_info)
-    }
-
-    fn get_attributes(
+    fn build_attributes(
         &mut self,
         document_builder: &mut DocumentBuilder<'a>,
     ) -> Result<Attributes<'a>, Error> {
         let mut attributes = Attributes::new();
         for ((prefix, name), value) in self.attributes.drain() {
             let name_id =
-                document_builder.get_attribute_name_id(prefix, name, &self.namespace_info)?;
+                document_builder
+                    .name_id_builder
+                    .name_id(prefix, name, document_builder.data)?;
             attributes.insert(name_id, value);
         }
         Ok(attributes)
@@ -48,9 +46,17 @@ impl<'a> ElementBuilder<'a> {
         mut self,
         document_builder: &mut DocumentBuilder<'a>,
     ) -> Result<Element<'a>, Error> {
-        let attributes = self.get_attributes(document_builder)?;
+        document_builder
+            .name_id_builder
+            .push(&self.namespace_info.to_namespace);
+        let attributes = self.build_attributes(document_builder)?;
+        let name_id = document_builder.name_id_builder.name_id(
+            self.prefix,
+            self.name,
+            document_builder.data,
+        )?;
         Ok(Element {
-            name_id: self.get_name_id(document_builder)?,
+            name_id,
             namespace_info: self.namespace_info,
             attributes,
         })
@@ -61,16 +67,22 @@ struct DocumentBuilder<'a> {
     data: &'a mut XmlData<'a>,
     tree: NodeId,
     current_node_id: NodeId,
+    name_id_builder: NameIdBuilder,
     element_builder: Option<ElementBuilder<'a>>,
 }
 
 impl<'a> DocumentBuilder<'a> {
     fn new(data: &'a mut XmlData<'a>) -> Self {
         let root = data.arena.new_node(XmlNode::Root);
+        let mut name_id_builder = NameIdBuilder::new();
+        let mut base_to_namespace = ToNamespace::new();
+        base_to_namespace.insert(data.empty_prefix_id, data.no_namespace_id);
+        name_id_builder.push(&base_to_namespace);
         DocumentBuilder {
             data,
             tree: root,
             current_node_id: root,
+            name_id_builder,
             element_builder: None,
         }
     }
@@ -82,7 +94,7 @@ impl<'a> DocumentBuilder<'a> {
         }
     }
 
-    fn element(&mut self, prefix: &'a str, name: &'a str) {
+    fn element(&mut self, prefix: Cow<'a, str>, name: Cow<'a, str>) {
         self.element_builder = Some(ElementBuilder::new(prefix, name));
     }
 
@@ -137,23 +149,22 @@ impl<'a> DocumentBuilder<'a> {
     }
 
     fn close_element(&mut self) {
-        let parent_node_id = self
-            .data
-            .arena
-            .get(self.current_node_id)
-            .unwrap()
-            .parent()
-            .expect("Cannot close root node");
-        self.current_node_id = parent_node_id;
+        let current_node = self.data.arena.get(self.current_node_id).unwrap();
+        if let XmlNode::Element(element) = current_node.get() {
+            self.name_id_builder
+                .pop(&element.namespace_info.to_namespace);
+        }
+        self.current_node_id = current_node.parent().expect("Cannot close root node");
     }
 
     fn get_name_id(
         &mut self,
-        prefix: &'a str,
-        name: &'a str,
-        namespace_info: &NamespaceInfo,
+        prefix: Cow<'a, str>,
+        name: Cow<'a, str>,
+        namespace_info: &'a NamespaceInfo,
     ) -> Result<NameId, Error> {
-        let prefix_id = self.data.prefix_lookup.get_id(Prefix::new(prefix.into()));
+        let prefix_clone = prefix.clone();
+        let prefix_id = self.data.prefix_lookup.get_id(Prefix::new(prefix));
         // XXX this is relatively slow
         // we could instead have a stack of prefix -> namespace
         // much like in the serializer
@@ -162,8 +173,9 @@ impl<'a> DocumentBuilder<'a> {
             .get(&prefix_id)
             .copied()
             .or_else(|| self.namespace_by_prefix(prefix_id));
-        let namespace_id = namespace_id.ok_or_else(|| Error::UnknownPrefix(prefix.to_string()))?;
-        let name = Name::new(name.into(), namespace_id);
+        let namespace_id =
+            namespace_id.ok_or_else(|| Error::UnknownPrefix(prefix_clone.into_owned()))?;
+        let name = Name::new(name, namespace_id);
         Ok(self.data.name_lookup.get_id(name))
     }
 
@@ -171,9 +183,9 @@ impl<'a> DocumentBuilder<'a> {
         &mut self,
         prefix: Cow<'a, str>,
         name: Cow<'a, str>,
-        namespace_info: &NamespaceInfo,
+        namespace_info: &'a NamespaceInfo,
     ) -> Result<NameId, Error> {
-        let prefix_name = prefix.clone();
+        let prefix_clone = prefix.clone();
         let prefix_id = self.data.prefix_lookup.get_id(Prefix::new(prefix));
         // an unprefixed attribute is in no namespace, not
         // in the default namespace
@@ -191,9 +203,66 @@ impl<'a> DocumentBuilder<'a> {
             .copied()
             .or_else(|| self.namespace_by_prefix(prefix_id));
         let namespace_id =
-            namespace_id.ok_or_else(|| Error::UnknownPrefix(prefix_name.into_owned()))?;
+            namespace_id.ok_or_else(|| Error::UnknownPrefix(prefix_clone.into_owned()))?;
         let name = Name::new(name, namespace_id);
         Ok(self.data.name_lookup.get_id(name))
+    }
+}
+
+struct NameIdBuilder {
+    namespace_stack: Vec<ToNamespace>,
+}
+
+impl NameIdBuilder {
+    fn new() -> Self {
+        Self {
+            namespace_stack: Vec::new(),
+        }
+    }
+
+    fn push(&mut self, to_namespace: &ToNamespace) {
+        if to_namespace.is_empty() {
+            return;
+        }
+        let entry = if self.namespace_stack.is_empty() {
+            to_namespace.clone()
+        } else {
+            let mut entry = self.top().clone();
+            entry.extend(to_namespace);
+            entry
+        };
+        self.namespace_stack.push(entry);
+    }
+
+    fn pop(&mut self, to_namespace: &ToNamespace) {
+        if to_namespace.is_empty() {
+            return;
+        }
+        self.namespace_stack.pop();
+    }
+
+    #[inline]
+    fn top(&self) -> &ToNamespace {
+        &self.namespace_stack[self.namespace_stack.len() - 1]
+    }
+
+    fn name_id<'a>(
+        &mut self,
+        prefix: Cow<'a, str>,
+        name: Cow<'a, str>,
+        data: &mut XmlData<'a>,
+    ) -> Result<NameId, Error> {
+        let prefix_clone = prefix.clone();
+        let prefix_id = data.prefix_lookup.get_id(Prefix::new(prefix));
+        let namespace_id = if !self.namespace_stack.is_empty() {
+            self.top().get(&prefix_id)
+        } else {
+            None
+        };
+        let namespace_id =
+            namespace_id.ok_or_else(|| Error::UnknownPrefix(prefix_clone.to_string()))?;
+        let name = Name::new(name, *namespace_id);
+        Ok(data.name_lookup.get_id(name))
     }
 }
 
@@ -227,7 +296,7 @@ impl<'a> Document<'a> {
                     local,
                     span,
                 } => {
-                    builder.element(prefix.as_str(), local.as_str());
+                    builder.element(prefix.as_str().into(), local.as_str().into());
                 }
                 ElementEnd { end, span } => {
                     use self::ElementEnd::*;
