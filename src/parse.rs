@@ -3,10 +3,11 @@ use indextree::NodeId;
 use std::borrow::Cow;
 use xmlparser::{ElementEnd, Token, Tokenizer};
 
-use crate::document::{namespace_by_prefix, Document, XmlData};
+use crate::document::{Document, XmlData};
+use crate::entity::parse_predefined_entities;
 use crate::error::Error;
 use crate::name::{Name, NameId};
-use crate::namespace::{Namespace, NamespaceId};
+use crate::namespace::Namespace;
 use crate::prefix::{Prefix, PrefixId};
 use crate::xmlnode::{Attributes, Element, NamespaceInfo, ToNamespace, XmlNode};
 
@@ -135,9 +136,10 @@ impl<'a> DocumentBuilder<'a> {
         Ok(())
     }
 
-    fn text(&mut self, content: Cow<'a, str>) {
-        // let content = parse_predefined_entities(content);
+    fn text(&mut self, content: Cow<'a, str>) -> Result<(), Error> {
+        let content = parse_predefined_entities(content)?;
         self.add(XmlNode::Text(content));
+        Ok(())
     }
 
     fn close_element(&mut self) {
@@ -264,7 +266,7 @@ impl<'a> Document<'a> {
                     }
                 }
                 Text { text } => {
-                    builder.text(text.as_str().into());
+                    builder.text(text.as_str().into())?;
                 }
                 ElementStart {
                     prefix,

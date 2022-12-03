@@ -33,10 +33,47 @@ pub(crate) fn parse_predefined_entities(content: Cow<str>) -> Result<Cow<str>, E
             result.push(c);
         }
     }
+
     if !entity_seen {
         Ok(content)
     } else {
         Ok(result.into())
+    }
+}
+
+pub(crate) fn serialize_predefined_entities(content: Cow<str>) -> Cow<str> {
+    let mut result = String::new();
+    let mut entity_seen = false;
+    for c in content.chars() {
+        match c {
+            '&' => {
+                entity_seen = true;
+                result.push_str("&amp;")
+            }
+            '\'' => {
+                entity_seen = true;
+                result.push_str("&apos;")
+            }
+            '>' => {
+                entity_seen = true;
+                result.push_str("&gt;")
+            }
+            '<' => {
+                entity_seen = true;
+                result.push_str("&lt;")
+            }
+            '"' => {
+                entity_seen = true;
+                result.push_str("&quot;")
+            }
+            _ => result.push(c),
+        }
+    }
+
+    if !entity_seen {
+        content
+    } else {
+        result.into()
     }
 }
 
@@ -76,5 +113,36 @@ mod tests {
         } else {
             unreachable!();
         }
+    }
+
+    #[test]
+    fn test_parse_no_entities() {
+        let text = "hello";
+        let result = parse_predefined_entities(text.into()).unwrap();
+        // this is the same slice
+        assert!(std::ptr::eq(text, result.as_ref()));
+    }
+
+    #[test]
+    fn test_serialize() {
+        let text = "A & B";
+        assert_eq!(serialize_predefined_entities(text.into()), "A &amp; B");
+    }
+
+    #[test]
+    fn test_serialize_multiple() {
+        let text = "&'><\"";
+        assert_eq!(
+            serialize_predefined_entities(text.into()),
+            "&amp;&apos;&gt;&lt;&quot;"
+        );
+    }
+
+    #[test]
+    fn test_serialize_no_entities() {
+        let text = "hello";
+        let result = serialize_predefined_entities(text.into());
+        // this is the same slice
+        assert!(std::ptr::eq(text, result.as_ref()));
     }
 }

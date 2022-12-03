@@ -1,12 +1,10 @@
 use indextree::{NodeEdge, NodeId};
 use std::io::Write;
-use vector_map::VecMap;
 
 use crate::document::{Document, XmlData};
+use crate::entity::serialize_predefined_entities;
 use crate::error::Error;
 use crate::name::NameId;
-use crate::namespace::NamespaceId;
-use crate::prefix::PrefixId;
 use crate::xmlnode::{ToPrefix, XmlNode};
 
 impl<'a> Document<'a> {
@@ -69,7 +67,7 @@ impl<'a> Document<'a> {
                 }
             }
             XmlNode::Text(text) => {
-                write!(w, "{}", text)?;
+                write!(w, "{}", serialize_predefined_entities(text.clone()))?;
             }
         }
         Ok(())
