@@ -35,6 +35,9 @@ impl<'a> ElementBuilder<'a> {
             .data
             .prefix_lookup
             .get_id(Prefix::new(self.prefix));
+        // XXX this is relatively slow
+        // we could instead have a stack of prefix -> namespace
+        // much like in the serializer
         let namespace_id = self
             .namespace_info
             .to_namespace
@@ -98,10 +101,32 @@ impl<'a> DocumentBuilder<'a> {
             .data
             .namespace_lookup
             .get_id(Namespace::new(namespace_uri));
-        if let Some(element_builder) = &mut self.element_builder {
-            element_builder.namespace_info.add(prefix_id, namespace_id);
-        }
-        // XXX what if element builder is none?
+        self.element_builder
+            .as_mut()
+            .unwrap()
+            .namespace_info
+            .add(prefix_id, namespace_id);
+    }
+
+    fn attribute(&mut self, prefix: &'a str, name: &'a str, value: &'a str) -> Result<(), Error> {
+        let prefix_id = self.data.prefix_lookup.get_id(Prefix::new(prefix));
+        let namespace_id = if prefix_id != self.data.empty_prefix_id {
+            let namespace_id = self.namespace_by_prefix(prefix_id);
+            namespace_id.ok_or_else(|| Error::UnknownPrefix(prefix.to_owned()))?
+        } else {
+            // an unprefixed attribute is in no namespace, not
+            // in the default namespace
+            // https://stackoverflow.com/questions/3312390/xml-default-namespaces-for-unqualified-attribute-names
+            self.data.no_namespace_id
+        };
+        let name = Name::new(name, namespace_id);
+        let name_id = self.data.name_lookup.get_id(name);
+        self.element_builder
+            .as_mut()
+            .unwrap()
+            .attributes
+            .insert(name_id, value.into());
+        Ok(())
     }
 
     fn add(&mut self, xml_node: XmlNode<'a>) -> NodeId {
@@ -152,6 +177,8 @@ impl<'a> Document<'a> {
                         builder.prefix(local.as_str(), value.as_str());
                     } else if local.as_str() == "xmlns" {
                         builder.prefix("", value.as_str());
+                    } else {
+                        builder.attribute(prefix.as_str(), local.as_str(), value.as_str())?;
                     }
                 }
                 Text { text } => {

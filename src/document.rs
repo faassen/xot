@@ -87,7 +87,12 @@ impl<'a> Document<'a> {
         &mut self.data.arena
     }
 
-    pub(crate) fn fullname(&self, node_id: NodeId, name_id: NameId) -> Result<String, Error> {
+    // XXX probably break this into convenience methods
+    // to lookup prefix. Getting the prefix is only handy when doing
+    // tree manipulation in rare cases, as usually namespace is
+    // fine. During serialization we use a special stack for
+    // performance reasons.
+    fn fullname(&self, node_id: NodeId, name_id: NameId) -> Result<String, Error> {
         let name = self.data.name_lookup.get_value(name_id);
         if name.namespace_id == self.data.no_namespace_id {
             return Ok(name.name.to_string());

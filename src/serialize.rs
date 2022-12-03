@@ -57,6 +57,11 @@ impl<'a> Document<'a> {
                         )?;
                     }
                 }
+                for (name_id, value) in element.attributes.iter() {
+                    let fullname = fullname_serializer.fullname(*name_id)?;
+                    write!(w, " {}=\"{}\"", fullname, value)?;
+                }
+
                 if node_id.children(&self.data.arena).next().is_none() {
                     write!(w, "/>")?;
                 } else {

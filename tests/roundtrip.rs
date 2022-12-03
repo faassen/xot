@@ -23,6 +23,10 @@ fn roundtrip(#[values(
   (
       "prefix shadowing",
       r#"<foo:root xmlns:foo="http://outer.com"><foo:a xmlns:foo="http://inner.com"><foo:inner/></foo:a></foo:root>"#,
+  ),
+  (
+      "attribute",
+      r#"<root foo="bar"/>"#,
   ))] value: RoundTripEntry) {
     let (name, xml) = value;
     let mut data = XmlData::new();
