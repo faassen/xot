@@ -33,10 +33,11 @@ impl<'a> ElementBuilder<'a> {
     ) -> Result<Attributes<'a>, Error> {
         let mut attributes = Attributes::new();
         for ((prefix, name), value) in self.attributes.drain() {
-            let name_id =
-                document_builder
-                    .name_id_builder
-                    .name_id(prefix, name, document_builder.data)?;
+            let name_id = document_builder.name_id_builder.attribute_name_id(
+                prefix,
+                name,
+                document_builder.data,
+            )?;
             attributes.insert(name_id, value);
         }
         Ok(attributes)
@@ -50,7 +51,7 @@ impl<'a> ElementBuilder<'a> {
             .name_id_builder
             .push(&self.namespace_info.to_namespace);
         let attributes = self.build_attributes(document_builder)?;
-        let name_id = document_builder.name_id_builder.name_id(
+        let name_id = document_builder.name_id_builder.element_name_id(
             self.prefix,
             self.name,
             document_builder.data,
@@ -96,16 +97,6 @@ impl<'a> DocumentBuilder<'a> {
 
     fn element(&mut self, prefix: Cow<'a, str>, name: Cow<'a, str>) {
         self.element_builder = Some(ElementBuilder::new(prefix, name));
-    }
-
-    fn namespace_by_prefix(&self, prefix_id: PrefixId) -> Option<NamespaceId> {
-        namespace_by_prefix(self.current_node_id, prefix_id, &self.data.arena).or_else(|| {
-            if prefix_id == self.data.empty_prefix_id {
-                Some(self.data.no_namespace_id)
-            } else {
-                None
-            }
-        })
     }
 
     fn prefix(&mut self, prefix: &'a str, namespace_uri: &'a str) {
@@ -156,57 +147,6 @@ impl<'a> DocumentBuilder<'a> {
         }
         self.current_node_id = current_node.parent().expect("Cannot close root node");
     }
-
-    fn get_name_id(
-        &mut self,
-        prefix: Cow<'a, str>,
-        name: Cow<'a, str>,
-        namespace_info: &'a NamespaceInfo,
-    ) -> Result<NameId, Error> {
-        let prefix_clone = prefix.clone();
-        let prefix_id = self.data.prefix_lookup.get_id(Prefix::new(prefix));
-        // XXX this is relatively slow
-        // we could instead have a stack of prefix -> namespace
-        // much like in the serializer
-        let namespace_id = namespace_info
-            .to_namespace
-            .get(&prefix_id)
-            .copied()
-            .or_else(|| self.namespace_by_prefix(prefix_id));
-        let namespace_id =
-            namespace_id.ok_or_else(|| Error::UnknownPrefix(prefix_clone.into_owned()))?;
-        let name = Name::new(name, namespace_id);
-        Ok(self.data.name_lookup.get_id(name))
-    }
-
-    fn get_attribute_name_id(
-        &mut self,
-        prefix: Cow<'a, str>,
-        name: Cow<'a, str>,
-        namespace_info: &'a NamespaceInfo,
-    ) -> Result<NameId, Error> {
-        let prefix_clone = prefix.clone();
-        let prefix_id = self.data.prefix_lookup.get_id(Prefix::new(prefix));
-        // an unprefixed attribute is in no namespace, not
-        // in the default namespace
-        // https://stackoverflow.com/questions/3312390/xml-default-namespaces-for-unqualified-attribute-names
-        if prefix_id == self.data.empty_prefix_id {
-            let name = Name::new(name, self.data.no_namespace_id);
-            return Ok(self.data.name_lookup.get_id(name));
-        }
-        // XXX this is relatively slow
-        // we could instead have a stack of prefix -> namespace
-        // much like in the serializer
-        let namespace_id = namespace_info
-            .to_namespace
-            .get(&prefix_id)
-            .copied()
-            .or_else(|| self.namespace_by_prefix(prefix_id));
-        let namespace_id =
-            namespace_id.ok_or_else(|| Error::UnknownPrefix(prefix_clone.into_owned()))?;
-        let name = Name::new(name, namespace_id);
-        Ok(self.data.name_lookup.get_id(name))
-    }
 }
 
 struct NameIdBuilder {
@@ -246,7 +186,7 @@ impl NameIdBuilder {
         &self.namespace_stack[self.namespace_stack.len() - 1]
     }
 
-    fn name_id<'a>(
+    fn element_name_id<'a>(
         &mut self,
         prefix: Cow<'a, str>,
         name: Cow<'a, str>,
@@ -254,13 +194,47 @@ impl NameIdBuilder {
     ) -> Result<NameId, Error> {
         let prefix_clone = prefix.clone();
         let prefix_id = data.prefix_lookup.get_id(Prefix::new(prefix));
+        if let Ok(name_id) = self.name_id_with_prefix_id(prefix_id, name, data) {
+            Ok(name_id)
+        } else {
+            Err(Error::UnknownPrefix(prefix_clone.to_string()))
+        }
+    }
+
+    fn attribute_name_id<'a>(
+        &mut self,
+        prefix: Cow<'a, str>,
+        name: Cow<'a, str>,
+        data: &mut XmlData<'a>,
+    ) -> Result<NameId, Error> {
+        // an unprefixed attribute is in no namespace, not
+        // in the default namespace
+        // https://stackoverflow.com/questions/3312390/xml-default-namespaces-for-unqualified-attribute-names
+        let prefix_clone = prefix.clone();
+        let prefix_id = data.prefix_lookup.get_id(Prefix::new(prefix));
+        if prefix_id == data.empty_prefix_id {
+            let name = Name::new(name, data.no_namespace_id);
+            return Ok(data.name_lookup.get_id(name));
+        }
+        if let Ok(name_id) = self.name_id_with_prefix_id(prefix_id, name, data) {
+            Ok(name_id)
+        } else {
+            Err(Error::UnknownPrefix(prefix_clone.to_string()))
+        }
+    }
+
+    fn name_id_with_prefix_id<'a>(
+        &mut self,
+        prefix_id: PrefixId,
+        name: Cow<'a, str>,
+        data: &mut XmlData<'a>,
+    ) -> Result<NameId, ()> {
         let namespace_id = if !self.namespace_stack.is_empty() {
             self.top().get(&prefix_id)
         } else {
             None
         };
-        let namespace_id =
-            namespace_id.ok_or_else(|| Error::UnknownPrefix(prefix_clone.to_string()))?;
+        let namespace_id = namespace_id.ok_or(())?;
         let name = Name::new(name, *namespace_id);
         Ok(data.name_lookup.get_id(name))
     }
