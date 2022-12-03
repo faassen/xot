@@ -1,5 +1,7 @@
 #[derive(Debug)]
 pub enum Error {
+    UnclosedEntity(String),
+    InvalidEntity(String),
     NoPrefixForNamespace(String),
     UnknownPrefix(String),
     Io(std::io::Error),

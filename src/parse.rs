@@ -135,8 +135,9 @@ impl<'a> DocumentBuilder<'a> {
         Ok(())
     }
 
-    fn text(&mut self, content: &'a str) {
-        self.add(XmlNode::Text(content.into()));
+    fn text(&mut self, content: Cow<'a, str>) {
+        // let content = parse_predefined_entities(content);
+        self.add(XmlNode::Text(content));
     }
 
     fn close_element(&mut self) {
@@ -263,7 +264,7 @@ impl<'a> Document<'a> {
                     }
                 }
                 Text { text } => {
-                    builder.text(text.as_str());
+                    builder.text(text.as_str().into());
                 }
                 ElementStart {
                     prefix,

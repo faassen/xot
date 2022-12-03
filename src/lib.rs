@@ -1,4 +1,5 @@
 mod document;
+mod entity;
 mod error;
 mod idmap;
 mod name;
