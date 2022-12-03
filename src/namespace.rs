@@ -20,8 +20,8 @@ impl IdIndex<NamespaceId> for NamespaceId {
 pub struct Namespace<'a>(Cow<'a, str>);
 
 impl<'a> Namespace<'a> {
-    pub(crate) fn new(namespace_uri: &'a str) -> Self {
-        Self(namespace_uri.into())
+    pub(crate) fn new(namespace_uri: Cow<'a, str>) -> Self {
+        Self(namespace_uri)
     }
 }
 

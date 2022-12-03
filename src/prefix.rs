@@ -20,8 +20,8 @@ impl IdIndex<PrefixId> for PrefixId {
 pub(crate) struct Prefix<'a>(Cow<'a, str>);
 
 impl<'a> Prefix<'a> {
-    pub(crate) fn new(prefix: &'a str) -> Self {
-        Self(prefix.into())
+    pub(crate) fn new(prefix: Cow<'a, str>) -> Self {
+        Self(prefix)
     }
 }
 

@@ -1,9 +1,11 @@
+use ahash::HashMap;
 use indextree::NodeId;
+use std::borrow::Cow;
 use xmlparser::{ElementEnd, Token, Tokenizer};
 
 use crate::document::{namespace_by_prefix, Document, XmlData};
 use crate::error::Error;
-use crate::name::Name;
+use crate::name::{Name, NameId};
 use crate::namespace::{Namespace, NamespaceId};
 use crate::prefix::{Prefix, PrefixId};
 use crate::xmlnode::{Attributes, Element, NamespaceInfo, XmlNode};
@@ -12,9 +14,7 @@ struct ElementBuilder<'a> {
     prefix: &'a str,
     name: &'a str,
     namespace_info: NamespaceInfo,
-    // XXX this can't be attributes but has to be map of prefix, name
-    // to value that can later be converted once namespaces are known
-    attributes: Attributes<'a>,
+    attributes: HashMap<(String, String), Cow<'a, str>>,
 }
 
 impl<'a> ElementBuilder<'a> {
@@ -23,35 +23,36 @@ impl<'a> ElementBuilder<'a> {
             prefix,
             name,
             namespace_info: NamespaceInfo::new(),
-            attributes: Attributes::new(),
+            attributes: HashMap::default(),
         }
     }
 
+    fn get_name_id(&self, document_builder: &mut DocumentBuilder<'a>) -> Result<NameId, Error> {
+        document_builder.get_name_id(self.prefix, self.name, &self.namespace_info)
+    }
+
+    fn get_attributes(
+        &mut self,
+        document_builder: &mut DocumentBuilder<'a>,
+    ) -> Result<Attributes<'a>, Error> {
+        let mut attributes = Attributes::new();
+        for ((prefix, name), value) in self.attributes.drain() {
+            let name_id =
+                document_builder.get_attribute_name_id(prefix, name, &self.namespace_info)?;
+            attributes.insert(name_id, value.into());
+        }
+        Ok(attributes)
+    }
+
     fn into_element(
-        self,
+        mut self,
         document_builder: &mut DocumentBuilder<'a>,
     ) -> Result<Element<'a>, Error> {
-        let prefix_id = document_builder
-            .data
-            .prefix_lookup
-            .get_id(Prefix::new(self.prefix));
-        // XXX this is relatively slow
-        // we could instead have a stack of prefix -> namespace
-        // much like in the serializer
-        let namespace_id = self
-            .namespace_info
-            .to_namespace
-            .get(&prefix_id)
-            .copied()
-            .or_else(|| document_builder.namespace_by_prefix(prefix_id));
-        let namespace_id =
-            namespace_id.ok_or_else(|| Error::UnknownPrefix(self.prefix.to_owned()))?;
-        let name = Name::new(self.name, namespace_id);
-        let name_id = document_builder.data.name_lookup.get_id(name);
+        let attributes = self.get_attributes(document_builder)?;
         Ok(Element {
-            name_id,
+            name_id: self.get_name_id(document_builder)?,
             namespace_info: self.namespace_info,
-            attributes: self.attributes,
+            attributes,
         })
     }
 }
@@ -96,11 +97,11 @@ impl<'a> DocumentBuilder<'a> {
     }
 
     fn prefix(&mut self, prefix: &'a str, namespace_uri: &'a str) {
-        let prefix_id = self.data.prefix_lookup.get_id(Prefix::new(prefix));
+        let prefix_id = self.data.prefix_lookup.get_id(Prefix::new(prefix.into()));
         let namespace_id = self
             .data
             .namespace_lookup
-            .get_id(Namespace::new(namespace_uri));
+            .get_id(Namespace::new(namespace_uri.into()));
         self.element_builder
             .as_mut()
             .unwrap()
@@ -109,23 +110,11 @@ impl<'a> DocumentBuilder<'a> {
     }
 
     fn attribute(&mut self, prefix: &'a str, name: &'a str, value: &'a str) -> Result<(), Error> {
-        let prefix_id = self.data.prefix_lookup.get_id(Prefix::new(prefix));
-        let namespace_id = if prefix_id != self.data.empty_prefix_id {
-            let namespace_id = self.namespace_by_prefix(prefix_id);
-            namespace_id.ok_or_else(|| Error::UnknownPrefix(prefix.to_owned()))?
-        } else {
-            // an unprefixed attribute is in no namespace, not
-            // in the default namespace
-            // https://stackoverflow.com/questions/3312390/xml-default-namespaces-for-unqualified-attribute-names
-            self.data.no_namespace_id
-        };
-        let name = Name::new(name, namespace_id);
-        let name_id = self.data.name_lookup.get_id(name);
         self.element_builder
             .as_mut()
             .unwrap()
             .attributes
-            .insert(name_id, value.into());
+            .insert((prefix.into(), name.into()), value.into());
         Ok(())
     }
 
@@ -156,6 +145,55 @@ impl<'a> DocumentBuilder<'a> {
             .parent()
             .expect("Cannot close root node");
         self.current_node_id = parent_node_id;
+    }
+
+    fn get_name_id(
+        &mut self,
+        prefix: &'a str,
+        name: &'a str,
+        namespace_info: &NamespaceInfo,
+    ) -> Result<NameId, Error> {
+        let prefix_id = self.data.prefix_lookup.get_id(Prefix::new(prefix.into()));
+        // XXX this is relatively slow
+        // we could instead have a stack of prefix -> namespace
+        // much like in the serializer
+        let namespace_id = namespace_info
+            .to_namespace
+            .get(&prefix_id)
+            .copied()
+            .or_else(|| self.namespace_by_prefix(prefix_id));
+        let namespace_id = namespace_id.ok_or_else(|| Error::UnknownPrefix(prefix.to_string()))?;
+        let name = Name::new(name.into(), namespace_id);
+        Ok(self.data.name_lookup.get_id(name))
+    }
+
+    fn get_attribute_name_id(
+        &mut self,
+        prefix: String,
+        name: String,
+        namespace_info: &NamespaceInfo,
+    ) -> Result<NameId, Error> {
+        // XXX a hack to be able to send it to error later
+        let prefix_copy = prefix.clone();
+        let prefix_id = self.data.prefix_lookup.get_id(Prefix::new(prefix.into()));
+        // an unprefixed attribute is in no namespace, not
+        // in the default namespace
+        // https://stackoverflow.com/questions/3312390/xml-default-namespaces-for-unqualified-attribute-names
+        if prefix_id == self.data.empty_prefix_id {
+            let name = Name::new(name.into(), self.data.no_namespace_id);
+            return Ok(self.data.name_lookup.get_id(name));
+        }
+        // XXX this is relatively slow
+        // we could instead have a stack of prefix -> namespace
+        // much like in the serializer
+        let namespace_id = namespace_info
+            .to_namespace
+            .get(&prefix_id)
+            .copied()
+            .or_else(|| self.namespace_by_prefix(prefix_id));
+        let namespace_id = namespace_id.ok_or(Error::UnknownPrefix(prefix_copy))?;
+        let name = Name::new(name.into(), namespace_id);
+        Ok(self.data.name_lookup.get_id(name))
     }
 }
 

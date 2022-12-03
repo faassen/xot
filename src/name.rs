@@ -23,11 +23,8 @@ pub(crate) struct Name<'a> {
 }
 
 impl<'a> Name<'a> {
-    pub(crate) fn new(name: &'a str, namespace_id: NamespaceId) -> Self {
-        Self {
-            name: name.into(),
-            namespace_id,
-        }
+    pub(crate) fn new(name: Cow<'a, str>, namespace_id: NamespaceId) -> Self {
+        Self { name, namespace_id }
     }
 }
 

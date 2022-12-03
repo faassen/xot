@@ -21,9 +21,9 @@ pub struct XmlData<'a> {
 impl<'a> XmlData<'a> {
     pub fn new() -> Self {
         let mut namespace_lookup = NamespaceLookup::new();
-        let no_namespace_id = namespace_lookup.get_id(Namespace::new(""));
+        let no_namespace_id = namespace_lookup.get_id(Namespace::new("".into()));
         let mut prefix_lookup = PrefixLookup::new();
-        let empty_prefix_id = prefix_lookup.get_id(Prefix::new(""));
+        let empty_prefix_id = prefix_lookup.get_id(Prefix::new("".into()));
         XmlData {
             arena: XmlArena::new(),
             namespace_lookup,

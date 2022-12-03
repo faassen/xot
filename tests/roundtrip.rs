@@ -27,7 +27,12 @@ fn roundtrip(#[values(
   (
       "attribute",
       r#"<root foo="bar"/>"#,
-  ))] value: RoundTripEntry) {
+  ),
+  ( 
+      "attribute in namespace",
+      r#"<root xmlns:foo="http://example.com" foo:bar="baz"/>"#,
+  ) 
+)] value: RoundTripEntry) {
     let (name, xml) = value;
     let mut data = XmlData::new();
     let doc = Document::parse(xml, &mut data).unwrap();
