@@ -10,3 +10,7 @@ ahash = "0.8.2"
 indextree = "4.5.0"
 vector-map = "1.0.1"
 xmlparser = "0.13.5"
+
+[dev-dependencies]
+insta = { version = "1.21.2" }
+rstest = "0.16.0"

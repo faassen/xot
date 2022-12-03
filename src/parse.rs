@@ -176,6 +176,7 @@ impl<'a> Document<'a> {
                             builder.close_element();
                         }
                         Empty => {
+                            builder.open_element()?;
                             builder.close_element();
                         }
                     }

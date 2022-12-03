@@ -14,11 +14,13 @@ pub enum XmlNode<'a> {
 }
 
 pub(crate) type Attributes<'a> = VecMap<NameId, Cow<'a, str>>;
+pub(crate) type ToNamespace = VecMap<PrefixId, NamespaceId>;
+pub(crate) type ToPrefix = VecMap<NamespaceId, PrefixId>;
 
 #[derive(Debug)]
 pub(crate) struct NamespaceInfo {
-    pub(crate) to_namespace: VecMap<PrefixId, NamespaceId>,
-    pub(crate) to_prefix: VecMap<NamespaceId, PrefixId>,
+    pub(crate) to_namespace: ToNamespace,
+    pub(crate) to_prefix: ToPrefix,
 }
 
 impl NamespaceInfo {
