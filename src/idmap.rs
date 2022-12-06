@@ -18,7 +18,7 @@ impl<K: Copy + IdIndex<K>, V: Eq + std::hash::Hash + Clone> IdMap<K, V> {
         }
     }
 
-    pub(crate) fn get_id(&mut self, value: V) -> K {
+    pub(crate) fn get_id_mut(&mut self, value: V) -> K {
         let id = self.by_value.get(&value);
         if let Some(id) = id {
             *id
@@ -29,6 +29,10 @@ impl<K: Copy + IdIndex<K>, V: Eq + std::hash::Hash + Clone> IdMap<K, V> {
             self.by_id.push(value);
             id
         }
+    }
+
+    pub(crate) fn get_id(&self, value: V) -> Option<K> {
+        self.by_value.get(&value).copied()
     }
 
     #[inline]
@@ -57,9 +61,9 @@ mod tests {
         }
 
         let mut map = IdMap::<Id, &str>::new();
-        let id1 = map.get_id("foo");
-        let id2 = map.get_id("bar");
-        let id3 = map.get_id("foo");
+        let id1 = map.get_id_mut("foo");
+        let id2 = map.get_id_mut("bar");
+        let id3 = map.get_id_mut("foo");
         assert_eq!(id1, id3);
         assert_ne!(id1, id2);
         assert_eq!(map.get_value(id1), &"foo");
@@ -84,9 +88,9 @@ mod tests {
         }
 
         let mut map = IdMap::<Id, Cow<'static, str>>::new();
-        let id1 = map.get_id(Cow::Borrowed("foo"));
-        let id2 = map.get_id(Cow::Borrowed("bar"));
-        let id3 = map.get_id(Cow::Borrowed("foo"));
+        let id1 = map.get_id_mut(Cow::Borrowed("foo"));
+        let id2 = map.get_id_mut(Cow::Borrowed("bar"));
+        let id3 = map.get_id_mut(Cow::Borrowed("foo"));
         assert_eq!(id1, id3);
         assert_ne!(id1, id2);
         assert_eq!(map.get_value(id1), "foo");

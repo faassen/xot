@@ -95,11 +95,14 @@ impl<'a> DocumentBuilder<'a> {
     }
 
     fn prefix(&mut self, prefix: &'a str, namespace_uri: &'a str) {
-        let prefix_id = self.data.prefix_lookup.get_id(Prefix::new(prefix.into()));
+        let prefix_id = self
+            .data
+            .prefix_lookup
+            .get_id_mut(Prefix::new(prefix.into()));
         let namespace_id = self
             .data
             .namespace_lookup
-            .get_id(Namespace::new(namespace_uri.into()));
+            .get_id_mut(Namespace::new(namespace_uri.into()));
         self.element_builder
             .as_mut()
             .unwrap()
@@ -216,7 +219,7 @@ impl NameIdBuilder {
         data: &mut XmlData,
     ) -> Result<NameId, Error> {
         let prefix_clone = prefix.clone();
-        let prefix_id = data.prefix_lookup.get_id(Prefix::new(prefix));
+        let prefix_id = data.prefix_lookup.get_id_mut(Prefix::new(prefix));
         if let Ok(name_id) = self.name_id_with_prefix_id(prefix_id, name, data) {
             Ok(name_id)
         } else {
@@ -234,10 +237,10 @@ impl NameIdBuilder {
         // in the default namespace
         // https://stackoverflow.com/questions/3312390/xml-default-namespaces-for-unqualified-attribute-names
         let prefix_clone = prefix.clone();
-        let prefix_id = data.prefix_lookup.get_id(Prefix::new(prefix));
+        let prefix_id = data.prefix_lookup.get_id_mut(Prefix::new(prefix));
         if prefix_id == data.empty_prefix_id {
             let name = Name::new(name, data.no_namespace_id);
-            return Ok(data.name_lookup.get_id(name));
+            return Ok(data.name_lookup.get_id_mut(name));
         }
         if let Ok(name_id) = self.name_id_with_prefix_id(prefix_id, name, data) {
             Ok(name_id)
@@ -259,7 +262,7 @@ impl NameIdBuilder {
         };
         let namespace_id = namespace_id.ok_or(())?;
         let name = Name::new(name, *namespace_id);
-        Ok(data.name_lookup.get_id(name))
+        Ok(data.name_lookup.get_id_mut(name))
     }
 }
 

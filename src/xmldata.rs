@@ -39,9 +39,9 @@ pub struct XmlData {
 impl XmlData {
     pub fn new() -> Self {
         let mut namespace_lookup = NamespaceLookup::new();
-        let no_namespace_id = namespace_lookup.get_id(Namespace::new("".into()));
+        let no_namespace_id = namespace_lookup.get_id_mut(Namespace::new("".into()));
         let mut prefix_lookup = PrefixLookup::new();
-        let empty_prefix_id = prefix_lookup.get_id(Prefix::new("".into()));
+        let empty_prefix_id = prefix_lookup.get_id_mut(Prefix::new("".into()));
         XmlData {
             arena: XmlArena::new(),
             namespace_lookup,
@@ -72,18 +72,32 @@ impl XmlData {
         self.arena[node_id.0].get_mut()
     }
 
-    pub fn name_id(&mut self, name: &str) -> NameId {
-        self.ns_name_id(name, self.no_namespace_id)
+    pub fn name(&self, name: &str) -> Option<NameId> {
+        self.name_ns(name, self.no_namespace_id)
     }
 
-    pub fn ns_name_id(&mut self, name: &str, namespace_id: NamespaceId) -> NameId {
+    pub fn name_mut(&mut self, name: &str) -> NameId {
+        self.name_ns_mut(name, self.no_namespace_id)
+    }
+
+    pub fn name_ns(&self, name: &str, namespace_id: NamespaceId) -> Option<NameId> {
         self.name_lookup
             .get_id(Name::new(name.to_string(), namespace_id))
     }
 
-    pub fn namespace_id(&mut self, namespace: &str) -> NamespaceId {
+    pub fn name_ns_mut(&mut self, name: &str, namespace_id: NamespaceId) -> NameId {
+        self.name_lookup
+            .get_id_mut(Name::new(name.to_string(), namespace_id))
+    }
+
+    pub fn namespace(&self, namespace: &str) -> Option<NamespaceId> {
         self.namespace_lookup
             .get_id(Namespace::new(namespace.to_string()))
+    }
+
+    pub fn namespace_mut(&mut self, namespace: &str) -> NamespaceId {
+        self.namespace_lookup
+            .get_id_mut(Namespace::new(namespace.to_string()))
     }
 
     pub fn root_element(&self, document: &Document) -> XmlNodeId {
