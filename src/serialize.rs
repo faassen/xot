@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use crate::document::Document;
-use crate::entity::serialize_predefined_entities;
+use crate::entity::serialize_text;
 use crate::error::Error;
 use crate::name::NameId;
 use crate::xmldata::{XmlData, XmlNodeEdge, XmlNodeId};
@@ -66,12 +66,7 @@ impl Document {
                 }
                 for (name_id, value) in element.attributes.iter() {
                     let fullname = fullname_serializer.fullname(*name_id)?;
-                    write!(
-                        w,
-                        " {}=\"{}\"",
-                        fullname,
-                        serialize_predefined_entities(value.into())
-                    )?;
+                    write!(w, " {}=\"{}\"", fullname, serialize_text(value.into()))?;
                 }
 
                 if node.first_child().is_none() {
@@ -81,7 +76,7 @@ impl Document {
                 }
             }
             XmlNode::Text(text) => {
-                write!(w, "{}", serialize_predefined_entities(text.get().into()))?;
+                write!(w, "{}", serialize_text(text.get().into()))?;
             }
         }
         Ok(())

@@ -2,10 +2,10 @@ use std::borrow::Cow;
 
 use crate::error::Error;
 
-pub(crate) fn parse_predefined_entities(content: Cow<str>) -> Result<Cow<str>, Error> {
+pub(crate) fn parse_text(content: Cow<str>) -> Result<Cow<str>, Error> {
     let mut result = String::new();
     let mut chars = content.chars();
-    let mut entity_seen = false;
+    let mut change = false;
     while let Some(c) = chars.next() {
         if c == '&' {
             let mut entity = String::new();
@@ -20,7 +20,7 @@ pub(crate) fn parse_predefined_entities(content: Cow<str>) -> Result<Cow<str>, E
             if !is_complete {
                 return Err(Error::UnclosedEntity(entity));
             }
-            entity_seen = true;
+            change = true;
             match entity.as_str() {
                 "amp" => result.push('&'),
                 "apos" => result.push('\''),
@@ -34,43 +34,43 @@ pub(crate) fn parse_predefined_entities(content: Cow<str>) -> Result<Cow<str>, E
         }
     }
 
-    if !entity_seen {
+    if !change {
         Ok(content)
     } else {
         Ok(result.into())
     }
 }
 
-pub(crate) fn serialize_predefined_entities(content: Cow<str>) -> Cow<str> {
+pub(crate) fn serialize_text(content: Cow<str>) -> Cow<str> {
     let mut result = String::new();
-    let mut entity_seen = false;
+    let mut change = false;
     for c in content.chars() {
         match c {
             '&' => {
-                entity_seen = true;
+                change = true;
                 result.push_str("&amp;")
             }
             '\'' => {
-                entity_seen = true;
+                change = true;
                 result.push_str("&apos;")
             }
             '>' => {
-                entity_seen = true;
+                change = true;
                 result.push_str("&gt;")
             }
             '<' => {
-                entity_seen = true;
+                change = true;
                 result.push_str("&lt;")
             }
             '"' => {
-                entity_seen = true;
+                change = true;
                 result.push_str("&quot;")
             }
             _ => result.push(c),
         }
     }
 
-    if !entity_seen {
+    if !change {
         content
     } else {
         result.into()
@@ -84,19 +84,19 @@ mod tests {
     #[test]
     fn test_parse() {
         let text = "A &amp; B";
-        assert_eq!(parse_predefined_entities(text.into()).unwrap(), "A & B");
+        assert_eq!(parse_text(text.into()).unwrap(), "A & B");
     }
 
     #[test]
     fn test_parse_multiple() {
         let text = "&amp;&apos;&gt;&lt;&quot;";
-        assert_eq!(parse_predefined_entities(text.into()).unwrap(), "&'><\"");
+        assert_eq!(parse_text(text.into()).unwrap(), "&'><\"");
     }
 
     #[test]
     fn test_parse_unknown_entity() {
         let text = "&unknown;";
-        let err = parse_predefined_entities(text.into());
+        let err = parse_text(text.into());
         if let Err(Error::InvalidEntity(entity)) = err {
             assert_eq!(entity, "unknown");
         } else {
@@ -107,7 +107,7 @@ mod tests {
     #[test]
     fn test_parse_unfinished_entity() {
         let text = "&amp";
-        let err = parse_predefined_entities(text.into());
+        let err = parse_text(text.into());
         if let Err(Error::UnclosedEntity(entity)) = err {
             assert_eq!(entity, "amp");
         } else {
@@ -118,7 +118,7 @@ mod tests {
     #[test]
     fn test_parse_no_entities() {
         let text = "hello";
-        let result = parse_predefined_entities(text.into()).unwrap();
+        let result = parse_text(text.into()).unwrap();
         // this is the same slice
         assert!(std::ptr::eq(text, result.as_ref()));
     }
@@ -126,22 +126,19 @@ mod tests {
     #[test]
     fn test_serialize() {
         let text = "A & B";
-        assert_eq!(serialize_predefined_entities(text.into()), "A &amp; B");
+        assert_eq!(serialize_text(text.into()), "A &amp; B");
     }
 
     #[test]
     fn test_serialize_multiple() {
         let text = "&'><\"";
-        assert_eq!(
-            serialize_predefined_entities(text.into()),
-            "&amp;&apos;&gt;&lt;&quot;"
-        );
+        assert_eq!(serialize_text(text.into()), "&amp;&apos;&gt;&lt;&quot;");
     }
 
     #[test]
     fn test_serialize_no_entities() {
         let text = "hello";
-        let result = serialize_predefined_entities(text.into());
+        let result = serialize_text(text.into());
         // this is the same slice
         assert!(std::ptr::eq(text, result.as_ref()));
     }
