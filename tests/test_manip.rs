@@ -177,8 +177,8 @@ fn test_append_text_after_text_consolidates_nodes_direct_append() {
     let mut data = XmlData::new();
     let doc = Document::parse(r#"<doc/>"#, &mut data).unwrap();
     let el_id = data.root_element(&doc);
-    let txt1 = data.new_node(XmlNode::Text(Text::new("Alpha".to_string())));
-    let txt2 = data.new_node(XmlNode::Text(Text::new("Beta".to_string())));
+    let txt1 = data.new_text("Alpha");
+    let txt2 = data.new_text("Beta");
     data.append(el_id, txt1).unwrap();
     data.append(el_id, txt2).unwrap();
     match data.xml_node(data.first_child(el_id).unwrap()) {
@@ -196,7 +196,7 @@ fn test_insert_before_consolidate_text() {
     let mut data = XmlData::new();
     let doc = Document::parse(r#"<doc>Alpha</doc>"#, &mut data).unwrap();
     let el_id = data.first_child(data.root_element(&doc)).unwrap();
-    let txt = data.new_node(XmlNode::Text(Text::new("Beta".to_string())));
+    let txt = data.new_text("Beta");
     data.insert_before(el_id, txt).unwrap();
     assert_eq!(data.text(el_id), Some("BetaAlpha"));
     assert_eq!(
@@ -210,7 +210,7 @@ fn test_insert_after_consolidate_text() {
     let mut data = XmlData::new();
     let doc = Document::parse(r#"<doc>Alpha</doc>"#, &mut data).unwrap();
     let el_id = data.first_child(data.root_element(&doc)).unwrap();
-    let txt = data.new_node(XmlNode::Text(Text::new("Beta".to_string())));
+    let txt = data.new_text("Beta");
     data.insert_after(el_id, txt).unwrap();
     assert_eq!(data.text(el_id), Some("AlphaBeta"));
     assert_eq!(
@@ -224,7 +224,7 @@ fn test_prepend_consolidate_text() {
     let mut data = XmlData::new();
     let doc = Document::parse(r#"<doc>Alpha</doc>"#, &mut data).unwrap();
     let el_id = data.root_element(&doc);
-    let txt = data.new_node(XmlNode::Text(Text::new("Beta".to_string())));
+    let txt = data.new_text("Beta");
     data.prepend(el_id, txt).unwrap();
     let text_el_id = data.first_child(el_id).unwrap();
     assert_eq!(data.text(text_el_id), Some("BetaAlpha"));

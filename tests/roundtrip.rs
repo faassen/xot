@@ -35,6 +35,18 @@ fn roundtrip(#[values(
   (
       "escape character in text",
       r#"<root>&lt;a/&gt;</root>"#,
+  ),
+  (
+    "comment",
+    r#"<root><!-- comment --></root>"#,
+  ),
+  (
+    "processing instruction without data",
+    r#"<root><?pi foo?></root>"#,
+  ),
+  (
+    "processing instruction with data",
+    r#"<root><?pi foo bar?></root>"#,
   )
 )] value: RoundTripEntry) {
     let (name, xml) = value;

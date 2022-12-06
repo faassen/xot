@@ -10,6 +10,8 @@ pub enum NodeType {
     Root,
     Element,
     Text,
+    ProcessingInstruction,
+    Comment,
 }
 
 #[derive(Debug)]
@@ -17,6 +19,8 @@ pub enum XmlNode {
     Root,
     Element(Element),
     Text(Text),
+    Comment(Comment),
+    ProcessingInstruction(ProcessingInstruction),
 }
 
 impl XmlNode {
@@ -25,6 +29,8 @@ impl XmlNode {
             XmlNode::Root => NodeType::Root,
             XmlNode::Element(_) => NodeType::Element,
             XmlNode::Text(_) => NodeType::Text,
+            XmlNode::Comment(_) => NodeType::Comment,
+            XmlNode::ProcessingInstruction(_) => NodeType::ProcessingInstruction,
         }
     }
 }
@@ -92,7 +98,7 @@ pub struct Text {
 }
 
 impl Text {
-    pub fn new(text: String) -> Self {
+    pub(crate) fn new(text: String) -> Self {
         Text { text }
     }
 
@@ -102,5 +108,52 @@ impl Text {
 
     pub fn set(&mut self, text: String) {
         self.text = text;
+    }
+}
+
+#[derive(Debug)]
+pub struct Comment {
+    pub(crate) text: String,
+}
+
+impl Comment {
+    pub(crate) fn new(text: String) -> Self {
+        Comment { text }
+    }
+
+    pub fn get(&self) -> &str {
+        &self.text
+    }
+
+    pub fn set(&mut self, text: String) {
+        self.text = text;
+    }
+}
+
+#[derive(Debug)]
+pub struct ProcessingInstruction {
+    pub(crate) target: String,
+    pub(crate) data: Option<String>,
+}
+
+impl ProcessingInstruction {
+    pub(crate) fn new(target: String, data: Option<String>) -> Self {
+        ProcessingInstruction { target, data }
+    }
+
+    pub fn get_target(&self) -> &str {
+        &self.target
+    }
+
+    pub fn get_data(&self) -> Option<&str> {
+        self.data.as_deref()
+    }
+
+    pub fn set_target(&mut self, target: String) {
+        self.target = target;
+    }
+
+    pub fn set_data(&mut self, data: Option<String>) {
+        self.data = data;
     }
 }

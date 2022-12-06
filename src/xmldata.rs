@@ -74,7 +74,7 @@ impl XmlData {
 
     // manipulators
 
-    pub fn new_node(&mut self, xml_node: XmlNode) -> XmlNodeId {
+    pub(crate) fn new_node(&mut self, xml_node: XmlNode) -> XmlNodeId {
         XmlNodeId(self.arena.new_node(xml_node))
     }
 

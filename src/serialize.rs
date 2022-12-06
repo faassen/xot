@@ -78,6 +78,16 @@ impl Document {
             XmlNode::Text(text) => {
                 write!(w, "{}", serialize_text(text.get().into()))?;
             }
+            XmlNode::Comment(comment) => {
+                write!(w, "<!--{}-->", comment.get())?;
+            }
+            XmlNode::ProcessingInstruction(pi) => {
+                if let Some(data) = pi.get_data() {
+                    write!(w, "<?{} {}?>", pi.get_target(), data)?;
+                } else {
+                    write!(w, "<?{}?>", pi.get_target())?;
+                }
+            }
         }
         Ok(())
     }
@@ -91,18 +101,14 @@ impl Document {
     ) -> Result<(), Error> {
         let node = &data.arena[node_id.get()];
         let xml_node = node.get();
-        match xml_node {
-            XmlNode::Root => {}
-            XmlNode::Element(element) => {
-                if node.first_child().is_some() {
-                    let fullname = fullname_serializer.fullname(element.name_id)?;
-                    write!(w, "</{}>", fullname)?;
-                }
-                if !element.namespace_info.to_prefix.is_empty() {
-                    fullname_serializer.pop();
-                }
+        if let XmlNode::Element(element) = xml_node {
+            if node.first_child().is_some() {
+                let fullname = fullname_serializer.fullname(element.name_id)?;
+                write!(w, "</{}>", fullname)?;
             }
-            XmlNode::Text(_text) => {}
+            if !element.namespace_info.to_prefix.is_empty() {
+                fullname_serializer.pop();
+            }
         }
         Ok(())
     }

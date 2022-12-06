@@ -9,7 +9,9 @@ use crate::name::{Name, NameId};
 use crate::namespace::Namespace;
 use crate::prefix::{Prefix, PrefixId};
 use crate::xmldata::XmlData;
-use crate::xmlnode::{Attributes, Element, NamespaceInfo, Text, ToNamespace, XmlNode};
+use crate::xmlnode::{
+    Attributes, Comment, Element, NamespaceInfo, ProcessingInstruction, Text, ToNamespace, XmlNode,
+};
 
 struct ElementBuilder {
     prefix: String,
@@ -165,6 +167,23 @@ impl<'a> DocumentBuilder<'a> {
         Ok(())
     }
 
+    fn comment(&mut self, content: &str) -> Result<(), Error> {
+        // XXX are there illegal comments, like those with -- inside? or
+        // won't they pass the parser?
+        self.add(XmlNode::Comment(Comment::new(content.to_string())));
+        Ok(())
+    }
+
+    fn processing_instruction(&mut self, target: &str, content: Option<&str>) -> Result<(), Error> {
+        // XXX are there illegal processing instructions, like those with
+        // ?> inside? or won't they pass the parser?
+        self.add(XmlNode::ProcessingInstruction(ProcessingInstruction::new(
+            target.to_string(),
+            content.map(|s| s.to_string()),
+        )));
+        Ok(())
+    }
+
     fn is_current_node_root(&self) -> bool {
         matches!(self.data.arena[self.current_node_id].get(), XmlNode::Root)
     }
@@ -308,6 +327,16 @@ impl Document {
                             builder.close_element_immediate();
                         }
                     }
+                }
+                Comment { text, span: _ } => {
+                    builder.comment(text.as_str())?;
+                }
+                ProcessingInstruction {
+                    target,
+                    content,
+                    span: _,
+                } => {
+                    builder.processing_instruction(target.as_str(), content.map(|s| s.as_str()))?
                 }
                 _ => {}
             }
