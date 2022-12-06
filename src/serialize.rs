@@ -1,10 +1,11 @@
 use indextree::{NodeEdge, NodeId};
 use std::io::Write;
 
-use crate::document::{Document, XmlData, XmlNodeEdge, XmlNodeId};
+use crate::document::{Document, XmlNodeEdge, XmlNodeId};
 use crate::entity::serialize_predefined_entities;
 use crate::error::Error;
 use crate::name::NameId;
+use crate::xmldata::XmlData;
 use crate::xmlnode::{ToPrefix, XmlNode};
 
 impl Document {

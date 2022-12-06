@@ -2,12 +2,13 @@ use ahash::HashMap;
 use indextree::NodeId;
 use xmlparser::{ElementEnd, Token, Tokenizer};
 
-use crate::document::{Document, XmlData};
+use crate::document::Document;
 use crate::entity::parse_predefined_entities;
 use crate::error::Error;
 use crate::name::{Name, NameId};
 use crate::namespace::Namespace;
 use crate::prefix::{Prefix, PrefixId};
+use crate::xmldata::XmlData;
 use crate::xmlnode::{Attributes, Element, NamespaceInfo, Text, ToNamespace, XmlNode};
 
 struct ElementBuilder {
