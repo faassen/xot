@@ -1,5 +1,7 @@
 #[derive(Debug)]
 pub enum Error {
+    UnclosedTag,
+    InvalidCloseTag(String, String),
     InvalidOperation(String),
     UnclosedEntity(String),
     InvalidEntity(String),

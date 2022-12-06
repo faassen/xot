@@ -136,13 +136,39 @@ impl<'a> DocumentBuilder<'a> {
         Ok(())
     }
 
-    fn close_element(&mut self) {
+    fn close_element_immediate(&mut self) {
         let current_node = self.data.arena.get(self.current_node_id).unwrap();
         if let XmlNode::Element(element) = current_node.get() {
             self.name_id_builder
                 .pop(&element.namespace_info.to_namespace);
         }
         self.current_node_id = current_node.parent().expect("Cannot close root node");
+    }
+
+    fn close_element(&mut self, prefix: &str, name: &str) -> Result<(), Error> {
+        let name_id = self.name_id_builder.element_name_id(
+            prefix.to_string(),
+            name.to_string(),
+            self.data,
+        )?;
+        let current_node = self.data.arena.get(self.current_node_id).unwrap();
+        if let XmlNode::Element(element) = current_node.get() {
+            if element.name_id != name_id {
+                return Err(Error::InvalidCloseTag(prefix.to_string(), name.to_string()));
+            }
+            self.name_id_builder
+                .pop(&element.namespace_info.to_namespace);
+        }
+        self.current_node_id = current_node.parent().expect("Cannot close root node");
+        Ok(())
+    }
+
+    fn is_current_node_root(&self) -> bool {
+        if let XmlNode::Root = self.data.arena[self.current_node_id].get() {
+            true
+        } else {
+            false
+        }
     }
 }
 
@@ -276,13 +302,12 @@ impl Document {
                         Open => {
                             builder.open_element()?;
                         }
-                        Close(_prefix, _local) => {
-                            // XXX check that we're closing the right element
-                            builder.close_element();
+                        Close(prefix, local) => {
+                            builder.close_element(prefix.as_str(), local.as_str())?;
                         }
                         Empty => {
                             builder.open_element()?;
-                            builder.close_element();
+                            builder.close_element_immediate();
                         }
                     }
                 }
@@ -290,6 +315,10 @@ impl Document {
             }
         }
 
-        Ok(builder.into_document())
+        if builder.is_current_node_root() {
+            Ok(builder.into_document())
+        } else {
+            Err(Error::UnclosedTag)
+        }
     }
 }
