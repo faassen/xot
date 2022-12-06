@@ -73,8 +73,17 @@ impl XmlData {
     }
 
     pub fn name_id(&mut self, name: &str) -> NameId {
+        self.ns_name_id(name, self.no_namespace_id)
+    }
+
+    pub fn ns_name_id(&mut self, name: &str, namespace_id: NamespaceId) -> NameId {
         self.name_lookup
-            .get_id(Name::new(name.to_string(), self.no_namespace_id))
+            .get_id(Name::new(name.to_string(), namespace_id))
+    }
+
+    pub fn namespace_id(&mut self, namespace: &str) -> NamespaceId {
+        self.namespace_lookup
+            .get_id(Namespace::new(namespace.to_string()))
     }
 
     pub fn root_element(&self, document: &Document) -> XmlNodeId {

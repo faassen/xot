@@ -29,3 +29,24 @@ fn test_manipulate_attribute() {
         r#"<doc a="Changed"/>"#
     );
 }
+
+#[test]
+fn test_manipulate_attribute_ns() {
+    let mut data = XmlData::new();
+    let doc = Document::parse(
+        r#"<doc xmlns:ns="http://example.com" ns:a="Foo"/>"#,
+        &mut data,
+    )
+    .unwrap();
+    let el_id = data.root_element(&doc);
+    let ns = data.namespace_id("http://example.com");
+    let a = data.ns_name_id("a", ns);
+
+    if let XmlNode::Element(element) = data.xml_node_mut(el_id) {
+        element.set_attribute(a, "Changed".to_string());
+    }
+    assert_eq!(
+        doc.serialize_to_string(&data).unwrap(),
+        r#"<doc xmlns:ns="http://example.com" ns:a="Changed"/>"#
+    );
+}
