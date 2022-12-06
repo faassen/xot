@@ -92,11 +92,11 @@ impl<'a> Document<'a> {
     }
 
     pub fn xml_node(&self, node_id: NodeId) -> &XmlNode {
-        self.data.arena.get(node_id).unwrap().get()
+        self.data.arena[node_id].get()
     }
 
     pub fn xml_node_mut(&mut self, node_id: NodeId) -> &'a mut XmlNode {
-        self.data.arena.get_mut(node_id).unwrap().get_mut()
+        self.data.arena[node_id].get_mut()
     }
 
     // XXX probably break this into convenience methods
