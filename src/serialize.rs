@@ -66,7 +66,12 @@ impl Document {
                 }
                 for (name_id, value) in element.attributes.iter() {
                     let fullname = fullname_serializer.fullname(*name_id)?;
-                    write!(w, " {}=\"{}\"", fullname, value)?;
+                    write!(
+                        w,
+                        " {}=\"{}\"",
+                        fullname,
+                        serialize_predefined_entities(value.into())
+                    )?;
                 }
 
                 if node.first_child().is_none() {

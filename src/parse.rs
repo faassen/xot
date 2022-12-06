@@ -111,11 +111,10 @@ impl<'a> DocumentBuilder<'a> {
     }
 
     fn attribute(&mut self, prefix: &'a str, name: &'a str, value: &'a str) -> Result<(), Error> {
-        self.element_builder
-            .as_mut()
-            .unwrap()
-            .attributes
-            .insert((prefix.into(), name.into()), value.into());
+        self.element_builder.as_mut().unwrap().attributes.insert(
+            (prefix.into(), name.into()),
+            parse_predefined_entities(value.into())?.to_string(),
+        );
         Ok(())
     }
 
@@ -167,11 +166,7 @@ impl<'a> DocumentBuilder<'a> {
     }
 
     fn is_current_node_root(&self) -> bool {
-        if let XmlNode::Root = self.data.arena[self.current_node_id].get() {
-            true
-        } else {
-            false
-        }
+        matches!(self.data.arena[self.current_node_id].get(), XmlNode::Root)
     }
 }
 
