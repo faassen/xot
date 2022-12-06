@@ -87,6 +87,63 @@ fn test_add_attribute_ns() {
 }
 
 #[test]
+fn test_append_element() {
+    let mut data = XmlData::new();
+    let doc = Document::parse(r#"<doc/>"#, &mut data).unwrap();
+    let el_id = data.root_element(&doc);
+    let name = data.name_mut("a");
+    data.append_element(el_id, name).unwrap();
+    assert_eq!(
+        doc.serialize_to_string(&data).unwrap(),
+        r#"<doc><a/></doc>"#
+    );
+}
+
+#[test]
+fn test_prepend_element() {
+    let mut data = XmlData::new();
+    let doc = Document::parse(r#"<doc><b/></doc>"#, &mut data).unwrap();
+    let el_id = data.root_element(&doc);
+    let name = data.name_mut("a");
+    let new_el_id = data.new_element(name);
+    data.prepend(el_id, new_el_id).unwrap();
+    assert_eq!(
+        doc.serialize_to_string(&data).unwrap(),
+        r#"<doc><a/><b/></doc>"#
+    );
+}
+
+#[test]
+fn test_insert_before_element() {
+    let mut data = XmlData::new();
+    let doc = Document::parse(r#"<doc><b/></doc>"#, &mut data).unwrap();
+    let el_id = data.root_element(&doc);
+    let before_id = data.first_child(el_id).unwrap();
+    let name = data.name_mut("a");
+    let new_el_id = data.new_element(name);
+    data.insert_before(before_id, new_el_id).unwrap();
+    assert_eq!(
+        doc.serialize_to_string(&data).unwrap(),
+        r#"<doc><a/><b/></doc>"#
+    );
+}
+
+#[test]
+fn test_insert_after_element() {
+    let mut data = XmlData::new();
+    let doc = Document::parse(r#"<doc><b/></doc>"#, &mut data).unwrap();
+    let el_id = data.root_element(&doc);
+    let before_id = data.first_child(el_id).unwrap();
+    let name = data.name_mut("a");
+    let new_el_id = data.new_element(name);
+    data.insert_after(before_id, new_el_id).unwrap();
+    assert_eq!(
+        doc.serialize_to_string(&data).unwrap(),
+        r#"<doc><b/><a/></doc>"#
+    );
+}
+
+#[test]
 fn test_append_text() {
     let mut data = XmlData::new();
     let doc = Document::parse(r#"<doc/>"#, &mut data).unwrap();
@@ -142,6 +199,35 @@ fn test_insert_before_consolidate_text() {
     let txt = data.new_node(XmlNode::Text(Text::new("Beta".to_string())));
     data.insert_before(el_id, txt).unwrap();
     assert_eq!(data.text(el_id), Some("BetaAlpha"));
+    assert_eq!(
+        doc.serialize_to_string(&data).unwrap(),
+        r#"<doc>BetaAlpha</doc>"#
+    );
+}
+
+#[test]
+fn test_insert_after_consolidate_text() {
+    let mut data = XmlData::new();
+    let doc = Document::parse(r#"<doc>Alpha</doc>"#, &mut data).unwrap();
+    let el_id = data.first_child(data.root_element(&doc)).unwrap();
+    let txt = data.new_node(XmlNode::Text(Text::new("Beta".to_string())));
+    data.insert_after(el_id, txt).unwrap();
+    assert_eq!(data.text(el_id), Some("AlphaBeta"));
+    assert_eq!(
+        doc.serialize_to_string(&data).unwrap(),
+        r#"<doc>AlphaBeta</doc>"#
+    );
+}
+
+#[test]
+fn test_prepend_consolidate_text() {
+    let mut data = XmlData::new();
+    let doc = Document::parse(r#"<doc>Alpha</doc>"#, &mut data).unwrap();
+    let el_id = data.root_element(&doc);
+    let txt = data.new_node(XmlNode::Text(Text::new("Beta".to_string())));
+    data.prepend(el_id, txt).unwrap();
+    let text_el_id = data.first_child(el_id).unwrap();
+    assert_eq!(data.text(text_el_id), Some("BetaAlpha"));
     assert_eq!(
         doc.serialize_to_string(&data).unwrap(),
         r#"<doc>BetaAlpha</doc>"#

@@ -44,6 +44,14 @@ pub struct Element {
 }
 
 impl Element {
+    pub(crate) fn new(name_id: NameId) -> Self {
+        Element {
+            name_id,
+            attributes: Attributes::new(),
+            namespace_info: NamespaceInfo::new(),
+        }
+    }
+
     pub fn get_attribute(&self, name_id: NameId) -> Option<&str> {
         self.attributes.get(&name_id).map(|s| s.as_str())
     }

@@ -78,6 +78,16 @@ impl XmlData {
         XmlNodeId(self.arena.new_node(xml_node))
     }
 
+    pub fn new_text(&mut self, text: &str) -> XmlNodeId {
+        let text_node = XmlNode::Text(Text::new(text.to_string()));
+        self.new_node(text_node)
+    }
+
+    pub fn new_element(&mut self, name_id: NameId) -> XmlNodeId {
+        let element_node = XmlNode::Element(Element::new(name_id));
+        self.new_node(element_node)
+    }
+
     pub fn append(&mut self, parent: XmlNodeId, child: XmlNodeId) -> Result<(), Error> {
         let xml_node = self.xml_node(parent);
         if matches!(xml_node, XmlNode::Root | XmlNode::Element(_)) {
@@ -96,9 +106,14 @@ impl XmlData {
     }
 
     pub fn append_text(&mut self, parent: XmlNodeId, text: &str) -> Result<(), Error> {
-        let text_node = XmlNode::Text(Text::new(text.to_string()));
-        let text_node_id = self.new_node(text_node);
+        let text_node_id = self.new_text(text);
         self.append(parent, text_node_id)?;
+        Ok(())
+    }
+
+    pub fn append_element(&mut self, parent: XmlNodeId, name_id: NameId) -> Result<(), Error> {
+        let element_node_id = self.new_element(name_id);
+        self.append(parent, element_node_id)?;
         Ok(())
     }
 
