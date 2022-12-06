@@ -9,7 +9,7 @@ use crate::xmlnode::{ToPrefix, XmlNode};
 
 impl Document {
     pub fn serialize_node(
-        self: &Document,
+        &self,
         node_id: NodeId,
         w: &mut impl Write,
         data: &XmlData,
@@ -28,7 +28,7 @@ impl Document {
         Ok(())
     }
 
-    pub fn serialize_to_string(self: &Document, data: &XmlData) -> Result<String, Error> {
+    pub fn serialize_to_string(&self, data: &XmlData) -> Result<String, Error> {
         let mut buf = Vec::new();
         self.serialize_node(self.root_node_id(), &mut buf, data)?;
         Ok(String::from_utf8(buf).unwrap())

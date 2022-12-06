@@ -51,7 +51,6 @@ impl Default for XmlData {
 }
 
 pub struct Document {
-    // pub(crate) data: &'a mut XmlData<'a>,
     pub(crate) tree: NodeId,
 }
 
