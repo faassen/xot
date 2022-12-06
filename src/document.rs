@@ -1,4 +1,4 @@
-use indextree::{Arena, Node, NodeEdge, NodeError, NodeId};
+use indextree::{Arena, NodeEdge, NodeId};
 use std::fmt::Debug;
 
 use crate::error::Error;
@@ -149,6 +149,7 @@ impl<'a> Document<'a> {
     pub fn append(&mut self, parent: XmlNodeId, child: XmlNodeId) -> Result<(), Error> {
         let xml_node = self.xml_node(parent);
         if matches!(xml_node, XmlNode::Root | XmlNode::Element(_)) {
+            // XXX also check whether prefixes are valid
             parent.0.checked_append(child.0, self.arena_mut())?;
             Ok(())
         } else {
