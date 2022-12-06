@@ -3,11 +3,32 @@ use std::borrow::Cow;
 use crate::error::Error;
 
 pub(crate) fn parse_text(content: Cow<str>) -> Result<Cow<str>, Error> {
+    parse_content(content, false)
+}
+
+pub(crate) fn parse_attribute(content: Cow<str>) -> Result<Cow<str>, Error> {
+    parse_content(content, true)
+}
+
+fn parse_content(content: Cow<str>, attribute: bool) -> Result<Cow<str>, Error> {
     let mut result = String::new();
-    let mut chars = content.chars();
+    let mut chars = content.chars().peekable();
     let mut change = false;
     while let Some(c) = chars.next() {
-        if c == '&' {
+        // https://www.w3.org/TR/xml/#sec-line-ends
+        if c == '\r' {
+            if chars.peek() == Some(&'\n') {
+                // consume next char
+                chars.next();
+            }
+            if !attribute {
+                result.push('\n');
+            } else {
+                // https://www.w3.org/TR/xml/#AVNormalize
+                result.push(' ');
+            }
+            change = true;
+        } else if c == '&' {
             let mut entity = String::new();
             let mut is_complete = false;
             for c in chars.by_ref() {
@@ -29,6 +50,11 @@ pub(crate) fn parse_text(content: Cow<str>) -> Result<Cow<str>, Error> {
                 "quot" => result.push('"'),
                 _ => return Err(Error::InvalidEntity(entity)),
             }
+        } else if attribute && (c == '\t' || c == '\n') {
+            // https://www.w3.org/TR/xml/#AVNormalize
+            // \r and \r\n already handled earlier
+            result.push(' ');
+            change = true;
         } else {
             result.push(c);
         }
@@ -121,6 +147,54 @@ mod tests {
         let result = parse_text(text.into()).unwrap();
         // this is the same slice
         assert!(std::ptr::eq(text, result.as_ref()));
+    }
+
+    #[test]
+    fn test_parse_newline_r() {
+        let text = "A \r B";
+        assert_eq!(parse_text(text.into()).unwrap(), "A \n B");
+    }
+
+    #[test]
+    fn test_parse_newline_rn() {
+        let text = "A \r\n B";
+        assert_eq!(parse_text(text.into()).unwrap(), "A \n B");
+    }
+
+    #[test]
+    fn test_do_not_normalize_text_tab() {
+        let text = "A \t B";
+        assert_eq!(parse_text(text.into()).unwrap(), "A \t B");
+    }
+
+    #[test]
+    fn test_do_not_normalize_text_newline() {
+        let text = "A \n B";
+        assert_eq!(parse_text(text.into()).unwrap(), "A \n B");
+    }
+
+    #[test]
+    fn test_normalize_attribute_tab() {
+        let text = "A \t B";
+        assert_eq!(parse_attribute(text.into()).unwrap(), "A   B");
+    }
+
+    #[test]
+    fn test_normalize_attribute_r_newline() {
+        let text = "A \r B";
+        assert_eq!(parse_attribute(text.into()).unwrap(), "A   B");
+    }
+
+    #[test]
+    fn test_normalize_attribute_rn_newline() {
+        let text = "A \r\n B";
+        assert_eq!(parse_attribute(text.into()).unwrap(), "A   B");
+    }
+
+    #[test]
+    fn test_normalize_attribute_newline() {
+        let text = "A \n B";
+        assert_eq!(parse_attribute(text.into()).unwrap(), "A   B");
     }
 
     #[test]

@@ -3,7 +3,7 @@ use indextree::NodeId;
 use xmlparser::{ElementEnd, Token, Tokenizer};
 
 use crate::document::Document;
-use crate::entity::parse_text;
+use crate::entity::{parse_attribute, parse_text};
 use crate::error::Error;
 use crate::name::{Name, NameId};
 use crate::namespace::Namespace;
@@ -113,7 +113,7 @@ impl<'a> DocumentBuilder<'a> {
     fn attribute(&mut self, prefix: &'a str, name: &'a str, value: &'a str) -> Result<(), Error> {
         self.element_builder.as_mut().unwrap().attributes.insert(
             (prefix.into(), name.into()),
-            parse_text(value.into())?.to_string(),
+            parse_attribute(value.into())?.to_string(),
         );
         Ok(())
     }
