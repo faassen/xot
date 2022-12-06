@@ -1,5 +1,6 @@
 use indextree::{Arena, NodeEdge, NodeId};
 
+use crate::document::Document;
 use crate::error::Error;
 use crate::name::NameLookup;
 use crate::namespace::{Namespace, NamespaceId, NamespaceLookup};
@@ -61,16 +62,6 @@ impl XmlData {
         &mut self.arena
     }
 
-    // #[inline]
-    // pub fn node(&self, node_id: XmlNodeId) -> &TreeNode {
-    //     &self.arena()[node_id.0]
-    // }
-
-    // #[inline]
-    // pub(crate) fn node_mut(&mut self, node_id: XmlNodeId) -> &mut TreeNode {
-    //     &mut self.arena_mut()[node_id.0]
-    // }
-
     #[inline]
     pub fn xml_node(&self, node_id: XmlNodeId) -> &XmlNode {
         self.arena[node_id.0].get()
@@ -79,6 +70,15 @@ impl XmlData {
     #[inline]
     pub fn xml_node_mut(&mut self, node_id: XmlNodeId) -> &mut XmlNode {
         self.arena[node_id.0].get_mut()
+    }
+
+    pub fn root_element(&self, document: &Document) -> XmlNodeId {
+        for child in self.children(document.root()) {
+            if let XmlNode::Element(_) = self.xml_node(child) {
+                return child;
+            }
+        }
+        unreachable!("Document should always have a single root node")
     }
 
     pub fn parent(&self, node_id: XmlNodeId) -> Option<XmlNodeId> {

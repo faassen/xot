@@ -6,7 +6,7 @@ use crate::xmldata::{XmlArena, XmlNodeId};
 use crate::xmlnode::XmlNode;
 
 pub struct Document {
-    pub(crate) tree: NodeId,
+    pub(crate) root: NodeId,
 }
 
 pub(crate) fn prefix_by_namespace(
@@ -42,8 +42,8 @@ pub(crate) fn namespace_by_prefix(
 }
 
 impl Document {
-    pub fn root_node_id(&self) -> XmlNodeId {
-        XmlNodeId::new(self.tree)
+    pub fn root(&self) -> XmlNodeId {
+        XmlNodeId::new(self.root)
     }
 
     // XXX probably break this into convenience methods

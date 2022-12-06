@@ -87,7 +87,7 @@ impl<'a> DocumentBuilder<'a> {
     }
 
     fn into_document(self) -> Document {
-        Document { tree: self.tree }
+        Document { root: self.tree }
     }
 
     fn element(&mut self, prefix: &str, name: &str) {

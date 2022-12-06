@@ -30,7 +30,7 @@ impl Document {
 
     pub fn serialize_to_string(&self, data: &XmlData) -> Result<String, Error> {
         let mut buf = Vec::new();
-        self.serialize_node(self.root_node_id(), &mut buf, data)?;
+        self.serialize_node(self.root(), &mut buf, data)?;
         Ok(String::from_utf8(buf).unwrap())
     }
 
