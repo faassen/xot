@@ -1,4 +1,4 @@
-use indextree::{Arena, NodeId};
+use indextree::{Arena, Node, NodeEdge, NodeError, NodeId};
 use std::fmt::Debug;
 
 use crate::error::Error;
@@ -8,6 +8,15 @@ use crate::prefix::{Prefix, PrefixId, PrefixLookup};
 use crate::xmlnode::XmlNode;
 
 pub type XmlArena<'a> = Arena<XmlNode<'a>>;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct XmlNodeId(NodeId);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum XmlNodeEdge {
+    Start(XmlNodeId),
+    End(XmlNodeId),
+}
 
 pub struct XmlData<'a> {
     pub(crate) arena: XmlArena<'a>,
@@ -79,24 +88,171 @@ pub(crate) fn namespace_by_prefix(
 }
 
 impl<'a> Document<'a> {
-    pub fn root_node_id(&self) -> NodeId {
-        self.tree
+    pub fn root_node_id(&self) -> XmlNodeId {
+        XmlNodeId(self.tree)
     }
 
+    #[inline]
     pub fn arena(&self) -> &XmlArena {
         &self.data.arena
     }
 
+    #[inline]
     pub fn arena_mut(&mut self) -> &mut XmlArena<'a> {
         &mut self.data.arena
     }
 
-    pub fn xml_node(&self, node_id: NodeId) -> &XmlNode {
-        self.data.arena[node_id].get()
+    // #[inline]
+    // pub(crate) fn node(&'a self, node_id: XmlNodeId) -> &'a Node<XmlNode<'a>> {
+    //     &self.arena()[node_id.0]
+    // }
+
+    // #[inline]
+    // pub(crate) fn node_mut(&'a mut self, node_id: XmlNodeId) -> &'a mut Node<XmlNode<'a>> {
+    //     &mut self.arena_mut()[node_id.0]
+    // }
+
+    #[inline]
+    pub fn xml_node(&self, node_id: XmlNodeId) -> &XmlNode {
+        self.data.arena[node_id.0].get()
     }
 
-    pub fn xml_node_mut(&mut self, node_id: NodeId) -> &'a mut XmlNode {
-        self.data.arena[node_id].get_mut()
+    #[inline]
+    pub fn xml_node_mut(&mut self, node_id: XmlNodeId) -> &'a mut XmlNode {
+        self.data.arena[node_id.0].get_mut()
+    }
+
+    pub fn parent(&self, node_id: XmlNodeId) -> Option<XmlNodeId> {
+        self.arena()[node_id.0].parent().map(XmlNodeId)
+    }
+
+    pub fn first_child(&self, node_id: XmlNodeId) -> Option<XmlNodeId> {
+        self.arena()[node_id.0].first_child().map(XmlNodeId)
+    }
+
+    pub fn last_child(&self, node_id: XmlNodeId) -> Option<XmlNodeId> {
+        self.arena()[node_id.0].last_child().map(XmlNodeId)
+    }
+
+    pub fn next_sibling(&self, node_id: XmlNodeId) -> Option<XmlNodeId> {
+        self.arena()[node_id.0].next_sibling().map(XmlNodeId)
+    }
+
+    pub fn previous_sibling(&self, node_id: XmlNodeId) -> Option<XmlNodeId> {
+        self.arena()[node_id.0].previous_sibling().map(XmlNodeId)
+    }
+
+    pub fn ancestors(&self, node_id: XmlNodeId) -> impl Iterator<Item = XmlNodeId> + '_ {
+        node_id.0.ancestors(self.arena()).map(XmlNodeId)
+    }
+
+    pub fn append(&mut self, parent: XmlNodeId, child: XmlNodeId) -> Result<(), Error> {
+        let xml_node = self.xml_node(parent);
+        if matches!(xml_node, XmlNode::Root | XmlNode::Element(_)) {
+            parent.0.checked_append(child.0, self.arena_mut())?;
+            Ok(())
+        } else {
+            Err(Error::InvalidOperation(
+                "Can only append to elements or document root".into(),
+            ))
+        }
+    }
+
+    pub fn insert_after(
+        &mut self,
+        node_id: XmlNodeId,
+        new_sibling: XmlNodeId,
+    ) -> Result<(), Error> {
+        let xml_node = self.xml_node(node_id);
+        if !matches!(xml_node, XmlNode::Root) {
+            node_id
+                .0
+                .checked_insert_after(new_sibling.0, self.arena_mut())?;
+            Ok(())
+        } else {
+            Err(Error::InvalidOperation(
+                "Cannot insert after document root".into(),
+            ))
+        }
+    }
+
+    pub fn insert_before(
+        &mut self,
+        node_id: XmlNodeId,
+        new_sibling: XmlNodeId,
+    ) -> Result<(), Error> {
+        let xml_node = self.xml_node(node_id);
+        if !matches!(xml_node, XmlNode::Root) {
+            node_id
+                .0
+                .checked_insert_before(new_sibling.0, self.arena_mut())?;
+            Ok(())
+        } else {
+            Err(Error::InvalidOperation(
+                "Cannot insert before document root".into(),
+            ))
+        }
+    }
+
+    pub fn prepend(&mut self, parent: XmlNodeId, child: XmlNodeId) -> Result<(), Error> {
+        let xml_node = self.xml_node(parent);
+        if matches!(xml_node, XmlNode::Root | XmlNode::Element(_)) {
+            parent.0.checked_prepend(child.0, self.arena_mut())?;
+            Ok(())
+        } else {
+            Err(Error::InvalidOperation(
+                "Can only prepend to elements or document root".into(),
+            ))
+        }
+    }
+
+    pub fn children(&self, node_id: XmlNodeId) -> impl Iterator<Item = XmlNodeId> + '_ {
+        node_id.0.children(self.arena()).map(XmlNodeId)
+    }
+
+    pub fn reverse_children(&self, node_id: XmlNodeId) -> impl Iterator<Item = XmlNodeId> + '_ {
+        node_id.0.reverse_children(self.arena()).map(XmlNodeId)
+    }
+
+    pub fn descendants(&self, node_id: XmlNodeId) -> impl Iterator<Item = XmlNodeId> + '_ {
+        node_id.0.descendants(self.arena()).map(XmlNodeId)
+    }
+
+    pub fn detach(&mut self, node_id: XmlNodeId) {
+        node_id.0.detach(self.arena_mut());
+    }
+
+    pub fn following_siblings(&self, node_id: XmlNodeId) -> impl Iterator<Item = XmlNodeId> + '_ {
+        node_id.0.following_siblings(self.arena()).map(XmlNodeId)
+    }
+
+    pub fn preceding_siblings(&self, node_id: XmlNodeId) -> impl Iterator<Item = XmlNodeId> + '_ {
+        node_id.0.preceding_siblings(self.arena()).map(XmlNodeId)
+    }
+
+    pub fn is_removed(&self, node_id: XmlNodeId) -> bool {
+        self.arena()[node_id.0].is_removed()
+    }
+
+    pub fn remove(&mut self, node_id: XmlNodeId) {
+        node_id.0.remove_subtree(self.arena_mut());
+    }
+
+    pub fn traverse(&self, node_id: XmlNodeId) -> impl Iterator<Item = XmlNodeEdge> + '_ {
+        node_id.0.traverse(self.arena()).map(|edge| match edge {
+            NodeEdge::Start(node_id) => XmlNodeEdge::Start(XmlNodeId(node_id)),
+            NodeEdge::End(node_id) => XmlNodeEdge::End(XmlNodeId(node_id)),
+        })
+    }
+
+    pub fn reverse_traverse(&self, node_id: XmlNodeId) -> impl Iterator<Item = XmlNodeEdge> + '_ {
+        node_id
+            .0
+            .reverse_traverse(self.arena())
+            .map(|edge| match edge {
+                NodeEdge::Start(node_id) => XmlNodeEdge::Start(XmlNodeId(node_id)),
+                NodeEdge::End(node_id) => XmlNodeEdge::End(XmlNodeId(node_id)),
+            })
     }
 
     // XXX probably break this into convenience methods
@@ -133,6 +289,7 @@ impl<'a> Document<'a> {
 impl<'a> Debug for Document<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.root_node_id()
+            .0
             .debug_pretty_print(&self.data.arena)
             .fmt(f)
     }

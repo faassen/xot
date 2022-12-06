@@ -1,7 +1,7 @@
 use indextree::{NodeEdge, NodeId};
 use std::io::Write;
 
-use crate::document::{Document, XmlData};
+use crate::document::{Document, XmlData, XmlNodeEdge, XmlNodeId};
 use crate::entity::serialize_predefined_entities;
 use crate::error::Error;
 use crate::name::NameId;
@@ -10,16 +10,16 @@ use crate::xmlnode::{ToPrefix, XmlNode};
 impl<'a> Document<'a> {
     pub fn serialize(
         self: &Document<'a>,
-        node_id: NodeId,
+        node_id: XmlNodeId,
         w: &mut impl Write,
     ) -> Result<(), Error> {
         let mut fullname_serializer = FullnameSerializer::new(self.data);
-        for edge in node_id.traverse(&self.data.arena) {
+        for edge in self.traverse(node_id) {
             match edge {
-                NodeEdge::Start(node_id) => {
+                XmlNodeEdge::Start(node_id) => {
                     self.handle_edge_start(node_id, w, &mut fullname_serializer)?;
                 }
-                NodeEdge::End(node_id) => {
+                XmlNodeEdge::End(node_id) => {
                     self.handle_edge_end(node_id, w, &mut fullname_serializer)?;
                 }
             }
@@ -29,11 +29,11 @@ impl<'a> Document<'a> {
 
     fn handle_edge_start(
         &self,
-        node_id: NodeId,
+        node_id: XmlNodeId,
         w: &mut impl Write,
         fullname_serializer: &mut FullnameSerializer,
     ) -> Result<(), Error> {
-        let xml_node = self.data.arena.get(node_id).unwrap().get();
+        let xml_node = self.xml_node(node_id);
         match xml_node {
             XmlNode::Root => {}
             XmlNode::Element(element) => {
@@ -60,7 +60,7 @@ impl<'a> Document<'a> {
                     write!(w, " {}=\"{}\"", fullname, value)?;
                 }
 
-                if node_id.children(&self.data.arena).next().is_none() {
+                if self.children(node_id).next().is_none() {
                     write!(w, "/>")?;
                 } else {
                     write!(w, ">")?;
@@ -75,15 +75,15 @@ impl<'a> Document<'a> {
 
     fn handle_edge_end(
         &self,
-        node_id: NodeId,
+        node_id: XmlNodeId,
         w: &mut impl Write,
         fullname_serializer: &mut FullnameSerializer,
     ) -> Result<(), Error> {
-        let xml_node = self.data.arena.get(node_id).unwrap().get();
+        let xml_node = self.xml_node(node_id);
         match xml_node {
             XmlNode::Root => {}
             XmlNode::Element(element) => {
-                if node_id.children(&self.data.arena).next().is_some() {
+                if self.children(node_id).next().is_some() {
                     let fullname = fullname_serializer.fullname(element.name_id)?;
                     write!(w, "</{}>", fullname)?;
                 }
