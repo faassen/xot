@@ -233,3 +233,12 @@ fn test_prepend_consolidate_text() {
         r#"<doc>BetaAlpha</doc>"#
     );
 }
+
+#[test]
+fn test_root_node_can_have_only_single_element() {
+    let mut data = XmlData::new();
+    let doc = Document::parse(r#"<doc/>"#, &mut data).unwrap();
+    let root_id = doc.root();
+    let name = data.name_mut("a");
+    assert!(data.append_element(root_id, name).is_err());
+}

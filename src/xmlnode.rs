@@ -6,10 +6,27 @@ use crate::namespace::NamespaceId;
 use crate::prefix::PrefixId;
 
 #[derive(Debug)]
+pub enum NodeType {
+    Root,
+    Element,
+    Text,
+}
+
+#[derive(Debug)]
 pub enum XmlNode {
     Root,
     Element(Element),
     Text(Text),
+}
+
+impl XmlNode {
+    pub fn node_type(&self) -> NodeType {
+        match self {
+            XmlNode::Root => NodeType::Root,
+            XmlNode::Element(_) => NodeType::Element,
+            XmlNode::Text(_) => NodeType::Text,
+        }
+    }
 }
 
 pub(crate) type Attributes = VecMap<NameId, String>;

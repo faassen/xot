@@ -5,7 +5,7 @@ use crate::error::Error;
 use crate::name::{Name, NameId, NameLookup};
 use crate::namespace::{Namespace, NamespaceId, NamespaceLookup};
 use crate::prefix::{Prefix, PrefixId, PrefixLookup};
-use crate::xmlnode::{Element, Text, XmlNode};
+use crate::xmlnode::{Element, NodeType, Text, XmlNode};
 
 pub type XmlArena = Arena<XmlNode>;
 
@@ -89,19 +89,20 @@ impl XmlData {
     }
 
     pub fn append(&mut self, parent: XmlNodeId, child: XmlNodeId) -> Result<(), Error> {
-        let xml_node = self.xml_node(parent);
-        if matches!(xml_node, XmlNode::Root | XmlNode::Element(_)) {
-            if self.consolidate_text_node(child, self.last_child(parent), None) {
-                return Ok(());
+        match self.node_type(parent) {
+            NodeType::Root => Err(Error::InvalidOperation(
+                "Can only append comments or PIs to document root".into(),
+            )),
+            NodeType::Element => {
+                if self.consolidate_text_node(child, self.last_child(parent), None) {
+                    return Ok(());
+                }
+                parent.0.checked_append(child.0, self.arena_mut())?;
+                Ok(())
             }
-            // XXX check that we can't add two elements into root
-            // XXX also check whether prefixes are valid
-            parent.0.checked_append(child.0, self.arena_mut())?;
-            Ok(())
-        } else {
-            Err(Error::InvalidOperation(
+            _ => Err(Error::InvalidOperation(
                 "Can only append to elements or document root".into(),
-            ))
+            )),
         }
     }
 
@@ -122,23 +123,23 @@ impl XmlData {
         reference_node: XmlNodeId,
         new_sibling: XmlNodeId,
     ) -> Result<(), Error> {
-        let xml_node = self.xml_node(reference_node);
-        if !matches!(xml_node, XmlNode::Root) {
-            if self.consolidate_text_node(
-                new_sibling,
-                Some(reference_node),
-                self.next_sibling(reference_node),
-            ) {
-                return Ok(());
-            }
-            reference_node
-                .0
-                .checked_insert_after(new_sibling.0, self.arena_mut())?;
-            Ok(())
-        } else {
-            Err(Error::InvalidOperation(
+        match self.node_type(reference_node) {
+            NodeType::Root => Err(Error::InvalidOperation(
                 "Cannot insert after document root".into(),
-            ))
+            )),
+            _ => {
+                if self.consolidate_text_node(
+                    new_sibling,
+                    Some(reference_node),
+                    self.next_sibling(reference_node),
+                ) {
+                    return Ok(());
+                }
+                reference_node
+                    .0
+                    .checked_insert_after(new_sibling.0, self.arena_mut())?;
+                Ok(())
+            }
         }
     }
 
@@ -147,38 +148,41 @@ impl XmlData {
         reference_node: XmlNodeId,
         new_sibling: XmlNodeId,
     ) -> Result<(), Error> {
-        let xml_node = self.xml_node(reference_node);
-        if !matches!(xml_node, XmlNode::Root) {
-            if self.consolidate_text_node(
-                new_sibling,
-                self.previous_sibling(reference_node),
-                Some(reference_node),
-            ) {
-                return Ok(());
-            }
-            reference_node
-                .0
-                .checked_insert_before(new_sibling.0, self.arena_mut())?;
-            Ok(())
-        } else {
-            Err(Error::InvalidOperation(
+        match self.node_type(reference_node) {
+            NodeType::Root => Err(Error::InvalidOperation(
                 "Cannot insert before document root".into(),
-            ))
+            )),
+            _ => {
+                if self.consolidate_text_node(
+                    new_sibling,
+                    self.previous_sibling(reference_node),
+                    Some(reference_node),
+                ) {
+                    return Ok(());
+                }
+                reference_node
+                    .0
+                    .checked_insert_before(new_sibling.0, self.arena_mut())?;
+                Ok(())
+            }
         }
     }
 
     pub fn prepend(&mut self, parent: XmlNodeId, child: XmlNodeId) -> Result<(), Error> {
-        let xml_node = self.xml_node(parent);
-        if matches!(xml_node, XmlNode::Root | XmlNode::Element(_)) {
-            if self.consolidate_text_node(child, None, self.first_child(parent)) {
-                return Ok(());
+        match self.node_type(parent) {
+            NodeType::Root => Err(Error::InvalidOperation(
+                "Can only prepend comments or PIs to document root".into(),
+            )),
+            NodeType::Element => {
+                if self.consolidate_text_node(child, None, self.first_child(parent)) {
+                    return Ok(());
+                }
+                parent.0.checked_prepend(child.0, self.arena_mut())?;
+                Ok(())
             }
-            parent.0.checked_prepend(child.0, self.arena_mut())?;
-            Ok(())
-        } else {
-            Err(Error::InvalidOperation(
+            _ => Err(Error::InvalidOperation(
                 "Can only prepend to elements or document root".into(),
-            ))
+            )),
         }
     }
 
@@ -323,6 +327,10 @@ impl XmlData {
         } else {
             None
         }
+    }
+
+    pub fn node_type(&self, node_id: XmlNodeId) -> NodeType {
+        self.xml_node(node_id).node_type()
     }
 
     // name & namespace
