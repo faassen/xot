@@ -44,6 +44,14 @@ pub struct Element {
 }
 
 impl Element {
+    pub fn get_attribute(&self, name_id: NameId) -> Option<&str> {
+        self.attributes.get(&name_id).map(|s| s.as_str())
+    }
+
+    pub fn set_attribute(&mut self, name_id: NameId, value: String) {
+        self.attributes.insert(name_id, value);
+    }
+
     // pub fn get_attributes(&'a self) -> &'a Attributes<'a> {
     //     &self.attributes
     // }

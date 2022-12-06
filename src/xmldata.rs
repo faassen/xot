@@ -2,7 +2,7 @@ use indextree::{Arena, NodeEdge, NodeId};
 
 use crate::document::Document;
 use crate::error::Error;
-use crate::name::NameLookup;
+use crate::name::{Name, NameId, NameLookup};
 use crate::namespace::{Namespace, NamespaceId, NamespaceLookup};
 use crate::prefix::{Prefix, PrefixId, PrefixLookup};
 use crate::xmlnode::XmlNode;
@@ -70,6 +70,11 @@ impl XmlData {
     #[inline]
     pub fn xml_node_mut(&mut self, node_id: XmlNodeId) -> &mut XmlNode {
         self.arena[node_id.0].get_mut()
+    }
+
+    pub fn name_id(&mut self, name: &str) -> NameId {
+        self.name_lookup
+            .get_id(Name::new(name.to_string(), self.no_namespace_id))
     }
 
     pub fn root_element(&self, document: &Document) -> XmlNodeId {
