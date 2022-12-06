@@ -1,27 +1,27 @@
 use indextree::{NodeEdge, NodeId};
 use std::io::Write;
 
-use crate::document::{Document, XmlNodeEdge, XmlNodeId};
+use crate::document::Document;
 use crate::entity::serialize_predefined_entities;
 use crate::error::Error;
 use crate::name::NameId;
-use crate::xmldata::XmlData;
+use crate::xmldata::{XmlData, XmlNodeEdge, XmlNodeId};
 use crate::xmlnode::{ToPrefix, XmlNode};
 
 impl Document {
     pub fn serialize_node(
         &self,
-        node_id: NodeId,
+        node_id: XmlNodeId,
         w: &mut impl Write,
         data: &XmlData,
     ) -> Result<(), Error> {
         let mut fullname_serializer = FullnameSerializer::new(data);
-        for edge in node_id.traverse(&data.arena) {
+        for edge in data.traverse(node_id) {
             match edge {
-                NodeEdge::Start(node_id) => {
+                XmlNodeEdge::Start(node_id) => {
                     self.handle_edge_start(node_id, w, &mut fullname_serializer, data)?;
                 }
-                NodeEdge::End(node_id) => {
+                XmlNodeEdge::End(node_id) => {
                     self.handle_edge_end(node_id, w, &mut fullname_serializer, data)?;
                 }
             }
@@ -37,12 +37,12 @@ impl Document {
 
     fn handle_edge_start(
         &self,
-        node_id: NodeId,
+        node_id: XmlNodeId,
         w: &mut impl Write,
         fullname_serializer: &mut FullnameSerializer,
         data: &XmlData,
     ) -> Result<(), Error> {
-        let node = &data.arena[node_id];
+        let node = &data.arena[node_id.get()];
         let xml_node = node.get();
         match xml_node {
             XmlNode::Root => {}
@@ -85,12 +85,12 @@ impl Document {
 
     fn handle_edge_end(
         &self,
-        node_id: NodeId,
+        node_id: XmlNodeId,
         w: &mut impl Write,
         fullname_serializer: &mut FullnameSerializer,
         data: &XmlData,
     ) -> Result<(), Error> {
-        let node = &data.arena[node_id];
+        let node = &data.arena[node_id.get()];
         let xml_node = node.get();
         match xml_node {
             XmlNode::Root => {}
@@ -163,7 +163,7 @@ impl<'a> FullnameSerializer<'a> {
             )
         })?;
         if prefix_id == self.data.empty_prefix_id {
-            Ok(format!("{}", name.name))
+            Ok(name.name.to_string())
         } else {
             let prefix = self.data.prefix_lookup.get_value(prefix_id);
             Ok(format!("{}:{}", prefix, name.name))

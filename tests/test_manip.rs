@@ -4,12 +4,10 @@ use xot::{Document, XmlData, XmlNode};
 fn test_escape_in_text() {
     let mut data = XmlData::new();
     let doc = Document::parse(r#"<doc>Data</doc>"#, &mut data).unwrap();
-    let arena = &data.arena;
-    let text_id = arena[arena[doc.root_node_id()].first_child().unwrap()]
-        .first_child()
+    let text_id = data
+        .first_child(data.first_child(doc.root_node_id()).unwrap())
         .unwrap();
-    let arena = &mut data.arena;
-    if let XmlNode::Text(node) = arena.get_mut(text_id).unwrap().get_mut() {
+    if let XmlNode::Text(node) = data.xml_node_mut(text_id) {
         node.set("Changed".into());
     }
     assert_eq!(
