@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::fmt::Debug;
 use vector_map::VecMap;
 
@@ -7,13 +6,13 @@ use crate::namespace::NamespaceId;
 use crate::prefix::PrefixId;
 
 #[derive(Debug)]
-pub enum XmlNode<'a> {
+pub enum XmlNode {
     Root,
-    Element(Element<'a>),
-    Text(Cow<'a, str>),
+    Element(Element),
+    Text(Text),
 }
 
-pub(crate) type Attributes<'a> = VecMap<NameId, Cow<'a, str>>;
+pub(crate) type Attributes = VecMap<NameId, String>;
 pub(crate) type ToNamespace = VecMap<PrefixId, NamespaceId>;
 pub(crate) type ToPrefix = VecMap<NamespaceId, PrefixId>;
 
@@ -38,18 +37,37 @@ impl NamespaceInfo {
 }
 
 #[derive(Debug)]
-pub struct Element<'a> {
+pub struct Element {
     pub(crate) name_id: NameId,
-    pub(crate) attributes: Attributes<'a>,
+    pub(crate) attributes: Attributes,
     pub(crate) namespace_info: NamespaceInfo,
 }
 
-impl<'a> Element<'a> {
-    pub fn get_attributes(&'a self) -> &'a Attributes<'a> {
-        &self.attributes
+impl Element {
+    // pub fn get_attributes(&'a self) -> &'a Attributes<'a> {
+    //     &self.attributes
+    // }
+
+    // pub fn get_attributes_mut(&'a mut self) -> &'a mut Attributes<'a> {
+    //     &mut self.attributes
+    // }
+}
+
+#[derive(Debug)]
+pub struct Text {
+    pub(crate) text: String,
+}
+
+impl Text {
+    pub fn new(text: String) -> Self {
+        Text { text }
     }
 
-    pub fn get_attributes_mut(&'a mut self) -> &'a mut Attributes<'a> {
-        &mut self.attributes
+    pub fn get(&self) -> &str {
+        &self.text
+    }
+
+    pub fn set(&mut self, text: String) {
+        self.text = text;
     }
 }

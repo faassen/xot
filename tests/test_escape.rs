@@ -4,17 +4,14 @@ use xot::{Document, XmlData, XmlNode};
 fn test_escape_in_text() {
     let mut data = XmlData::new();
     let doc = Document::parse(r#"<a>&lt;</a>"#, &mut data).unwrap();
-    let root_id = doc.root_node_id();
     // let arena = doc.arena();
-    let children = doc.children(root_id).collect::<Vec<_>>();
-    assert_eq!(children.len(), 1);
-    let a_id = children[0];
-    assert!(matches!(doc.xml_node(a_id), xot::XmlNode::Element(_)));
-    let text_id = doc.first_child(a_id).unwrap();
-    assert!(matches!(doc.xml_node(text_id), xot::XmlNode::Text(_)));
-    match doc.xml_node(text_id) {
+    let text_id = data.arena[data.arena[doc.root_node_id()].first_child().unwrap()]
+        .first_child()
+        .unwrap();
+    assert!(matches!(data.arena[text_id].get(), XmlNode::Text(_)));
+    match data.arena[text_id].get() {
         XmlNode::Text(text) => {
-            assert_eq!(text, "<");
+            assert_eq!(text.get(), "<");
         }
         _ => unreachable!(),
     }

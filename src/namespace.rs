@@ -17,18 +17,18 @@ impl IdIndex<NamespaceId> for NamespaceId {
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct Namespace<'a>(Cow<'a, str>);
+pub struct Namespace(String);
 
-impl<'a> Namespace<'a> {
-    pub(crate) fn new(namespace_uri: Cow<'a, str>) -> Self {
+impl Namespace {
+    pub(crate) fn new(namespace_uri: String) -> Self {
         Self(namespace_uri)
     }
 }
 
-impl<'a> Display for Namespace<'a> {
+impl Display for Namespace {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-pub(crate) type NamespaceLookup<'a> = IdMap<NamespaceId, Namespace<'a>>;
+pub(crate) type NamespaceLookup = IdMap<NamespaceId, Namespace>;

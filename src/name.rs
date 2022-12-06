@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use crate::idmap::{IdIndex, IdMap};
 use crate::namespace::NamespaceId;
 
@@ -17,15 +15,15 @@ impl IdIndex<NameId> for NameId {
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub(crate) struct Name<'a> {
-    pub(crate) name: Cow<'a, str>,
+pub(crate) struct Name {
+    pub(crate) name: String,
     pub(crate) namespace_id: NamespaceId,
 }
 
-impl<'a> Name<'a> {
-    pub(crate) fn new(name: Cow<'a, str>, namespace_id: NamespaceId) -> Self {
+impl Name {
+    pub(crate) fn new(name: String, namespace_id: NamespaceId) -> Self {
         Self { name, namespace_id }
     }
 }
 
-pub(crate) type NameLookup<'a> = IdMap<NameId, Name<'a>>;
+pub(crate) type NameLookup = IdMap<NameId, Name>;

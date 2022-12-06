@@ -1,6 +1,5 @@
 use ahash::HashMap;
 use indextree::NodeId;
-use std::borrow::Cow;
 use xmlparser::{ElementEnd, Token, Tokenizer};
 
 use crate::document::{Document, XmlData};
@@ -9,17 +8,17 @@ use crate::error::Error;
 use crate::name::{Name, NameId};
 use crate::namespace::Namespace;
 use crate::prefix::{Prefix, PrefixId};
-use crate::xmlnode::{Attributes, Element, NamespaceInfo, ToNamespace, XmlNode};
+use crate::xmlnode::{Attributes, Element, NamespaceInfo, Text, ToNamespace, XmlNode};
 
-struct ElementBuilder<'a> {
-    prefix: Cow<'a, str>,
-    name: Cow<'a, str>,
+struct ElementBuilder {
+    prefix: String,
+    name: String,
     namespace_info: NamespaceInfo,
-    attributes: HashMap<(Cow<'a, str>, Cow<'a, str>), Cow<'a, str>>,
+    attributes: HashMap<(String, String), String>,
 }
 
-impl<'a> ElementBuilder<'a> {
-    fn new(prefix: Cow<'a, str>, name: Cow<'a, str>) -> Self {
+impl ElementBuilder {
+    fn new(prefix: String, name: String) -> Self {
         ElementBuilder {
             prefix,
             name,
@@ -30,8 +29,8 @@ impl<'a> ElementBuilder<'a> {
 
     fn build_attributes(
         &mut self,
-        document_builder: &mut DocumentBuilder<'a>,
-    ) -> Result<Attributes<'a>, Error> {
+        document_builder: &mut DocumentBuilder,
+    ) -> Result<Attributes, Error> {
         let mut attributes = Attributes::new();
         for ((prefix, name), value) in self.attributes.drain() {
             let name_id = document_builder.name_id_builder.attribute_name_id(
@@ -44,10 +43,7 @@ impl<'a> ElementBuilder<'a> {
         Ok(attributes)
     }
 
-    fn into_element(
-        mut self,
-        document_builder: &mut DocumentBuilder<'a>,
-    ) -> Result<Element<'a>, Error> {
+    fn into_element(mut self, document_builder: &mut DocumentBuilder) -> Result<Element, Error> {
         document_builder
             .name_id_builder
             .push(&self.namespace_info.to_namespace);
@@ -66,15 +62,15 @@ impl<'a> ElementBuilder<'a> {
 }
 
 struct DocumentBuilder<'a> {
-    data: &'a mut XmlData<'a>,
+    data: &'a mut XmlData,
     tree: NodeId,
     current_node_id: NodeId,
     name_id_builder: NameIdBuilder,
-    element_builder: Option<ElementBuilder<'a>>,
+    element_builder: Option<ElementBuilder>,
 }
 
 impl<'a> DocumentBuilder<'a> {
-    fn new(data: &'a mut XmlData<'a>) -> Self {
+    fn new(data: &'a mut XmlData) -> Self {
         let root = data.arena.new_node(XmlNode::Root);
         let mut name_id_builder = NameIdBuilder::new();
         let mut base_to_namespace = ToNamespace::new();
@@ -89,15 +85,12 @@ impl<'a> DocumentBuilder<'a> {
         }
     }
 
-    fn into_document(self) -> Document<'a> {
-        Document {
-            data: self.data,
-            tree: self.tree,
-        }
+    fn into_document(self) -> Document {
+        Document { tree: self.tree }
     }
 
-    fn element(&mut self, prefix: Cow<'a, str>, name: Cow<'a, str>) {
-        self.element_builder = Some(ElementBuilder::new(prefix, name));
+    fn element(&mut self, prefix: &str, name: &str) {
+        self.element_builder = Some(ElementBuilder::new(prefix.to_string(), name.to_string()));
     }
 
     fn prefix(&mut self, prefix: &'a str, namespace_uri: &'a str) {
@@ -122,7 +115,7 @@ impl<'a> DocumentBuilder<'a> {
         Ok(())
     }
 
-    fn add(&mut self, xml_node: XmlNode<'a>) -> NodeId {
+    fn add(&mut self, xml_node: XmlNode) -> NodeId {
         let node_id = self.data.arena.new_node(xml_node);
         self.current_node_id.append(node_id, &mut self.data.arena);
         node_id
@@ -136,9 +129,9 @@ impl<'a> DocumentBuilder<'a> {
         Ok(())
     }
 
-    fn text(&mut self, content: Cow<'a, str>) -> Result<(), Error> {
-        let content = parse_predefined_entities(content)?;
-        self.add(XmlNode::Text(content));
+    fn text(&mut self, content: &str) -> Result<(), Error> {
+        let content = parse_predefined_entities(content.into())?;
+        self.add(XmlNode::Text(Text::new(content.to_string())));
         Ok(())
     }
 
@@ -189,11 +182,11 @@ impl NameIdBuilder {
         &self.namespace_stack[self.namespace_stack.len() - 1]
     }
 
-    fn element_name_id<'a>(
+    fn element_name_id(
         &mut self,
-        prefix: Cow<'a, str>,
-        name: Cow<'a, str>,
-        data: &mut XmlData<'a>,
+        prefix: String,
+        name: String,
+        data: &mut XmlData,
     ) -> Result<NameId, Error> {
         let prefix_clone = prefix.clone();
         let prefix_id = data.prefix_lookup.get_id(Prefix::new(prefix));
@@ -204,11 +197,11 @@ impl NameIdBuilder {
         }
     }
 
-    fn attribute_name_id<'a>(
+    fn attribute_name_id(
         &mut self,
-        prefix: Cow<'a, str>,
-        name: Cow<'a, str>,
-        data: &mut XmlData<'a>,
+        prefix: String,
+        name: String,
+        data: &mut XmlData,
     ) -> Result<NameId, Error> {
         // an unprefixed attribute is in no namespace, not
         // in the default namespace
@@ -226,11 +219,11 @@ impl NameIdBuilder {
         }
     }
 
-    fn name_id_with_prefix_id<'a>(
+    fn name_id_with_prefix_id(
         &mut self,
         prefix_id: PrefixId,
-        name: Cow<'a, str>,
-        data: &mut XmlData<'a>,
+        name: String,
+        data: &mut XmlData,
     ) -> Result<NameId, ()> {
         let namespace_id = if !self.namespace_stack.is_empty() {
             self.top().get(&prefix_id)
@@ -243,8 +236,8 @@ impl NameIdBuilder {
     }
 }
 
-impl<'a> Document<'a> {
-    pub fn parse(xml: &'a str, data: &'a mut XmlData<'a>) -> Result<Self, Error> {
+impl Document {
+    pub fn parse(xml: &str, data: &mut XmlData) -> Result<Self, Error> {
         use Token::*;
 
         let mut builder = DocumentBuilder::new(data);

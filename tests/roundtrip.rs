@@ -40,8 +40,6 @@ fn roundtrip(#[values(
     let (name, xml) = value;
     let mut data = XmlData::new();
     let doc = Document::parse(xml, &mut data).unwrap();
-    let mut buf = Vec::new();
-    doc.serialize(doc.root_node_id(), &mut buf).unwrap();
-    let output_xml = String::from_utf8(buf).unwrap();
+    let output_xml = doc.serialize_to_string(&data).unwrap();
     assert_eq!(xml, &output_xml, "roundtrip failed for: {}", name);
 }

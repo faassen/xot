@@ -7,33 +7,42 @@ use crate::error::Error;
 use crate::name::NameId;
 use crate::xmlnode::{ToPrefix, XmlNode};
 
-impl<'a> Document<'a> {
-    pub fn serialize(
-        self: &Document<'a>,
-        node_id: XmlNodeId,
+impl Document {
+    pub fn serialize_node(
+        self: &Document,
+        node_id: NodeId,
         w: &mut impl Write,
+        data: &XmlData,
     ) -> Result<(), Error> {
-        let mut fullname_serializer = FullnameSerializer::new(self.data);
-        for edge in self.traverse(node_id) {
+        let mut fullname_serializer = FullnameSerializer::new(data);
+        for edge in node_id.traverse(&data.arena) {
             match edge {
-                XmlNodeEdge::Start(node_id) => {
-                    self.handle_edge_start(node_id, w, &mut fullname_serializer)?;
+                NodeEdge::Start(node_id) => {
+                    self.handle_edge_start(node_id, w, &mut fullname_serializer, data)?;
                 }
-                XmlNodeEdge::End(node_id) => {
-                    self.handle_edge_end(node_id, w, &mut fullname_serializer)?;
+                NodeEdge::End(node_id) => {
+                    self.handle_edge_end(node_id, w, &mut fullname_serializer, data)?;
                 }
             }
         }
         Ok(())
     }
 
+    pub fn serialize_to_string(self: &Document, data: &XmlData) -> Result<String, Error> {
+        let mut buf = Vec::new();
+        self.serialize_node(self.root_node_id(), &mut buf, data)?;
+        Ok(String::from_utf8(buf).unwrap())
+    }
+
     fn handle_edge_start(
         &self,
-        node_id: XmlNodeId,
+        node_id: NodeId,
         w: &mut impl Write,
         fullname_serializer: &mut FullnameSerializer,
+        data: &XmlData,
     ) -> Result<(), Error> {
-        let xml_node = self.xml_node(node_id);
+        let node = &data.arena[node_id];
+        let xml_node = node.get();
         match xml_node {
             XmlNode::Root => {}
             XmlNode::Element(element) => {
@@ -43,14 +52,14 @@ impl<'a> Document<'a> {
                 let fullname = fullname_serializer.fullname(element.name_id)?;
                 write!(w, "<{}", fullname)?;
                 for (prefix_id, namespace_id) in element.namespace_info.to_namespace.iter() {
-                    let namespace = self.data.namespace_lookup.get_value(*namespace_id);
-                    if prefix_id == &self.data.empty_prefix_id {
+                    let namespace = data.namespace_lookup.get_value(*namespace_id);
+                    if prefix_id == &data.empty_prefix_id {
                         write!(w, " xmlns=\"{}\"", namespace)?;
                     } else {
                         write!(
                             w,
                             " xmlns:{}=\"{}\"",
-                            self.data.prefix_lookup.get_value(*prefix_id),
+                            data.prefix_lookup.get_value(*prefix_id),
                             namespace
                         )?;
                     }
@@ -60,14 +69,14 @@ impl<'a> Document<'a> {
                     write!(w, " {}=\"{}\"", fullname, value)?;
                 }
 
-                if self.children(node_id).next().is_none() {
+                if node.first_child().is_none() {
                     write!(w, "/>")?;
                 } else {
                     write!(w, ">")?;
                 }
             }
             XmlNode::Text(text) => {
-                write!(w, "{}", serialize_predefined_entities(text.clone()))?;
+                write!(w, "{}", serialize_predefined_entities(text.get().into()))?;
             }
         }
         Ok(())
@@ -75,15 +84,17 @@ impl<'a> Document<'a> {
 
     fn handle_edge_end(
         &self,
-        node_id: XmlNodeId,
+        node_id: NodeId,
         w: &mut impl Write,
         fullname_serializer: &mut FullnameSerializer,
+        data: &XmlData,
     ) -> Result<(), Error> {
-        let xml_node = self.xml_node(node_id);
+        let node = &data.arena[node_id];
+        let xml_node = node.get();
         match xml_node {
             XmlNode::Root => {}
             XmlNode::Element(element) => {
-                if self.children(node_id).next().is_some() {
+                if node.first_child().is_some() {
                     let fullname = fullname_serializer.fullname(element.name_id)?;
                     write!(w, "</{}>", fullname)?;
                 }
@@ -98,12 +109,12 @@ impl<'a> Document<'a> {
 }
 
 struct FullnameSerializer<'a> {
-    data: &'a XmlData<'a>,
+    data: &'a XmlData,
     prefix_stack: Vec<ToPrefix>,
 }
 
 impl<'a> FullnameSerializer<'a> {
-    fn new(data: &'a XmlData<'a>) -> Self {
+    fn new(data: &'a XmlData) -> Self {
         Self {
             data,
             prefix_stack: Vec::new(),
