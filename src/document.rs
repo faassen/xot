@@ -1,5 +1,4 @@
-use indextree::{Arena, Node, NodeEdge, NodeId};
-use std::fmt::Debug;
+use indextree::NodeId;
 
 use crate::namespace::NamespaceId;
 use crate::prefix::PrefixId;

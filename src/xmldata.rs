@@ -1,4 +1,4 @@
-use indextree::{Arena, Node, NodeEdge, NodeId};
+use indextree::{Arena, NodeEdge, NodeId};
 
 use crate::error::Error;
 use crate::name::NameLookup;
@@ -7,7 +7,6 @@ use crate::prefix::{Prefix, PrefixId, PrefixLookup};
 use crate::xmlnode::XmlNode;
 
 pub type XmlArena = Arena<XmlNode>;
-pub struct TreeNode(Node<XmlNode>);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct XmlNodeId(NodeId);

@@ -1,4 +1,3 @@
-use indextree::{NodeEdge, NodeId};
 use std::io::Write;
 
 use crate::document::Document;
@@ -103,7 +102,7 @@ impl Document {
                     fullname_serializer.pop();
                 }
             }
-            XmlNode::Text(text) => {}
+            XmlNode::Text(_text) => {}
         }
         Ok(())
     }

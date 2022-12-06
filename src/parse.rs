@@ -194,7 +194,7 @@ impl NameIdBuilder {
         if let Ok(name_id) = self.name_id_with_prefix_id(prefix_id, name, data) {
             Ok(name_id)
         } else {
-            Err(Error::UnknownPrefix(prefix_clone.to_string()))
+            Err(Error::UnknownPrefix(prefix_clone))
         }
     }
 
@@ -216,7 +216,7 @@ impl NameIdBuilder {
         if let Ok(name_id) = self.name_id_with_prefix_id(prefix_id, name, data) {
             Ok(name_id)
         } else {
-            Err(Error::UnknownPrefix(prefix_clone.to_string()))
+            Err(Error::UnknownPrefix(prefix_clone))
         }
     }
 
@@ -249,7 +249,7 @@ impl Document {
                     prefix,
                     local,
                     value,
-                    span,
+                    span: _,
                 } => {
                     if prefix.as_str() == "xmlns" {
                         builder.prefix(local.as_str(), value.as_str());
@@ -260,23 +260,23 @@ impl Document {
                     }
                 }
                 Text { text } => {
-                    builder.text(text.as_str().into())?;
+                    builder.text(text.as_str())?;
                 }
                 ElementStart {
                     prefix,
                     local,
-                    span,
+                    span: _,
                 } => {
-                    builder.element(prefix.as_str().into(), local.as_str().into());
+                    builder.element(prefix.as_str(), local.as_str());
                 }
-                ElementEnd { end, span } => {
+                ElementEnd { end, span: _ } => {
                     use self::ElementEnd::*;
 
                     match end {
                         Open => {
                             builder.open_element()?;
                         }
-                        Close(prefix, local) => {
+                        Close(_prefix, _local) => {
                             // XXX check that we're closing the right element
                             builder.close_element();
                         }
