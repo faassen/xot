@@ -85,3 +85,32 @@ fn test_add_attribute_ns() {
         r#"<doc xmlns:foo="http://example.com" foo:a="Created"/>"#
     );
 }
+
+#[test]
+fn test_append_text() {
+    let mut data = XmlData::new();
+    let doc = Document::parse(r#"<doc/>"#, &mut data).unwrap();
+    let el_id = data.root_element(&doc);
+    data.append_text(el_id, "Changed").unwrap();
+    assert_eq!(
+        doc.serialize_to_string(&data).unwrap(),
+        r#"<doc>Changed</doc>"#
+    );
+}
+
+#[test]
+fn test_append_text_after_text_consolidates_nodes() {
+    let mut data = XmlData::new();
+    let doc = Document::parse(r#"<doc/>"#, &mut data).unwrap();
+    let el_id = data.root_element(&doc);
+    data.append_text(el_id, "Alpha").unwrap();
+    data.append_text(el_id, "Beta").unwrap();
+    match data.xml_node(data.first_child(el_id).unwrap()) {
+        XmlNode::Text(node) => assert_eq!(node.get(), "AlphaBeta"),
+        _ => panic!("Expected text node"),
+    }
+    assert_eq!(
+        doc.serialize_to_string(&data).unwrap(),
+        r#"<doc>AlphaBeta</doc>"#
+    );
+}

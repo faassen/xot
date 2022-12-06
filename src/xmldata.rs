@@ -5,7 +5,7 @@ use crate::error::Error;
 use crate::name::{Name, NameId, NameLookup};
 use crate::namespace::{Namespace, NamespaceId, NamespaceLookup};
 use crate::prefix::{Prefix, PrefixId, PrefixLookup};
-use crate::xmlnode::XmlNode;
+use crate::xmlnode::{Text, XmlNode};
 
 pub type XmlArena = Arena<XmlNode>;
 
@@ -70,6 +70,10 @@ impl XmlData {
     #[inline]
     pub fn xml_node_mut(&mut self, node_id: XmlNodeId) -> &mut XmlNode {
         self.arena[node_id.0].get_mut()
+    }
+
+    pub fn new_node(&mut self, xml_node: XmlNode) -> XmlNodeId {
+        XmlNodeId(self.arena.new_node(xml_node))
     }
 
     pub fn name(&self, name: &str) -> Option<NameId> {
@@ -144,6 +148,22 @@ impl XmlData {
                 "Can only append to elements or document root".into(),
             ))
         }
+    }
+
+    pub fn append_text(&mut self, parent: XmlNodeId, text: &str) -> Result<(), Error> {
+        let previous_node_id = self.last_child(parent);
+        if let Some(previous_node_id) = previous_node_id {
+            if let XmlNode::Text(previous_text) = self.xml_node_mut(previous_node_id) {
+                let mut new_text = previous_text.text.clone();
+                new_text.push_str(text);
+                previous_text.set(new_text);
+                return Ok(());
+            }
+        }
+        let text_node = XmlNode::Text(Text::new(text.to_string()));
+        let text_node_id = self.new_node(text_node);
+        self.append(parent, text_node_id)?;
+        Ok(())
     }
 
     pub fn insert_after(
