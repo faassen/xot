@@ -1,4 +1,4 @@
-use xot::{Document, XmlData, XmlNode};
+use xot::{Document, Text, XmlData, XmlNode};
 
 #[test]
 fn test_manipulate_text() {
@@ -112,5 +112,38 @@ fn test_append_text_after_text_consolidates_nodes() {
     assert_eq!(
         doc.serialize_to_string(&data).unwrap(),
         r#"<doc>AlphaBeta</doc>"#
+    );
+}
+
+#[test]
+fn test_append_text_after_text_consolidates_nodes_direct_append() {
+    let mut data = XmlData::new();
+    let doc = Document::parse(r#"<doc/>"#, &mut data).unwrap();
+    let el_id = data.root_element(&doc);
+    let txt1 = data.new_node(XmlNode::Text(Text::new("Alpha".to_string())));
+    let txt2 = data.new_node(XmlNode::Text(Text::new("Beta".to_string())));
+    data.append(el_id, txt1).unwrap();
+    data.append(el_id, txt2).unwrap();
+    match data.xml_node(data.first_child(el_id).unwrap()) {
+        XmlNode::Text(node) => assert_eq!(node.get(), "AlphaBeta"),
+        _ => panic!("Expected text node"),
+    }
+    assert_eq!(
+        doc.serialize_to_string(&data).unwrap(),
+        r#"<doc>AlphaBeta</doc>"#
+    );
+}
+
+#[test]
+fn test_insert_before_consolidate_text() {
+    let mut data = XmlData::new();
+    let doc = Document::parse(r#"<doc>Alpha</doc>"#, &mut data).unwrap();
+    let el_id = data.first_child(data.root_element(&doc)).unwrap();
+    let txt = data.new_node(XmlNode::Text(Text::new("Beta".to_string())));
+    data.insert_before(el_id, txt).unwrap();
+    assert_eq!(data.text(el_id), Some("BetaAlpha"));
+    assert_eq!(
+        doc.serialize_to_string(&data).unwrap(),
+        r#"<doc>BetaAlpha</doc>"#
     );
 }

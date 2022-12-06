@@ -5,7 +5,7 @@ use crate::error::Error;
 use crate::name::{Name, NameId, NameLookup};
 use crate::namespace::{Namespace, NamespaceId, NamespaceLookup};
 use crate::prefix::{Prefix, PrefixId, PrefixLookup};
-use crate::xmlnode::{Text, XmlNode};
+use crate::xmlnode::{Element, Text, XmlNode};
 
 pub type XmlArena = Arena<XmlNode>;
 
@@ -72,37 +72,147 @@ impl XmlData {
         self.arena[node_id.0].get_mut()
     }
 
+    // manipulators
+
     pub fn new_node(&mut self, xml_node: XmlNode) -> XmlNodeId {
         XmlNodeId(self.arena.new_node(xml_node))
     }
 
-    pub fn name(&self, name: &str) -> Option<NameId> {
-        self.name_ns(name, self.no_namespace_id)
+    pub fn append(&mut self, parent: XmlNodeId, child: XmlNodeId) -> Result<(), Error> {
+        let xml_node = self.xml_node(parent);
+        if matches!(xml_node, XmlNode::Root | XmlNode::Element(_)) {
+            if self.consolidate_text_node(child, self.last_child(parent), None) {
+                return Ok(());
+            }
+            // XXX check that we can't add two elements into root
+            // XXX also check whether prefixes are valid
+            parent.0.checked_append(child.0, self.arena_mut())?;
+            Ok(())
+        } else {
+            Err(Error::InvalidOperation(
+                "Can only append to elements or document root".into(),
+            ))
+        }
     }
 
-    pub fn name_mut(&mut self, name: &str) -> NameId {
-        self.name_ns_mut(name, self.no_namespace_id)
+    pub fn append_text(&mut self, parent: XmlNodeId, text: &str) -> Result<(), Error> {
+        let text_node = XmlNode::Text(Text::new(text.to_string()));
+        let text_node_id = self.new_node(text_node);
+        self.append(parent, text_node_id)?;
+        Ok(())
     }
 
-    pub fn name_ns(&self, name: &str, namespace_id: NamespaceId) -> Option<NameId> {
-        self.name_lookup
-            .get_id(Name::new(name.to_string(), namespace_id))
+    pub fn insert_after(
+        &mut self,
+        reference_node: XmlNodeId,
+        new_sibling: XmlNodeId,
+    ) -> Result<(), Error> {
+        let xml_node = self.xml_node(reference_node);
+        if !matches!(xml_node, XmlNode::Root) {
+            if self.consolidate_text_node(
+                new_sibling,
+                Some(reference_node),
+                self.next_sibling(reference_node),
+            ) {
+                return Ok(());
+            }
+            reference_node
+                .0
+                .checked_insert_after(new_sibling.0, self.arena_mut())?;
+            Ok(())
+        } else {
+            Err(Error::InvalidOperation(
+                "Cannot insert after document root".into(),
+            ))
+        }
     }
 
-    pub fn name_ns_mut(&mut self, name: &str, namespace_id: NamespaceId) -> NameId {
-        self.name_lookup
-            .get_id_mut(Name::new(name.to_string(), namespace_id))
+    pub fn insert_before(
+        &mut self,
+        reference_node: XmlNodeId,
+        new_sibling: XmlNodeId,
+    ) -> Result<(), Error> {
+        let xml_node = self.xml_node(reference_node);
+        if !matches!(xml_node, XmlNode::Root) {
+            if self.consolidate_text_node(
+                new_sibling,
+                self.previous_sibling(reference_node),
+                Some(reference_node),
+            ) {
+                return Ok(());
+            }
+            reference_node
+                .0
+                .checked_insert_before(new_sibling.0, self.arena_mut())?;
+            Ok(())
+        } else {
+            Err(Error::InvalidOperation(
+                "Cannot insert before document root".into(),
+            ))
+        }
     }
 
-    pub fn namespace(&self, namespace: &str) -> Option<NamespaceId> {
-        self.namespace_lookup
-            .get_id(Namespace::new(namespace.to_string()))
+    pub fn prepend(&mut self, parent: XmlNodeId, child: XmlNodeId) -> Result<(), Error> {
+        let xml_node = self.xml_node(parent);
+        if matches!(xml_node, XmlNode::Root | XmlNode::Element(_)) {
+            if self.consolidate_text_node(child, None, self.first_child(parent)) {
+                return Ok(());
+            }
+            parent.0.checked_prepend(child.0, self.arena_mut())?;
+            Ok(())
+        } else {
+            Err(Error::InvalidOperation(
+                "Can only prepend to elements or document root".into(),
+            ))
+        }
     }
 
-    pub fn namespace_mut(&mut self, namespace: &str) -> NamespaceId {
-        self.namespace_lookup
-            .get_id_mut(Namespace::new(namespace.to_string()))
+    fn consolidate_text_node(
+        &mut self,
+        node: XmlNodeId,
+        prev_node: Option<XmlNodeId>,
+        next_node: Option<XmlNodeId>,
+    ) -> bool {
+        let added_text = if let XmlNode::Text(t) = self.xml_node(node) {
+            Some(t.get().to_string())
+        } else {
+            None
+        };
+        if added_text.is_none() {
+            return false;
+        }
+        let added_text = added_text.unwrap();
+
+        // due to consolidation, two text nodes can never be adjacent,
+        // so consolidate with the previous node or next node is fine
+        if let Some(prev_node) = prev_node {
+            if let XmlNode::Text(prev) = self.xml_node_mut(prev_node) {
+                let mut s = prev.get().to_string();
+                s.push_str(&added_text);
+                prev.set(s);
+                true
+            } else {
+                false
+            }
+        } else if let Some(next_node) = next_node {
+            if let XmlNode::Text(next) = self.xml_node_mut(next_node) {
+                let mut s = added_text;
+                s.push_str(next.get());
+                next.set(s);
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        }
     }
+
+    pub fn remove(&mut self, node_id: XmlNodeId) {
+        node_id.0.remove_subtree(self.arena_mut());
+    }
+
+    // accessors
 
     pub fn root_element(&self, document: &Document) -> XmlNodeId {
         for child in self.children(document.root()) {
@@ -137,83 +247,6 @@ impl XmlData {
         node_id.0.ancestors(self.arena()).map(XmlNodeId)
     }
 
-    pub fn append(&mut self, parent: XmlNodeId, child: XmlNodeId) -> Result<(), Error> {
-        let xml_node = self.xml_node(parent);
-        if matches!(xml_node, XmlNode::Root | XmlNode::Element(_)) {
-            // XXX also check whether prefixes are valid
-            parent.0.checked_append(child.0, self.arena_mut())?;
-            Ok(())
-        } else {
-            Err(Error::InvalidOperation(
-                "Can only append to elements or document root".into(),
-            ))
-        }
-    }
-
-    pub fn append_text(&mut self, parent: XmlNodeId, text: &str) -> Result<(), Error> {
-        let previous_node_id = self.last_child(parent);
-        if let Some(previous_node_id) = previous_node_id {
-            if let XmlNode::Text(previous_text) = self.xml_node_mut(previous_node_id) {
-                let mut new_text = previous_text.text.clone();
-                new_text.push_str(text);
-                previous_text.set(new_text);
-                return Ok(());
-            }
-        }
-        let text_node = XmlNode::Text(Text::new(text.to_string()));
-        let text_node_id = self.new_node(text_node);
-        self.append(parent, text_node_id)?;
-        Ok(())
-    }
-
-    pub fn insert_after(
-        &mut self,
-        node_id: XmlNodeId,
-        new_sibling: XmlNodeId,
-    ) -> Result<(), Error> {
-        let xml_node = self.xml_node(node_id);
-        if !matches!(xml_node, XmlNode::Root) {
-            node_id
-                .0
-                .checked_insert_after(new_sibling.0, self.arena_mut())?;
-            Ok(())
-        } else {
-            Err(Error::InvalidOperation(
-                "Cannot insert after document root".into(),
-            ))
-        }
-    }
-
-    pub fn insert_before(
-        &mut self,
-        node_id: XmlNodeId,
-        new_sibling: XmlNodeId,
-    ) -> Result<(), Error> {
-        let xml_node = self.xml_node(node_id);
-        if !matches!(xml_node, XmlNode::Root) {
-            node_id
-                .0
-                .checked_insert_before(new_sibling.0, self.arena_mut())?;
-            Ok(())
-        } else {
-            Err(Error::InvalidOperation(
-                "Cannot insert before document root".into(),
-            ))
-        }
-    }
-
-    pub fn prepend(&mut self, parent: XmlNodeId, child: XmlNodeId) -> Result<(), Error> {
-        let xml_node = self.xml_node(parent);
-        if matches!(xml_node, XmlNode::Root | XmlNode::Element(_)) {
-            parent.0.checked_prepend(child.0, self.arena_mut())?;
-            Ok(())
-        } else {
-            Err(Error::InvalidOperation(
-                "Can only prepend to elements or document root".into(),
-            ))
-        }
-    }
-
     pub fn children(&self, node_id: XmlNodeId) -> impl Iterator<Item = XmlNodeId> + '_ {
         node_id.0.children(self.arena()).map(XmlNodeId)
     }
@@ -242,10 +275,6 @@ impl XmlData {
         self.arena()[node_id.0].is_removed()
     }
 
-    pub fn remove(&mut self, node_id: XmlNodeId) {
-        node_id.0.remove_subtree(self.arena_mut());
-    }
-
     pub fn traverse(&self, node_id: XmlNodeId) -> impl Iterator<Item = XmlNodeEdge> + '_ {
         node_id.0.traverse(self.arena()).map(|edge| match edge {
             NodeEdge::Start(node_id) => XmlNodeEdge::Start(XmlNodeId(node_id)),
@@ -261,6 +290,53 @@ impl XmlData {
                 NodeEdge::Start(node_id) => XmlNodeEdge::Start(XmlNodeId(node_id)),
                 NodeEdge::End(node_id) => XmlNodeEdge::End(XmlNodeId(node_id)),
             })
+    }
+
+    pub fn text(&self, node_id: XmlNodeId) -> Option<&str> {
+        let xml_node = self.xml_node(node_id);
+        if let XmlNode::Text(text) = xml_node {
+            Some(text.get())
+        } else {
+            None
+        }
+    }
+
+    pub fn element(&self, node_id: XmlNodeId) -> Option<&Element> {
+        let xml_node = self.xml_node(node_id);
+        if let XmlNode::Element(element) = xml_node {
+            Some(element)
+        } else {
+            None
+        }
+    }
+
+    // name & namespace
+    pub fn name(&self, name: &str) -> Option<NameId> {
+        self.name_ns(name, self.no_namespace_id)
+    }
+
+    pub fn name_mut(&mut self, name: &str) -> NameId {
+        self.name_ns_mut(name, self.no_namespace_id)
+    }
+
+    pub fn name_ns(&self, name: &str, namespace_id: NamespaceId) -> Option<NameId> {
+        self.name_lookup
+            .get_id(Name::new(name.to_string(), namespace_id))
+    }
+
+    pub fn name_ns_mut(&mut self, name: &str, namespace_id: NamespaceId) -> NameId {
+        self.name_lookup
+            .get_id_mut(Name::new(name.to_string(), namespace_id))
+    }
+
+    pub fn namespace(&self, namespace: &str) -> Option<NamespaceId> {
+        self.namespace_lookup
+            .get_id(Namespace::new(namespace.to_string()))
+    }
+
+    pub fn namespace_mut(&mut self, namespace: &str) -> NamespaceId {
+        self.namespace_lookup
+            .get_id_mut(Namespace::new(namespace.to_string()))
     }
 }
 

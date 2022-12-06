@@ -13,4 +13,4 @@ mod xmlnode;
 pub use document::Document;
 pub use error::Error;
 pub use xmldata::XmlData;
-pub use xmlnode::XmlNode;
+pub use xmlnode::{Element, Text, XmlNode};
