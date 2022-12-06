@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 mod document;
 mod entity;
 mod error;
