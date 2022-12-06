@@ -1,4 +1,4 @@
-use xot::{Document, Text, XmlData, XmlNode};
+use xot::{Document, XmlData, XmlNode};
 
 #[test]
 fn test_manipulate_text() {
@@ -241,4 +241,16 @@ fn test_root_node_can_have_only_single_element() {
     let root_id = doc.root();
     let name = data.name_mut("a");
     assert!(data.append_element(root_id, name).is_err());
+}
+
+#[test]
+fn test_root_node_append_comment() {
+    let mut data = XmlData::new();
+    let doc = Document::parse(r#"<doc/>"#, &mut data).unwrap();
+    let root_id = doc.root();
+    data.append_comment(root_id, "hello").unwrap();
+    assert_eq!(
+        doc.serialize_to_string(&data).unwrap(),
+        r#"<doc/><!--hello-->"#
+    );
 }

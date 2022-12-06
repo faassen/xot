@@ -5,7 +5,7 @@ use crate::error::Error;
 use crate::name::{Name, NameId, NameLookup};
 use crate::namespace::{Namespace, NamespaceId, NamespaceLookup};
 use crate::prefix::{Prefix, PrefixId, PrefixLookup};
-use crate::xmlnode::{Element, NodeType, Text, XmlNode};
+use crate::xmlnode::{Comment, Element, NodeType, ProcessingInstruction, Text, XmlNode};
 
 pub type XmlArena = Arena<XmlNode>;
 
@@ -88,11 +88,34 @@ impl XmlData {
         self.new_node(element_node)
     }
 
+    pub fn new_comment(&mut self, comment: &str) -> XmlNodeId {
+        let comment_node = XmlNode::Comment(Comment::new(comment.to_string()));
+        self.new_node(comment_node)
+    }
+
+    pub fn new_processing_instruction(&mut self, target: &str, data: Option<&str>) -> XmlNodeId {
+        let pi_node = XmlNode::ProcessingInstruction(ProcessingInstruction::new(
+            target.to_string(),
+            data.map(|s| s.to_string()),
+        ));
+        self.new_node(pi_node)
+    }
+
     pub fn append(&mut self, parent: XmlNodeId, child: XmlNodeId) -> Result<(), Error> {
         match self.node_type(parent) {
-            NodeType::Root => Err(Error::InvalidOperation(
-                "Can only append comments or PIs to document root".into(),
-            )),
+            NodeType::Root => {
+                if matches!(
+                    self.node_type(child),
+                    NodeType::Comment | NodeType::ProcessingInstruction
+                ) {
+                    parent.0.checked_append(child.0, self.arena_mut())?;
+                    Ok(())
+                } else {
+                    Err(Error::InvalidOperation(
+                        "Can only append comments or PIs to document root".into(),
+                    ))
+                }
+            }
             NodeType::Element => {
                 if self.consolidate_text_node(child, self.last_child(parent), None) {
                     return Ok(());
@@ -118,6 +141,23 @@ impl XmlData {
         Ok(())
     }
 
+    pub fn append_comment(&mut self, parent: XmlNodeId, comment: &str) -> Result<(), Error> {
+        let comment_node_id = self.new_comment(comment);
+        self.append(parent, comment_node_id)?;
+        Ok(())
+    }
+
+    pub fn append_processing_instruction(
+        &mut self,
+        parent: XmlNodeId,
+        target: &str,
+        data: Option<&str>,
+    ) -> Result<(), Error> {
+        let pi_node_id = self.new_processing_instruction(target, data);
+        self.append(parent, pi_node_id)?;
+        Ok(())
+    }
+
     pub fn insert_after(
         &mut self,
         reference_node: XmlNodeId,
@@ -128,6 +168,8 @@ impl XmlData {
                 "Cannot insert after document root".into(),
             )),
             _ => {
+                // XXX if we're root, we can only insert comments and PIs
+
                 if self.consolidate_text_node(
                     new_sibling,
                     Some(reference_node),
@@ -153,6 +195,8 @@ impl XmlData {
                 "Cannot insert before document root".into(),
             )),
             _ => {
+                // XXX if we're root, we can only insert comments and PIs
+
                 if self.consolidate_text_node(
                     new_sibling,
                     self.previous_sibling(reference_node),
@@ -170,9 +214,19 @@ impl XmlData {
 
     pub fn prepend(&mut self, parent: XmlNodeId, child: XmlNodeId) -> Result<(), Error> {
         match self.node_type(parent) {
-            NodeType::Root => Err(Error::InvalidOperation(
-                "Can only prepend comments or PIs to document root".into(),
-            )),
+            NodeType::Root => {
+                if matches!(
+                    self.node_type(child),
+                    NodeType::Comment | NodeType::ProcessingInstruction
+                ) {
+                    parent.0.checked_prepend(child.0, self.arena_mut())?;
+                    Ok(())
+                } else {
+                    Err(Error::InvalidOperation(
+                        "Can only prepend comments or PIs to document root".into(),
+                    ))
+                }
+            }
             NodeType::Element => {
                 if self.consolidate_text_node(child, None, self.first_child(parent)) {
                     return Ok(());
