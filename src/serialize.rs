@@ -5,6 +5,7 @@ use crate::entity::serialize_text;
 use crate::error::Error;
 use crate::name::NameId;
 use crate::namespace::NamespaceId;
+use crate::prefix::PrefixId;
 use crate::xmldata::{Node, XmlData};
 use crate::xmlvalue::{ToPrefix, Value, ValueType};
 
@@ -18,19 +19,34 @@ impl XmlData {
     pub fn serialize_fragment(&mut self, node: Node, w: &mut impl Write) {
         let root_element = self.top_element(node);
         self.create_missing_prefixes(root_element).unwrap();
-        // let to_prefix = self.prefixes_seen(node);
-        self.serialize_node(node, w);
+        // collect namespace prefixes for all ancestors of the fragment
+        let to_prefix = if let Some(parent) = self.parent(node) {
+            if self.value_type(parent) != ValueType::Root {
+                self.to_prefix_seen(parent)
+            } else {
+                ToPrefix::new()
+            }
+        } else {
+            ToPrefix::new()
+        };
+        // now serialize with those additional prefixes
+        self.serialize_node(node, w, to_prefix).unwrap();
     }
 
     pub fn serialize_or_missing_prefix(&self, node: Node, w: &mut impl Write) -> Result<(), Error> {
         if self.value_type(node) != ValueType::Root {
             panic!("Can only serialize root nodes");
         }
-        self.serialize_node(node, w)
+        self.serialize_node(node, w, ToPrefix::new())
     }
 
-    fn serialize_node(&self, node: Node, w: &mut impl Write) -> Result<(), Error> {
-        let mut fullname_serializer = FullnameSerializer::new(self);
+    fn serialize_node(
+        &self,
+        node: Node,
+        w: &mut impl Write,
+        to_prefix: ToPrefix,
+    ) -> Result<(), Error> {
+        let mut fullname_serializer = FullnameSerializer::with_to_prefix(to_prefix, self);
         for edge in self.traverse(node) {
             match edge {
                 NodeEdge::Start(node) => {
@@ -56,6 +72,12 @@ impl XmlData {
         String::from_utf8(buf).unwrap()
     }
 
+    pub fn serialize_fragment_to_string(&mut self, node: Node) -> String {
+        let mut buf = Vec::new();
+        self.serialize_fragment(node, &mut buf);
+        String::from_utf8(buf).unwrap()
+    }
+
     fn handle_edge_start(
         &self,
         node: Node,
@@ -71,18 +93,15 @@ impl XmlData {
                 let fullname = fullname_serializer.fullname_or_err(element.name_id)?;
 
                 write!(w, "<{}", fullname)?;
-                for (prefix_id, namespace_id) in element.namespace_info.to_namespace.iter() {
-                    let namespace = self.namespace_lookup.get_value(*namespace_id);
-                    if *prefix_id == self.empty_prefix_id {
-                        write!(w, " xmlns=\"{}\"", namespace)?;
-                    } else {
-                        write!(
-                            w,
-                            " xmlns:{}=\"{}\"",
-                            self.prefix_lookup.get_value(*prefix_id),
-                            namespace
-                        )?;
+                // serialize any extra prefixes if this is the top element of
+                // a fragment
+                if fullname_serializer.is_at_bottom() {
+                    for (namespace_id, prefix_id) in fullname_serializer.top().iter() {
+                        self.write_namespace_declaration(*prefix_id, *namespace_id, w)?;
                     }
+                }
+                for (prefix_id, namespace_id) in element.namespace_info.to_namespace.iter() {
+                    self.write_namespace_declaration(*prefix_id, *namespace_id, w)?;
                 }
                 for (name_id, value) in element.attributes.iter() {
                     let fullname = fullname_serializer.fullname_or_err(*name_id)?;
@@ -128,6 +147,26 @@ impl XmlData {
         }
         Ok(())
     }
+
+    fn write_namespace_declaration(
+        &self,
+        prefix_id: PrefixId,
+        namespace_id: NamespaceId,
+        w: &mut impl Write,
+    ) -> Result<(), Error> {
+        let namespace = self.namespace_lookup.get_value(namespace_id);
+        if prefix_id == self.empty_prefix_id {
+            write!(w, " xmlns=\"{}\"", namespace)?;
+        } else {
+            write!(
+                w,
+                " xmlns:{}=\"{}\"",
+                self.prefix_lookup.get_value(prefix_id),
+                namespace
+            )?;
+        }
+        Ok(())
+    }
 }
 
 pub(crate) struct FullnameSerializer<'a> {
@@ -142,11 +181,11 @@ pub(crate) enum Fullname {
 
 impl<'a> FullnameSerializer<'a> {
     pub(crate) fn new(data: &'a XmlData) -> Self {
-        Self::with_to_prefix(&ToPrefix::new(), data)
+        Self::with_to_prefix(ToPrefix::new(), data)
     }
 
-    pub(crate) fn with_to_prefix(to_prefix: &ToPrefix, data: &'a XmlData) -> Self {
-        let prefix_stack = vec![to_prefix.clone()];
+    pub(crate) fn with_to_prefix(to_prefix: ToPrefix, data: &'a XmlData) -> Self {
+        let prefix_stack = vec![to_prefix];
         Self { data, prefix_stack }
     }
 
@@ -168,8 +207,12 @@ impl<'a> FullnameSerializer<'a> {
     }
 
     #[inline]
-    fn top(&self) -> &ToPrefix {
+    pub(crate) fn top(&self) -> &ToPrefix {
         &self.prefix_stack[self.prefix_stack.len() - 1]
+    }
+
+    pub(crate) fn is_at_bottom(&self) -> bool {
+        self.prefix_stack.len() == 1
     }
 
     pub(crate) fn fullname(&self, name_id: NameId) -> Fullname {

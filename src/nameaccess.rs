@@ -7,6 +7,7 @@ use crate::namespace::{Namespace, NamespaceId};
 use crate::prefix::{Prefix, PrefixId};
 use crate::serialize::{Fullname, FullnameSerializer};
 use crate::xmldata::{Node, XmlData};
+use crate::xmlvalue::ToPrefix;
 
 impl XmlData {
     // name & namespace
@@ -92,6 +93,31 @@ impl XmlData {
             value.namespace_info.add(prefix_id, *namespace_id);
         }
         Ok(())
+    }
+
+    pub(crate) fn to_prefix_seen(&self, node: Node) -> ToPrefix {
+        let mut fullname_serializer = FullnameSerializer::new(self);
+        let mut to_prefix = ToPrefix::new();
+        for edge in self.traverse(node) {
+            match edge {
+                NodeEdge::Start(sub_node) => {
+                    let element = self.element(node);
+                    if let Some(element) = element {
+                        fullname_serializer.push(&element.namespace_info.to_prefix);
+                        if node == sub_node {
+                            to_prefix = fullname_serializer.top().clone();
+                        }
+                    }
+                }
+                NodeEdge::End(node) => {
+                    let element = self.element(node);
+                    if let Some(element) = element {
+                        fullname_serializer.pop(&element.namespace_info.to_prefix);
+                    }
+                }
+            }
+        }
+        to_prefix
     }
 
     // deduplicate namespaces
