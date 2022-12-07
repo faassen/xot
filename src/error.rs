@@ -7,6 +7,7 @@ pub enum Error {
     InvalidEntity(String),
     NoPrefixForNamespace(String),
     UnknownPrefix(String),
+    DuplicateAttribute(String),
     NodeError(indextree::NodeError),
     Io(std::io::Error),
     Parser(xmlparser::Error),

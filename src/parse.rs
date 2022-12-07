@@ -108,7 +108,16 @@ impl<'a> DocumentBuilder<'a> {
     }
 
     fn attribute(&mut self, prefix: &'a str, name: &'a str, value: &'a str) -> Result<(), Error> {
-        self.element_builder.as_mut().unwrap().attributes.insert(
+        let attributes = &mut self.element_builder.as_mut().unwrap().attributes;
+        if attributes.contains_key(&(prefix.into(), name.into())) {
+            let attr_name = if prefix.is_empty() {
+                name.to_string()
+            } else {
+                format!("{}:{}", prefix, name)
+            };
+            return Err(Error::DuplicateAttribute(attr_name));
+        }
+        attributes.insert(
             (prefix.into(), name.into()),
             parse_attribute(value.into())?.to_string(),
         );
