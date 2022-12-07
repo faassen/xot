@@ -52,6 +52,6 @@ fn roundtrip(#[values(
     let (name, xml) = value;
     let mut data = XmlData::new();
     let doc = data.parse(xml).unwrap();
-    let output_xml = data.serialize_to_string(doc).unwrap();
+    let output_xml = data.serialize_to_string(doc);
     assert_eq!(xml, &output_xml, "roundtrip failed for: {}", name);
 }

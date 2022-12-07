@@ -46,6 +46,19 @@ impl XmlData {
         node.get().ancestors(self.arena()).map(Node::new)
     }
 
+    pub fn top_element(&self, node: Node) -> Node {
+        if self.value_type(node) == ValueType::Root {
+            return self.root_element(node);
+        }
+        let mut top = node;
+        for ancestor in self.ancestors(node) {
+            if let Value::Element(_) = self.value(ancestor) {
+                top = ancestor;
+            }
+        }
+        top
+    }
+
     pub fn children(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
         node.get().children(self.arena()).map(Node::new)
     }

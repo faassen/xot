@@ -8,10 +8,7 @@ fn test_manipulate_text() {
     if let Value::Text(node) = data.value_mut(text_id) {
         node.set("Changed".into());
     }
-    assert_eq!(
-        data.serialize_to_string(doc).unwrap(),
-        r#"<doc>Changed</doc>"#
-    );
+    assert_eq!(data.serialize_to_string(doc), r#"<doc>Changed</doc>"#);
 }
 
 #[test]
@@ -24,10 +21,7 @@ fn test_manipulate_attribute() {
     if let Value::Element(element) = data.value_mut(el_id) {
         element.set_attribute(a, "Changed".to_string());
     }
-    assert_eq!(
-        data.serialize_to_string(doc).unwrap(),
-        r#"<doc a="Changed"/>"#
-    );
+    assert_eq!(data.serialize_to_string(doc), r#"<doc a="Changed"/>"#);
 }
 
 #[test]
@@ -41,10 +35,7 @@ fn test_add_attribute() {
     if let Value::Element(element) = data.value_mut(el_id) {
         element.set_attribute(a, "Created".to_string());
     }
-    assert_eq!(
-        data.serialize_to_string(doc).unwrap(),
-        r#"<doc a="Created"/>"#
-    );
+    assert_eq!(data.serialize_to_string(doc), r#"<doc a="Created"/>"#);
 }
 
 #[test]
@@ -61,7 +52,7 @@ fn test_manipulate_attribute_ns() {
         element.set_attribute(a, "Changed".to_string());
     }
     assert_eq!(
-        data.serialize_to_string(doc).unwrap(),
+        data.serialize_to_string(doc),
         r#"<doc xmlns:ns="http://example.com" ns:a="Changed"/>"#
     );
 }
@@ -81,7 +72,7 @@ fn test_add_attribute_ns() {
         element.set_attribute(a, "Created".to_string());
     }
     assert_eq!(
-        data.serialize_to_string(doc).unwrap(),
+        data.serialize_to_string(doc),
         r#"<doc xmlns:foo="http://example.com" foo:a="Created"/>"#
     );
 }
@@ -93,7 +84,7 @@ fn test_append_element() {
     let el_id = data.root_element(doc);
     let name = data.add_name("a");
     data.append_element(el_id, name).unwrap();
-    assert_eq!(data.serialize_to_string(doc).unwrap(), r#"<doc><a/></doc>"#);
+    assert_eq!(data.serialize_to_string(doc), r#"<doc><a/></doc>"#);
 }
 
 #[test]
@@ -104,10 +95,7 @@ fn test_prepend_element() {
     let name = data.add_name("a");
     let new_el_id = data.new_element(name);
     data.prepend(el_id, new_el_id).unwrap();
-    assert_eq!(
-        data.serialize_to_string(doc).unwrap(),
-        r#"<doc><a/><b/></doc>"#
-    );
+    assert_eq!(data.serialize_to_string(doc), r#"<doc><a/><b/></doc>"#);
 }
 
 #[test]
@@ -119,10 +107,7 @@ fn test_insert_before_element() {
     let name = data.add_name("a");
     let new_el_id = data.new_element(name);
     data.insert_before(before_id, new_el_id).unwrap();
-    assert_eq!(
-        data.serialize_to_string(doc).unwrap(),
-        r#"<doc><a/><b/></doc>"#
-    );
+    assert_eq!(data.serialize_to_string(doc), r#"<doc><a/><b/></doc>"#);
 }
 
 #[test]
@@ -134,10 +119,7 @@ fn test_insert_after_element() {
     let name = data.add_name("a");
     let new_el_id = data.new_element(name);
     data.insert_after(before_id, new_el_id).unwrap();
-    assert_eq!(
-        data.serialize_to_string(doc).unwrap(),
-        r#"<doc><b/><a/></doc>"#
-    );
+    assert_eq!(data.serialize_to_string(doc), r#"<doc><b/><a/></doc>"#);
 }
 
 #[test]
@@ -146,10 +128,7 @@ fn test_append_text() {
     let doc = data.parse(r#"<doc/>"#).unwrap();
     let el_id = data.root_element(doc);
     data.append_text(el_id, "Changed").unwrap();
-    assert_eq!(
-        data.serialize_to_string(doc).unwrap(),
-        r#"<doc>Changed</doc>"#
-    );
+    assert_eq!(data.serialize_to_string(doc), r#"<doc>Changed</doc>"#);
 }
 
 #[test]
@@ -163,10 +142,7 @@ fn test_append_text_after_text_consolidates_nodes() {
         Value::Text(node) => assert_eq!(node.get(), "AlphaBeta"),
         _ => panic!("Expected text node"),
     }
-    assert_eq!(
-        data.serialize_to_string(doc).unwrap(),
-        r#"<doc>AlphaBeta</doc>"#
-    );
+    assert_eq!(data.serialize_to_string(doc), r#"<doc>AlphaBeta</doc>"#);
 }
 
 #[test]
@@ -182,10 +158,7 @@ fn test_append_text_after_text_consolidates_nodes_direct_append() {
         Value::Text(node) => assert_eq!(node.get(), "AlphaBeta"),
         _ => panic!("Expected text node"),
     }
-    assert_eq!(
-        data.serialize_to_string(doc).unwrap(),
-        r#"<doc>AlphaBeta</doc>"#
-    );
+    assert_eq!(data.serialize_to_string(doc), r#"<doc>AlphaBeta</doc>"#);
 }
 
 #[test]
@@ -196,10 +169,7 @@ fn test_insert_before_consolidate_text() {
     let txt = data.new_text("Beta");
     data.insert_before(el_id, txt).unwrap();
     assert_eq!(data.text(el_id).map(|n| n.get()), Some("BetaAlpha"));
-    assert_eq!(
-        data.serialize_to_string(doc).unwrap(),
-        r#"<doc>BetaAlpha</doc>"#
-    );
+    assert_eq!(data.serialize_to_string(doc), r#"<doc>BetaAlpha</doc>"#);
 }
 
 #[test]
@@ -210,10 +180,7 @@ fn test_insert_after_consolidate_text() {
     let txt = data.new_text("Beta");
     data.insert_after(el_id, txt).unwrap();
     assert_eq!(data.text(el_id).map(|n| n.get()), Some("AlphaBeta"));
-    assert_eq!(
-        data.serialize_to_string(doc).unwrap(),
-        r#"<doc>AlphaBeta</doc>"#
-    );
+    assert_eq!(data.serialize_to_string(doc), r#"<doc>AlphaBeta</doc>"#);
 }
 
 #[test]
@@ -225,10 +192,7 @@ fn test_prepend_consolidate_text() {
     data.prepend(el_id, txt).unwrap();
     let text_el_id = data.first_child(el_id).unwrap();
     assert_eq!(data.text(text_el_id).map(|n| n.get()), Some("BetaAlpha"));
-    assert_eq!(
-        data.serialize_to_string(doc).unwrap(),
-        r#"<doc>BetaAlpha</doc>"#
-    );
+    assert_eq!(data.serialize_to_string(doc), r#"<doc>BetaAlpha</doc>"#);
 }
 
 #[test]
@@ -254,10 +218,7 @@ fn test_root_node_append_comment() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc/>"#).unwrap();
     data.append_comment(doc, "hello").unwrap();
-    assert_eq!(
-        data.serialize_to_string(doc).unwrap(),
-        r#"<doc/><!--hello-->"#
-    );
+    assert_eq!(data.serialize_to_string(doc), r#"<doc/><!--hello-->"#);
 }
 
 #[test]
@@ -273,10 +234,7 @@ fn test_remove_text_consolidation() {
     // we should have a single text node
     let text_el_id = data.first_child(data.root_element(doc)).unwrap();
     assert_eq!(data.text_str(text_el_id), Some("AlphaBeta"));
-    assert_eq!(
-        data.serialize_to_string(doc).unwrap(),
-        r#"<doc>AlphaBeta</doc>"#
-    );
+    assert_eq!(data.serialize_to_string(doc), r#"<doc>AlphaBeta</doc>"#);
 }
 
 #[test]
@@ -289,7 +247,7 @@ fn test_create_missing_prefixes() {
     data.append_element(root_id, name_id).unwrap();
     data.create_missing_prefixes(root_id).unwrap();
     assert_eq!(
-        data.serialize_to_string(doc).unwrap(),
+        data.serialize_to_string(doc),
         r#"<doc xmlns:n0="http://example.com"><n0:a/></doc>"#
     );
 }

@@ -9,7 +9,13 @@ use crate::xmldata::{Node, XmlData};
 use crate::xmlvalue::{ToPrefix, Value};
 
 impl XmlData {
-    pub fn serialize_node(&self, node: Node, w: &mut impl Write) -> Result<(), Error> {
+    pub fn serialize(&mut self, node: Node, w: &mut impl Write) {
+        let root_element = self.top_element(node);
+        self.create_missing_prefixes(root_element).unwrap();
+        self.serialize_or_missing_prefix(node, w).unwrap();
+    }
+
+    pub fn serialize_or_missing_prefix(&self, node: Node, w: &mut impl Write) -> Result<(), Error> {
         let mut fullname_serializer = FullnameSerializer::new(self);
         for edge in self.traverse(node) {
             match edge {
@@ -24,10 +30,16 @@ impl XmlData {
         Ok(())
     }
 
-    pub fn serialize_to_string(&self, node: Node) -> Result<String, Error> {
+    pub fn serialize_or_missing_prefix_to_string(&self, node: Node) -> Result<String, Error> {
         let mut buf = Vec::new();
-        self.serialize_node(node, &mut buf)?;
+        self.serialize_or_missing_prefix(node, &mut buf)?;
         Ok(String::from_utf8(buf).unwrap())
+    }
+
+    pub fn serialize_to_string(&mut self, node: Node) -> String {
+        let mut buf = Vec::new();
+        self.serialize(node, &mut buf);
+        String::from_utf8(buf).unwrap()
     }
 
     fn handle_edge_start(
