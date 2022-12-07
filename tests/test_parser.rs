@@ -42,3 +42,14 @@ fn test_parse_xml_declaration() {
     let doc = data.parse(r#"<?xml version="1.0" encoding="UTF-8"?><a/>"#);
     assert!(doc.is_ok());
 }
+
+#[test]
+fn test_unknown_prefix() {
+    let mut data = XmlData::new();
+    let doc = data.parse(r#"<a><foo:b></a>"#);
+    if let Err(Error::UnknownPrefix(s)) = doc {
+        assert_eq!(s, "foo");
+    } else {
+        unreachable!();
+    }
+}
