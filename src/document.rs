@@ -2,8 +2,8 @@ use indextree::NodeId;
 
 use crate::namespace::NamespaceId;
 use crate::prefix::PrefixId;
-use crate::xmldata::{XmlArena, XmlNode};
-use crate::xmlvalue::XmlValue;
+use crate::xmldata::{Node, XmlArena};
+use crate::xmlvalue::Value;
 
 pub struct Document {
     pub(crate) root: NodeId,
@@ -16,7 +16,7 @@ pub(crate) fn prefix_by_namespace(
 ) -> Option<PrefixId> {
     for ancestor in node_id.ancestors(arena) {
         let xml_node = arena.get(ancestor).unwrap().get();
-        if let XmlValue::Element(element) = xml_node {
+        if let Value::Element(element) = xml_node {
             if let Some(prefix_id) = element.namespace_info.to_prefix.get(&namespace_id) {
                 return Some(*prefix_id);
             }
@@ -32,7 +32,7 @@ pub(crate) fn namespace_by_prefix(
 ) -> Option<NamespaceId> {
     for ancestor in node_id.ancestors(arena) {
         let xml_node = arena.get(ancestor).unwrap().get();
-        if let XmlValue::Element(element) = xml_node {
+        if let Value::Element(element) = xml_node {
             if let Some(namespace_id) = element.namespace_info.to_namespace.get(&prefix_id) {
                 return Some(*namespace_id);
             }
@@ -42,8 +42,8 @@ pub(crate) fn namespace_by_prefix(
 }
 
 impl Document {
-    pub fn root(&self) -> XmlNode {
-        XmlNode::new(self.root)
+    pub fn root(&self) -> Node {
+        Node::new(self.root)
     }
 
     // XXX probably break this into convenience methods

@@ -1,20 +1,20 @@
-use indextree::{Arena, NodeEdge, NodeId};
+use indextree::{Arena, NodeEdge as IndexTreeNodeEdge, NodeId};
 
 use crate::document::Document;
 use crate::error::Error;
 use crate::name::{Name, NameId, NameLookup};
 use crate::namespace::{Namespace, NamespaceId, NamespaceLookup};
 use crate::prefix::{Prefix, PrefixId, PrefixLookup};
-use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text, ValueType, XmlValue};
+use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value, ValueType};
 
-pub type XmlArena = Arena<XmlValue>;
+pub(crate) type XmlArena = Arena<Value>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct XmlNode(NodeId);
+pub struct Node(NodeId);
 
-impl XmlNode {
+impl Node {
     pub(crate) fn new(node_id: NodeId) -> Self {
-        XmlNode(node_id)
+        Node(node_id)
     }
     pub(crate) fn get(&self) -> NodeId {
         self.0
@@ -22,9 +22,9 @@ impl XmlNode {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum XmlNodeEdge {
-    Start(XmlNode),
-    End(XmlNode),
+pub enum NodeEdge {
+    Start(Node),
+    End(Node),
 }
 
 pub struct XmlData {
@@ -63,45 +63,45 @@ impl XmlData {
     }
 
     #[inline]
-    pub fn xml_value(&self, node_id: XmlNode) -> &XmlValue {
+    pub fn value(&self, node_id: Node) -> &Value {
         self.arena[node_id.0].get()
     }
 
     #[inline]
-    pub fn xml_value_mut(&mut self, node_id: XmlNode) -> &mut XmlValue {
+    pub fn value_mut(&mut self, node_id: Node) -> &mut Value {
         self.arena[node_id.0].get_mut()
     }
 
     // manipulators
 
-    pub(crate) fn new_node(&mut self, xml_node: XmlValue) -> XmlNode {
-        XmlNode(self.arena.new_node(xml_node))
+    pub(crate) fn new_node(&mut self, value: Value) -> Node {
+        Node(self.arena.new_node(value))
     }
 
-    pub fn new_text(&mut self, text: &str) -> XmlNode {
-        let text_node = XmlValue::Text(Text::new(text.to_string()));
+    pub fn new_text(&mut self, text: &str) -> Node {
+        let text_node = Value::Text(Text::new(text.to_string()));
         self.new_node(text_node)
     }
 
-    pub fn new_element(&mut self, name_id: NameId) -> XmlNode {
-        let element_node = XmlValue::Element(Element::new(name_id));
+    pub fn new_element(&mut self, name_id: NameId) -> Node {
+        let element_node = Value::Element(Element::new(name_id));
         self.new_node(element_node)
     }
 
-    pub fn new_comment(&mut self, comment: &str) -> XmlNode {
-        let comment_node = XmlValue::Comment(Comment::new(comment.to_string()));
+    pub fn new_comment(&mut self, comment: &str) -> Node {
+        let comment_node = Value::Comment(Comment::new(comment.to_string()));
         self.new_node(comment_node)
     }
 
-    pub fn new_processing_instruction(&mut self, target: &str, data: Option<&str>) -> XmlNode {
-        let pi_node = XmlValue::ProcessingInstruction(ProcessingInstruction::new(
+    pub fn new_processing_instruction(&mut self, target: &str, data: Option<&str>) -> Node {
+        let pi_node = Value::ProcessingInstruction(ProcessingInstruction::new(
             target.to_string(),
             data.map(|s| s.to_string()),
         ));
         self.new_node(pi_node)
     }
 
-    pub fn append(&mut self, parent: XmlNode, child: XmlNode) -> Result<(), Error> {
+    pub fn append(&mut self, parent: Node, child: Node) -> Result<(), Error> {
         self.add_structure_check(Some(parent), child)?;
         if self.add_consolidate_text_nodes(child, self.last_child(parent), None) {
             return Ok(());
@@ -110,19 +110,19 @@ impl XmlData {
         Ok(())
     }
 
-    pub fn append_text(&mut self, parent: XmlNode, text: &str) -> Result<(), Error> {
+    pub fn append_text(&mut self, parent: Node, text: &str) -> Result<(), Error> {
         let text_node_id = self.new_text(text);
         self.append(parent, text_node_id)?;
         Ok(())
     }
 
-    pub fn append_element(&mut self, parent: XmlNode, name_id: NameId) -> Result<(), Error> {
+    pub fn append_element(&mut self, parent: Node, name_id: NameId) -> Result<(), Error> {
         let element_node_id = self.new_element(name_id);
         self.append(parent, element_node_id)?;
         Ok(())
     }
 
-    pub fn append_comment(&mut self, parent: XmlNode, comment: &str) -> Result<(), Error> {
+    pub fn append_comment(&mut self, parent: Node, comment: &str) -> Result<(), Error> {
         let comment_node_id = self.new_comment(comment);
         self.append(parent, comment_node_id)?;
         Ok(())
@@ -130,7 +130,7 @@ impl XmlData {
 
     pub fn append_processing_instruction(
         &mut self,
-        parent: XmlNode,
+        parent: Node,
         target: &str,
         data: Option<&str>,
     ) -> Result<(), Error> {
@@ -139,7 +139,7 @@ impl XmlData {
         Ok(())
     }
 
-    pub fn prepend(&mut self, parent: XmlNode, child: XmlNode) -> Result<(), Error> {
+    pub fn prepend(&mut self, parent: Node, child: Node) -> Result<(), Error> {
         self.add_structure_check(Some(parent), child)?;
         if self.add_consolidate_text_nodes(child, None, self.first_child(parent)) {
             return Ok(());
@@ -148,11 +148,7 @@ impl XmlData {
         Ok(())
     }
 
-    pub fn insert_after(
-        &mut self,
-        reference_node: XmlNode,
-        new_sibling: XmlNode,
-    ) -> Result<(), Error> {
+    pub fn insert_after(&mut self, reference_node: Node, new_sibling: Node) -> Result<(), Error> {
         self.add_structure_check(self.parent(reference_node), new_sibling)?;
         if self.add_consolidate_text_nodes(
             new_sibling,
@@ -167,11 +163,7 @@ impl XmlData {
         Ok(())
     }
 
-    pub fn insert_before(
-        &mut self,
-        reference_node: XmlNode,
-        new_sibling: XmlNode,
-    ) -> Result<(), Error> {
+    pub fn insert_before(&mut self, reference_node: Node, new_sibling: Node) -> Result<(), Error> {
         self.add_structure_check(self.parent(reference_node), new_sibling)?;
         if self.add_consolidate_text_nodes(
             new_sibling,
@@ -186,7 +178,7 @@ impl XmlData {
         Ok(())
     }
 
-    pub fn detach(&mut self, node: XmlNode) -> Result<(), Error> {
+    pub fn detach(&mut self, node: Node) -> Result<(), Error> {
         self.remove_structure_check(node)?;
         let prev_node = self.previous_sibling(node);
         let next_node = self.next_sibling(node);
@@ -195,7 +187,7 @@ impl XmlData {
         Ok(())
     }
 
-    pub fn remove(&mut self, node: XmlNode) -> Result<(), Error> {
+    pub fn remove(&mut self, node: Node) -> Result<(), Error> {
         self.remove_structure_check(node)?;
         let prev_node = self.previous_sibling(node);
         let next_node = self.next_sibling(node);
@@ -204,7 +196,7 @@ impl XmlData {
         Ok(())
     }
 
-    fn add_structure_check(&self, parent: Option<XmlNode>, child: XmlNode) -> Result<(), Error> {
+    fn add_structure_check(&self, parent: Option<Node>, child: Node) -> Result<(), Error> {
         let parent = parent.ok_or_else(|| {
             Error::InvalidOperation("Cannot create siblings for document root".into())
         })?;
@@ -236,7 +228,7 @@ impl XmlData {
         Ok(())
     }
 
-    fn remove_structure_check(&self, node: XmlNode) -> Result<(), Error> {
+    fn remove_structure_check(&self, node: Node) -> Result<(), Error> {
         match self.value_type(node) {
             ValueType::Root => {
                 return Err(Error::InvalidOperation(
@@ -257,11 +249,11 @@ impl XmlData {
 
     fn add_consolidate_text_nodes(
         &mut self,
-        node: XmlNode,
-        prev_node: Option<XmlNode>,
-        next_node: Option<XmlNode>,
+        node: Node,
+        prev_node: Option<Node>,
+        next_node: Option<Node>,
     ) -> bool {
-        let added_text = if let XmlValue::Text(t) = self.xml_value(node) {
+        let added_text = if let Value::Text(t) = self.value(node) {
             Some(t.get().to_string())
         } else {
             None
@@ -274,7 +266,7 @@ impl XmlData {
         // due to consolidation, two text nodes can never be adjacent,
         // so consolidate with the previous node or next node is fine
         if let Some(prev_node) = prev_node {
-            if let XmlValue::Text(prev) = self.xml_value_mut(prev_node) {
+            if let Value::Text(prev) = self.value_mut(prev_node) {
                 let mut s = prev.get().to_string();
                 s.push_str(&added_text);
                 prev.set(s);
@@ -285,7 +277,7 @@ impl XmlData {
                 false
             }
         } else if let Some(next_node) = next_node {
-            if let XmlValue::Text(next) = self.xml_value_mut(next_node) {
+            if let Value::Text(next) = self.value_mut(next_node) {
                 let mut s = added_text;
                 s.push_str(next.get());
                 next.set(s);
@@ -302,8 +294,8 @@ impl XmlData {
 
     fn remove_consolidate_text_nodes(
         &mut self,
-        prev_node: Option<XmlNode>,
-        next_node: Option<XmlNode>,
+        prev_node: Option<Node>,
+        next_node: Option<Node>,
     ) -> bool {
         if prev_node.is_none() {
             return false;
@@ -330,124 +322,124 @@ impl XmlData {
 
     // accessors
 
-    pub fn root_element(&self, document: &Document) -> XmlNode {
+    pub fn root_element(&self, document: &Document) -> Node {
         for child in self.children(document.root()) {
-            if let XmlValue::Element(_) = self.xml_value(child) {
+            if let Value::Element(_) = self.value(child) {
                 return child;
             }
         }
         unreachable!("Document should always have a single root node")
     }
 
-    pub fn parent(&self, node: XmlNode) -> Option<XmlNode> {
-        self.arena()[node.0].parent().map(XmlNode)
+    pub fn parent(&self, node: Node) -> Option<Node> {
+        self.arena()[node.0].parent().map(Node)
     }
 
-    pub fn first_child(&self, node: XmlNode) -> Option<XmlNode> {
-        self.arena()[node.0].first_child().map(XmlNode)
+    pub fn first_child(&self, node: Node) -> Option<Node> {
+        self.arena()[node.0].first_child().map(Node)
     }
 
-    pub fn last_child(&self, node: XmlNode) -> Option<XmlNode> {
-        self.arena()[node.0].last_child().map(XmlNode)
+    pub fn last_child(&self, node: Node) -> Option<Node> {
+        self.arena()[node.0].last_child().map(Node)
     }
 
-    pub fn next_sibling(&self, node: XmlNode) -> Option<XmlNode> {
-        self.arena()[node.0].next_sibling().map(XmlNode)
+    pub fn next_sibling(&self, node: Node) -> Option<Node> {
+        self.arena()[node.0].next_sibling().map(Node)
     }
 
-    pub fn previous_sibling(&self, node: XmlNode) -> Option<XmlNode> {
-        self.arena()[node.0].previous_sibling().map(XmlNode)
+    pub fn previous_sibling(&self, node: Node) -> Option<Node> {
+        self.arena()[node.0].previous_sibling().map(Node)
     }
 
-    pub fn ancestors(&self, node: XmlNode) -> impl Iterator<Item = XmlNode> + '_ {
-        node.0.ancestors(self.arena()).map(XmlNode)
+    pub fn ancestors(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+        node.0.ancestors(self.arena()).map(Node)
     }
 
-    pub fn children(&self, node: XmlNode) -> impl Iterator<Item = XmlNode> + '_ {
-        node.0.children(self.arena()).map(XmlNode)
+    pub fn children(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+        node.0.children(self.arena()).map(Node)
     }
 
-    pub fn reverse_children(&self, node: XmlNode) -> impl Iterator<Item = XmlNode> + '_ {
-        node.0.reverse_children(self.arena()).map(XmlNode)
+    pub fn reverse_children(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+        node.0.reverse_children(self.arena()).map(Node)
     }
 
-    pub fn descendants(&self, node: XmlNode) -> impl Iterator<Item = XmlNode> + '_ {
-        node.0.descendants(self.arena()).map(XmlNode)
+    pub fn descendants(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+        node.0.descendants(self.arena()).map(Node)
     }
 
-    pub fn following_siblings(&self, node: XmlNode) -> impl Iterator<Item = XmlNode> + '_ {
-        node.0.following_siblings(self.arena()).map(XmlNode)
+    pub fn following_siblings(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+        node.0.following_siblings(self.arena()).map(Node)
     }
 
-    pub fn preceding_siblings(&self, node: XmlNode) -> impl Iterator<Item = XmlNode> + '_ {
-        node.0.preceding_siblings(self.arena()).map(XmlNode)
+    pub fn preceding_siblings(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+        node.0.preceding_siblings(self.arena()).map(Node)
     }
 
-    pub fn is_removed(&self, node: XmlNode) -> bool {
+    pub fn is_removed(&self, node: Node) -> bool {
         self.arena()[node.0].is_removed()
     }
 
-    pub fn traverse(&self, node: XmlNode) -> impl Iterator<Item = XmlNodeEdge> + '_ {
+    pub fn traverse(&self, node: Node) -> impl Iterator<Item = NodeEdge> + '_ {
         node.0.traverse(self.arena()).map(|edge| match edge {
-            NodeEdge::Start(node_id) => XmlNodeEdge::Start(XmlNode(node_id)),
-            NodeEdge::End(node_id) => XmlNodeEdge::End(XmlNode(node_id)),
+            IndexTreeNodeEdge::Start(node_id) => NodeEdge::Start(Node(node_id)),
+            IndexTreeNodeEdge::End(node_id) => NodeEdge::End(Node(node_id)),
         })
     }
 
-    pub fn reverse_traverse(&self, node: XmlNode) -> impl Iterator<Item = XmlNodeEdge> + '_ {
+    pub fn reverse_traverse(&self, node: Node) -> impl Iterator<Item = NodeEdge> + '_ {
         node.0
             .reverse_traverse(self.arena())
             .map(|edge| match edge {
-                NodeEdge::Start(node_id) => XmlNodeEdge::Start(XmlNode(node_id)),
-                NodeEdge::End(node_id) => XmlNodeEdge::End(XmlNode(node_id)),
+                IndexTreeNodeEdge::Start(node_id) => NodeEdge::Start(Node(node_id)),
+                IndexTreeNodeEdge::End(node_id) => NodeEdge::End(Node(node_id)),
             })
     }
 
-    pub fn text(&self, node: XmlNode) -> Option<&Text> {
-        let xml_node = self.xml_value(node);
-        if let XmlValue::Text(text) = xml_node {
+    pub fn text(&self, node: Node) -> Option<&Text> {
+        let xml_node = self.value(node);
+        if let Value::Text(text) = xml_node {
             Some(text)
         } else {
             None
         }
     }
 
-    pub fn text_str(&self, node: XmlNode) -> Option<&str> {
+    pub fn text_str(&self, node: Node) -> Option<&str> {
         self.text(node).map(|n| n.get())
     }
 
-    pub fn text_mut(&mut self, node: XmlNode) -> Option<&mut Text> {
-        let xml_node = self.xml_value_mut(node);
-        if let XmlValue::Text(text) = xml_node {
+    pub fn text_mut(&mut self, node: Node) -> Option<&mut Text> {
+        let xml_node = self.value_mut(node);
+        if let Value::Text(text) = xml_node {
             Some(text)
         } else {
             None
         }
     }
 
-    pub fn element(&self, node: XmlNode) -> Option<&Element> {
-        let xml_node = self.xml_value(node);
-        if let XmlValue::Element(element) = xml_node {
+    pub fn element(&self, node: Node) -> Option<&Element> {
+        let xml_node = self.value(node);
+        if let Value::Element(element) = xml_node {
             Some(element)
         } else {
             None
         }
     }
 
-    pub fn element_mut(&mut self, node: XmlNode) -> Option<&mut Element> {
-        let xml_node = self.xml_value_mut(node);
-        if let XmlValue::Element(element) = xml_node {
+    pub fn element_mut(&mut self, node: Node) -> Option<&mut Element> {
+        let xml_node = self.value_mut(node);
+        if let Value::Element(element) = xml_node {
             Some(element)
         } else {
             None
         }
     }
 
-    pub fn value_type(&self, node: XmlNode) -> ValueType {
-        self.xml_value(node).value_type()
+    pub fn value_type(&self, node: Node) -> ValueType {
+        self.value(node).value_type()
     }
 
-    pub fn is_under_root(&self, node: XmlNode) -> bool {
+    pub fn is_under_root(&self, node: Node) -> bool {
         if let Some(parent_id) = self.parent(node) {
             self.value_type(parent_id) == ValueType::Root
         } else {
@@ -455,23 +447,23 @@ impl XmlData {
         }
     }
 
-    pub fn is_root(&self, node: XmlNode) -> bool {
+    pub fn is_root(&self, node: Node) -> bool {
         self.value_type(node) == ValueType::Root
     }
 
-    pub fn is_element(&self, node: XmlNode) -> bool {
+    pub fn is_element(&self, node: Node) -> bool {
         self.value_type(node) == ValueType::Element
     }
 
-    pub fn is_text(&self, node: XmlNode) -> bool {
+    pub fn is_text(&self, node: Node) -> bool {
         self.value_type(node) == ValueType::Text
     }
 
-    pub fn is_comment(&self, node: XmlNode) -> bool {
+    pub fn is_comment(&self, node: Node) -> bool {
         self.value_type(node) == ValueType::Comment
     }
 
-    pub fn is_processing_instruction(&self, node: XmlNode) -> bool {
+    pub fn is_processing_instruction(&self, node: Node) -> bool {
         self.value_type(node) == ValueType::ProcessingInstruction
     }
 

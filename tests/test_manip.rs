@@ -1,11 +1,11 @@
-use xot::{Document, XmlData, XmlValue};
+use xot::{Document, Value, XmlData};
 
 #[test]
 fn test_manipulate_text() {
     let mut data = XmlData::new();
     let doc = Document::parse(r#"<doc>Data</doc>"#, &mut data).unwrap();
     let text_id = data.first_child(data.root_element(&doc)).unwrap();
-    if let XmlValue::Text(node) = data.xml_value_mut(text_id) {
+    if let Value::Text(node) = data.value_mut(text_id) {
         node.set("Changed".into());
     }
     assert_eq!(
@@ -21,7 +21,7 @@ fn test_manipulate_attribute() {
     let el_id = data.root_element(&doc);
     let a = data.name("a").unwrap();
 
-    if let XmlValue::Element(element) = data.xml_value_mut(el_id) {
+    if let Value::Element(element) = data.value_mut(el_id) {
         element.set_attribute(a, "Changed".to_string());
     }
     assert_eq!(
@@ -38,7 +38,7 @@ fn test_add_attribute() {
     assert!(data.name("a").is_none());
     let a = data.name_mut("a");
 
-    if let XmlValue::Element(element) = data.xml_value_mut(el_id) {
+    if let Value::Element(element) = data.value_mut(el_id) {
         element.set_attribute(a, "Created".to_string());
     }
     assert_eq!(
@@ -59,7 +59,7 @@ fn test_manipulate_attribute_ns() {
     let ns = data.namespace("http://example.com").unwrap();
     let a = data.name_ns("a", ns).unwrap();
 
-    if let XmlValue::Element(element) = data.xml_value_mut(el_id) {
+    if let Value::Element(element) = data.value_mut(el_id) {
         element.set_attribute(a, "Changed".to_string());
     }
     assert_eq!(
@@ -77,7 +77,7 @@ fn test_add_attribute_ns() {
     assert!(data.name_ns("a", ns).is_none());
     let a = data.name_ns_mut("a", ns);
 
-    if let XmlValue::Element(element) = data.xml_value_mut(el_id) {
+    if let Value::Element(element) = data.value_mut(el_id) {
         element.set_attribute(a, "Created".to_string());
     }
     assert_eq!(
@@ -162,8 +162,8 @@ fn test_append_text_after_text_consolidates_nodes() {
     let el_id = data.root_element(&doc);
     data.append_text(el_id, "Alpha").unwrap();
     data.append_text(el_id, "Beta").unwrap();
-    match data.xml_value(data.first_child(el_id).unwrap()) {
-        XmlValue::Text(node) => assert_eq!(node.get(), "AlphaBeta"),
+    match data.value(data.first_child(el_id).unwrap()) {
+        Value::Text(node) => assert_eq!(node.get(), "AlphaBeta"),
         _ => panic!("Expected text node"),
     }
     assert_eq!(
@@ -181,8 +181,8 @@ fn test_append_text_after_text_consolidates_nodes_direct_append() {
     let txt2 = data.new_text("Beta");
     data.append(el_id, txt1).unwrap();
     data.append(el_id, txt2).unwrap();
-    match data.xml_value(data.first_child(el_id).unwrap()) {
-        XmlValue::Text(node) => assert_eq!(node.get(), "AlphaBeta"),
+    match data.value(data.first_child(el_id).unwrap()) {
+        Value::Text(node) => assert_eq!(node.get(), "AlphaBeta"),
         _ => panic!("Expected text node"),
     }
     assert_eq!(

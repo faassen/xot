@@ -15,7 +15,7 @@ pub enum ValueType {
 }
 
 #[derive(Debug)]
-pub enum XmlValue {
+pub enum Value {
     Root,
     Element(Element),
     Text(Text),
@@ -23,14 +23,14 @@ pub enum XmlValue {
     ProcessingInstruction(ProcessingInstruction),
 }
 
-impl XmlValue {
+impl Value {
     pub fn value_type(&self) -> ValueType {
         match self {
-            XmlValue::Root => ValueType::Root,
-            XmlValue::Element(_) => ValueType::Element,
-            XmlValue::Text(_) => ValueType::Text,
-            XmlValue::Comment(_) => ValueType::Comment,
-            XmlValue::ProcessingInstruction(_) => ValueType::ProcessingInstruction,
+            Value::Root => ValueType::Root,
+            Value::Element(_) => ValueType::Element,
+            Value::Text(_) => ValueType::Text,
+            Value::Comment(_) => ValueType::Comment,
+            Value::ProcessingInstruction(_) => ValueType::ProcessingInstruction,
         }
     }
 }
