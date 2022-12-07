@@ -15,4 +15,4 @@ mod xmlvalue;
 pub use document::Document;
 pub use error::Error;
 pub use xmldata::XmlData;
-pub use xmlvalue::{Element, Text, Value};
+pub use xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value};
