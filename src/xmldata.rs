@@ -102,11 +102,7 @@ impl XmlData {
     }
 
     pub fn append(&mut self, parent: XmlNodeId, child: XmlNodeId) -> Result<(), Error> {
-        if self.is_root(child) {
-            return Err(Error::InvalidOperation(
-                "Cannot append document root".into(),
-            ));
-        }
+        self.root_move_check(child)?;
         match self.node_type(parent) {
             NodeType::Root => {
                 if matches!(
@@ -164,11 +160,7 @@ impl XmlData {
     }
 
     pub fn prepend(&mut self, parent: XmlNodeId, child: XmlNodeId) -> Result<(), Error> {
-        if self.is_root(child) {
-            return Err(Error::InvalidOperation(
-                "Cannot prepend document root".into(),
-            ));
-        }
+        self.root_move_check(child)?;
         match self.node_type(parent) {
             NodeType::Root => {
                 if matches!(
@@ -201,11 +193,7 @@ impl XmlData {
         reference_node: XmlNodeId,
         new_sibling: XmlNodeId,
     ) -> Result<(), Error> {
-        if self.is_root(new_sibling) {
-            return Err(Error::InvalidOperation(
-                "Cannot insert document root".into(),
-            ));
-        }
+        self.root_move_check(new_sibling)?;
         match self.node_type(reference_node) {
             NodeType::Root => Err(Error::InvalidOperation(
                 "Cannot insert after document root".into(),
@@ -232,11 +220,7 @@ impl XmlData {
         reference_node: XmlNodeId,
         new_sibling: XmlNodeId,
     ) -> Result<(), Error> {
-        if self.is_root(new_sibling) {
-            return Err(Error::InvalidOperation(
-                "Cannot insert document root".into(),
-            ));
-        }
+        self.root_move_check(new_sibling)?;
         match self.node_type(reference_node) {
             NodeType::Root => Err(Error::InvalidOperation(
                 "Cannot insert before document root".into(),
@@ -285,6 +269,16 @@ impl XmlData {
         Ok(())
     }
 
+    fn root_move_check(&self, node: XmlNodeId) -> Result<(), Error> {
+        if self.is_root(node) {
+            return Err(Error::InvalidOperation("Cannot move document root".into()));
+        }
+        if self.is_root_element(node) {
+            return Err(Error::InvalidOperation("Cannot move root element".into()));
+        }
+        Ok(())
+    }
+
     fn consolidate_text_node(
         &mut self,
         node: XmlNodeId,
@@ -326,8 +320,9 @@ impl XmlData {
         }
     }
 
-    pub fn remove(&mut self, node_id: XmlNodeId) {
-        node_id.0.remove_subtree(self.arena_mut());
+    pub fn remove(&mut self, node: XmlNodeId) {
+        self.root_move_check(node).unwrap();
+        node.0.remove_subtree(self.arena_mut());
     }
 
     // accessors
