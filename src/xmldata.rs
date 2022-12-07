@@ -102,32 +102,12 @@ impl XmlData {
     }
 
     pub fn append(&mut self, parent: XmlNodeId, child: XmlNodeId) -> Result<(), Error> {
-        self.root_move_check(child)?;
-        match self.node_type(parent) {
-            NodeType::Root => {
-                if matches!(
-                    self.node_type(child),
-                    NodeType::Comment | NodeType::ProcessingInstruction
-                ) {
-                    parent.0.checked_append(child.0, self.arena_mut())?;
-                    Ok(())
-                } else {
-                    Err(Error::InvalidOperation(
-                        "Can only append comments or PIs to document root".into(),
-                    ))
-                }
-            }
-            NodeType::Element => {
-                if self.consolidate_text_node(child, self.last_child(parent), None) {
-                    return Ok(());
-                }
-                parent.0.checked_append(child.0, self.arena_mut())?;
-                Ok(())
-            }
-            _ => Err(Error::InvalidOperation(
-                "Can only append to elements or document root".into(),
-            )),
+        self.structure_check(Some(parent), child)?;
+        if self.consolidate_text_node(child, self.last_child(parent), None) {
+            return Ok(());
         }
+        parent.0.checked_append(child.0, self.arena_mut())?;
+        Ok(())
     }
 
     pub fn append_text(&mut self, parent: XmlNodeId, text: &str) -> Result<(), Error> {
@@ -160,32 +140,12 @@ impl XmlData {
     }
 
     pub fn prepend(&mut self, parent: XmlNodeId, child: XmlNodeId) -> Result<(), Error> {
-        self.root_move_check(child)?;
-        match self.node_type(parent) {
-            NodeType::Root => {
-                if matches!(
-                    self.node_type(child),
-                    NodeType::Comment | NodeType::ProcessingInstruction
-                ) {
-                    parent.0.checked_prepend(child.0, self.arena_mut())?;
-                    Ok(())
-                } else {
-                    Err(Error::InvalidOperation(
-                        "Can only prepend comments or PIs to document root".into(),
-                    ))
-                }
-            }
-            NodeType::Element => {
-                if self.consolidate_text_node(child, None, self.first_child(parent)) {
-                    return Ok(());
-                }
-                parent.0.checked_prepend(child.0, self.arena_mut())?;
-                Ok(())
-            }
-            _ => Err(Error::InvalidOperation(
-                "Can only prepend to elements or document root".into(),
-            )),
+        self.structure_check(Some(parent), child)?;
+        if self.consolidate_text_node(child, None, self.first_child(parent)) {
+            return Ok(());
         }
+        parent.0.checked_prepend(child.0, self.arena_mut())?;
+        Ok(())
     }
 
     pub fn insert_after(
@@ -193,26 +153,18 @@ impl XmlData {
         reference_node: XmlNodeId,
         new_sibling: XmlNodeId,
     ) -> Result<(), Error> {
-        self.root_move_check(new_sibling)?;
-        match self.node_type(reference_node) {
-            NodeType::Root => Err(Error::InvalidOperation(
-                "Cannot insert after document root".into(),
-            )),
-            _ => {
-                self.insert_check(reference_node, new_sibling)?;
-                if self.consolidate_text_node(
-                    new_sibling,
-                    Some(reference_node),
-                    self.next_sibling(reference_node),
-                ) {
-                    return Ok(());
-                }
-                reference_node
-                    .0
-                    .checked_insert_after(new_sibling.0, self.arena_mut())?;
-                Ok(())
-            }
+        self.structure_check(self.parent(reference_node), new_sibling)?;
+        if self.consolidate_text_node(
+            new_sibling,
+            Some(reference_node),
+            self.next_sibling(reference_node),
+        ) {
+            return Ok(());
         }
+        reference_node
+            .0
+            .checked_insert_after(new_sibling.0, self.arena_mut())?;
+        Ok(())
     }
 
     pub fn insert_before(
@@ -220,61 +172,48 @@ impl XmlData {
         reference_node: XmlNodeId,
         new_sibling: XmlNodeId,
     ) -> Result<(), Error> {
-        self.root_move_check(new_sibling)?;
-        match self.node_type(reference_node) {
-            NodeType::Root => Err(Error::InvalidOperation(
-                "Cannot insert before document root".into(),
-            )),
-            _ => {
-                self.insert_check(reference_node, new_sibling)?;
-                if self.consolidate_text_node(
-                    new_sibling,
-                    self.previous_sibling(reference_node),
-                    Some(reference_node),
-                ) {
-                    return Ok(());
-                }
-                reference_node
-                    .0
-                    .checked_insert_before(new_sibling.0, self.arena_mut())?;
-                Ok(())
-            }
+        self.structure_check(self.parent(reference_node), new_sibling)?;
+        if self.consolidate_text_node(
+            new_sibling,
+            self.previous_sibling(reference_node),
+            Some(reference_node),
+        ) {
+            return Ok(());
         }
-    }
-
-    fn insert_check(&self, reference_node: XmlNodeId, new_sibling: XmlNodeId) -> Result<(), Error> {
-        if self.is_root_element(reference_node) {
-            match self.node_type(new_sibling) {
-                NodeType::Text => {
-                    return Err(Error::InvalidOperation(
-                        "Cannot insert text to root element".into(),
-                    ))
-                }
-                NodeType::Element => {
-                    return Err(Error::InvalidOperation(
-                        "Cannot insert additional element to root element".into(),
-                    ))
-                }
-                NodeType::Root => {
-                    return Err(Error::InvalidOperation(
-                        "Cannot insert document root to root element".into(),
-                    ))
-                }
-                NodeType::Comment | NodeType::ProcessingInstruction => {
-                    // those are the only nodes allowed
-                    return Ok(());
-                }
-            }
-        }
+        reference_node
+            .0
+            .checked_insert_before(new_sibling.0, self.arena_mut())?;
         Ok(())
     }
 
-    fn root_move_check(&self, node: XmlNodeId) -> Result<(), Error> {
-        if self.is_root(node) {
-            return Err(Error::InvalidOperation("Cannot move document root".into()));
-        }
-        if self.is_root_element(node) {
-            return Err(Error::InvalidOperation("Cannot move root element".into()));
+    fn structure_check(&self, parent: Option<XmlNodeId>, child: XmlNodeId) -> Result<(), Error> {
+        let parent = parent.ok_or(Error::InvalidOperation(
+            "Cannot create siblings for document root".into(),
+        ))?;
+        match self.node_type(child) {
+            NodeType::Root => {
+                return Err(Error::InvalidOperation("Cannot move document root".into()));
+            }
+            NodeType::Element => {
+                if self.is_under_root(child) {
+                    return Err(Error::InvalidOperation("Cannot move root element".into()));
+                }
+                if self.is_root(parent) {
+                    return Err(Error::InvalidOperation(
+                        "Cannot move extra element under document root".into(),
+                    ));
+                }
+            }
+            NodeType::Text => {
+                if self.is_root(parent) {
+                    return Err(Error::InvalidOperation(
+                        "Cannot move text under document root".into(),
+                    ));
+                }
+            }
+            NodeType::ProcessingInstruction | NodeType::Comment => {
+                // these can exist everywhere
+            }
         }
         Ok(())
     }
@@ -321,7 +260,6 @@ impl XmlData {
     }
 
     pub fn remove(&mut self, node: XmlNodeId) {
-        self.root_move_check(node).unwrap();
         node.0.remove_subtree(self.arena_mut());
     }
 
@@ -427,7 +365,7 @@ impl XmlData {
         self.xml_node(node_id).node_type()
     }
 
-    pub fn is_root_element(&self, node_id: XmlNodeId) -> bool {
+    pub fn is_under_root(&self, node_id: XmlNodeId) -> bool {
         if let Some(parent_id) = self.parent(node_id) {
             self.node_type(parent_id) == NodeType::Root
         } else {
