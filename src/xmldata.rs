@@ -187,9 +187,9 @@ impl XmlData {
     }
 
     fn structure_check(&self, parent: Option<XmlNodeId>, child: XmlNodeId) -> Result<(), Error> {
-        let parent = parent.ok_or(Error::InvalidOperation(
-            "Cannot create siblings for document root".into(),
-        ))?;
+        let parent = parent.ok_or_else(|| {
+            Error::InvalidOperation("Cannot create siblings for document root".into())
+        })?;
         match self.node_type(child) {
             NodeType::Root => {
                 return Err(Error::InvalidOperation("Cannot move document root".into()));
