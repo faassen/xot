@@ -2,7 +2,6 @@
 
 mod access;
 mod creation;
-mod document;
 mod entity;
 mod error;
 mod idmap;
