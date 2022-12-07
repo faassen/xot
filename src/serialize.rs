@@ -39,9 +39,8 @@ impl XmlData {
         match value {
             Value::Root => {}
             Value::Element(element) => {
-                if !element.namespace_info.to_prefix.is_empty() {
-                    fullname_serializer.push(&element.namespace_info.to_prefix);
-                }
+                fullname_serializer.push(&element.namespace_info.to_prefix);
+
                 let fullname = fullname_serializer.fullname(element.name_id)?;
                 write!(w, "<{}", fullname)?;
                 for (prefix_id, namespace_id) in element.namespace_info.to_namespace.iter() {
@@ -97,9 +96,7 @@ impl XmlData {
                 let fullname = fullname_serializer.fullname(element.name_id)?;
                 write!(w, "</{}>", fullname)?;
             }
-            if !element.namespace_info.to_prefix.is_empty() {
-                fullname_serializer.pop();
-            }
+            fullname_serializer.pop(&element.namespace_info.to_prefix);
         }
         Ok(())
     }
@@ -119,6 +116,9 @@ impl<'a> FullnameSerializer<'a> {
     }
 
     fn push(&mut self, to_prefix: &ToPrefix) {
+        if to_prefix.is_empty() {
+            return;
+        }
         let entry = if self.prefix_stack.is_empty() {
             to_prefix.clone()
         } else {
@@ -129,7 +129,10 @@ impl<'a> FullnameSerializer<'a> {
         self.prefix_stack.push(entry);
     }
 
-    fn pop(&mut self) {
+    fn pop(&mut self, to_prefix: &ToPrefix) {
+        if to_prefix.is_empty() {
+            return;
+        }
         self.prefix_stack.pop();
     }
 
