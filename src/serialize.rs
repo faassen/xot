@@ -15,10 +15,21 @@ impl XmlData {
         self.serialize_or_missing_prefix(node, w).unwrap();
     }
 
+    pub fn serialize_fragment(&mut self, node: Node, w: &mut impl Write) {
+        let root_element = self.top_element(node);
+        self.create_missing_prefixes(root_element).unwrap();
+        // let to_prefix = self.prefixes_seen(node);
+        self.serialize_node(node, w);
+    }
+
     pub fn serialize_or_missing_prefix(&self, node: Node, w: &mut impl Write) -> Result<(), Error> {
         if self.value_type(node) != ValueType::Root {
             panic!("Can only serialize root nodes");
         }
+        self.serialize_node(node, w)
+    }
+
+    fn serialize_node(&self, node: Node, w: &mut impl Write) -> Result<(), Error> {
         let mut fullname_serializer = FullnameSerializer::new(self);
         for edge in self.traverse(node) {
             match edge {
@@ -131,23 +142,21 @@ pub(crate) enum Fullname {
 
 impl<'a> FullnameSerializer<'a> {
     pub(crate) fn new(data: &'a XmlData) -> Self {
-        Self {
-            data,
-            prefix_stack: Vec::new(),
-        }
+        Self::with_to_prefix(&ToPrefix::new(), data)
+    }
+
+    pub(crate) fn with_to_prefix(to_prefix: &ToPrefix, data: &'a XmlData) -> Self {
+        let prefix_stack = vec![to_prefix.clone()];
+        Self { data, prefix_stack }
     }
 
     pub(crate) fn push(&mut self, to_prefix: &ToPrefix) {
         if to_prefix.is_empty() {
             return;
         }
-        let entry = if self.prefix_stack.is_empty() {
-            to_prefix.clone()
-        } else {
-            let mut entry = self.top().clone();
-            entry.extend(to_prefix);
-            entry
-        };
+
+        let mut entry = self.top().clone();
+        entry.extend(to_prefix);
         self.prefix_stack.push(entry);
     }
 
