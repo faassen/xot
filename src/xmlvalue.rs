@@ -170,11 +170,18 @@ impl ProcessingInstruction {
         self.data.as_deref()
     }
 
-    pub fn set_target(&mut self, target: String) {
+    pub fn set_target(&mut self, target: String) -> Result<(), Error> {
+        if target.to_lowercase() == "xml" {
+            return Err(Error::InvalidTarget(target));
+        }
+        // XXX Ideally check that name follows XML spec
         self.target = target;
+        Ok(())
     }
 
     pub fn set_data(&mut self, data: Option<String>) {
+        // XXX Ideally check that data follows XML spec, i.e. not contain
+        // "?>".
         self.data = data;
     }
 }

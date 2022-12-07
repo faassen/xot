@@ -6,6 +6,7 @@ pub enum Error {
     // manipulation errors
     InvalidOperation(String),
     InvalidComment(String),
+    InvalidTarget(String),
     NodeError(indextree::NodeError),
     NotElement(Node),
 
