@@ -1,10 +1,11 @@
 use indextree::{Arena, NodeEdge as IndexTreeNodeEdge, NodeId};
 
-use crate::document::Document;
 use crate::error::Error;
 use crate::name::{Name, NameId, NameLookup};
 use crate::namespace::{Namespace, NamespaceId, NamespaceLookup};
+use crate::parse::parse;
 use crate::prefix::{Prefix, PrefixId, PrefixLookup};
+use crate::serialize::serialize_to_string;
 use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value, ValueType};
 
 pub(crate) type XmlArena = Arena<Value>;
@@ -75,12 +76,11 @@ impl XmlData {
 
     // parsing & serializing
     pub fn parse(&mut self, xml: &str) -> Result<Node, Error> {
-        Ok(Node(Document::parse(xml, self)?.root))
+        parse(xml, self)
     }
 
     pub fn serialize_to_string(&mut self, node: Node) -> Result<String, Error> {
-        let doc = Document { root: node.0 };
-        doc.serialize_to_string(self)
+        serialize_to_string(node, self)
     }
 
     // manipulators

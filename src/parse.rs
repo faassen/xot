@@ -2,13 +2,12 @@ use ahash::HashMap;
 use indextree::NodeId;
 use xmlparser::{ElementEnd, Token, Tokenizer};
 
-use crate::document::Document;
 use crate::entity::{parse_attribute, parse_text};
 use crate::error::Error;
 use crate::name::{Name, NameId};
 use crate::namespace::Namespace;
 use crate::prefix::{Prefix, PrefixId};
-use crate::xmldata::XmlData;
+use crate::xmldata::{Node, XmlData};
 use crate::xmlvalue::{
     Attributes, Comment, Element, NamespaceInfo, ProcessingInstruction, Text, ToNamespace, Value,
 };
@@ -86,10 +85,6 @@ impl<'a> DocumentBuilder<'a> {
             name_id_builder,
             element_builder: None,
         }
-    }
-
-    fn into_document(self) -> Document {
-        Document { root: self.tree }
     }
 
     fn element(&mut self, prefix: &str, name: &str) {
@@ -280,72 +275,68 @@ impl NameIdBuilder {
     }
 }
 
-impl Document {
-    pub(crate) fn parse(xml: &str, data: &mut XmlData) -> Result<Self, Error> {
-        use Token::*;
+pub(crate) fn parse(xml: &str, data: &mut XmlData) -> Result<Node, Error> {
+    use Token::*;
 
-        let mut builder = DocumentBuilder::new(data);
+    let mut builder = DocumentBuilder::new(data);
 
-        for token in Tokenizer::from(xml) {
-            match token? {
-                Attribute {
-                    prefix,
-                    local,
-                    value,
-                    span: _,
-                } => {
-                    if prefix.as_str() == "xmlns" {
-                        builder.prefix(local.as_str(), value.as_str());
-                    } else if local.as_str() == "xmlns" {
-                        builder.prefix("", value.as_str());
-                    } else {
-                        builder.attribute(prefix.as_str(), local.as_str(), value.as_str())?;
-                    }
+    for token in Tokenizer::from(xml) {
+        match token? {
+            Attribute {
+                prefix,
+                local,
+                value,
+                span: _,
+            } => {
+                if prefix.as_str() == "xmlns" {
+                    builder.prefix(local.as_str(), value.as_str());
+                } else if local.as_str() == "xmlns" {
+                    builder.prefix("", value.as_str());
+                } else {
+                    builder.attribute(prefix.as_str(), local.as_str(), value.as_str())?;
                 }
-                Text { text } => {
-                    builder.text(text.as_str())?;
-                }
-                ElementStart {
-                    prefix,
-                    local,
-                    span: _,
-                } => {
-                    builder.element(prefix.as_str(), local.as_str());
-                }
-                ElementEnd { end, span: _ } => {
-                    use self::ElementEnd::*;
-
-                    match end {
-                        Open => {
-                            builder.open_element()?;
-                        }
-                        Close(prefix, local) => {
-                            builder.close_element(prefix.as_str(), local.as_str())?;
-                        }
-                        Empty => {
-                            builder.open_element()?;
-                            builder.close_element_immediate();
-                        }
-                    }
-                }
-                Comment { text, span: _ } => {
-                    builder.comment(text.as_str())?;
-                }
-                ProcessingInstruction {
-                    target,
-                    content,
-                    span: _,
-                } => {
-                    builder.processing_instruction(target.as_str(), content.map(|s| s.as_str()))?
-                }
-                _ => {}
             }
-        }
+            Text { text } => {
+                builder.text(text.as_str())?;
+            }
+            ElementStart {
+                prefix,
+                local,
+                span: _,
+            } => {
+                builder.element(prefix.as_str(), local.as_str());
+            }
+            ElementEnd { end, span: _ } => {
+                use self::ElementEnd::*;
 
-        if builder.is_current_node_root() {
-            Ok(builder.into_document())
-        } else {
-            Err(Error::UnclosedTag)
+                match end {
+                    Open => {
+                        builder.open_element()?;
+                    }
+                    Close(prefix, local) => {
+                        builder.close_element(prefix.as_str(), local.as_str())?;
+                    }
+                    Empty => {
+                        builder.open_element()?;
+                        builder.close_element_immediate();
+                    }
+                }
+            }
+            Comment { text, span: _ } => {
+                builder.comment(text.as_str())?;
+            }
+            ProcessingInstruction {
+                target,
+                content,
+                span: _,
+            } => builder.processing_instruction(target.as_str(), content.map(|s| s.as_str()))?,
+            _ => {}
         }
+    }
+
+    if builder.is_current_node_root() {
+        Ok(Node::new(builder.tree))
+    } else {
+        Err(Error::UnclosedTag)
     }
 }
