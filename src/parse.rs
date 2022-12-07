@@ -115,8 +115,8 @@ impl<'a> DocumentBuilder<'a> {
         Ok(())
     }
 
-    fn add(&mut self, xml_node: Value) -> NodeId {
-        let node_id = self.data.arena.new_node(xml_node);
+    fn add(&mut self, value: Value) -> NodeId {
+        let node_id = self.data.arena.new_node(value);
         self.current_node_id.append(node_id, &mut self.data.arena);
         node_id
     }
