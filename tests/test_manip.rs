@@ -235,12 +235,22 @@ fn test_prepend_consolidate_text() {
 }
 
 #[test]
-fn test_root_node_can_have_only_single_element() {
+fn test_root_node_can_have_only_single_element_append() {
     let mut data = XmlData::new();
     let doc = Document::parse(r#"<doc/>"#, &mut data).unwrap();
     let root_id = doc.root();
     let name = data.name_mut("a");
     assert!(data.append_element(root_id, name).is_err());
+}
+
+#[test]
+fn test_root_node_can_have_only_single_element_insert_before() {
+    let mut data = XmlData::new();
+    let doc = Document::parse(r#"<doc/>"#, &mut data).unwrap();
+    let el_id = data.root_element(&doc);
+    let name = data.name_mut("a");
+    let new_el_id = data.new_element(name);
+    assert!(data.insert_before(el_id, new_el_id).is_err());
 }
 
 #[test]

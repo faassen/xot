@@ -5,7 +5,7 @@ use crate::name::NameId;
 use crate::namespace::NamespaceId;
 use crate::prefix::PrefixId;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum NodeType {
     Root,
     Element,
