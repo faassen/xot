@@ -10,9 +10,9 @@ mod parse;
 mod prefix;
 mod serialize;
 mod xmldata;
-mod xmlnode;
+mod xmlvalue;
 
 pub use document::Document;
 pub use error::Error;
 pub use xmldata::XmlData;
-pub use xmlnode::{Element, Text, XmlNode};
+pub use xmlvalue::{Element, Text, XmlValue};

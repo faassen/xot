@@ -4,13 +4,13 @@ use crate::document::Document;
 use crate::entity::serialize_text;
 use crate::error::Error;
 use crate::name::NameId;
-use crate::xmldata::{XmlData, XmlNodeEdge, XmlNodeId};
-use crate::xmlnode::{ToPrefix, XmlNode};
+use crate::xmldata::{XmlData, XmlNode, XmlNodeEdge};
+use crate::xmlvalue::{ToPrefix, XmlValue};
 
 impl Document {
     pub fn serialize_node(
         &self,
-        node_id: XmlNodeId,
+        node_id: XmlNode,
         w: &mut impl Write,
         data: &XmlData,
     ) -> Result<(), Error> {
@@ -36,7 +36,7 @@ impl Document {
 
     fn handle_edge_start(
         &self,
-        node_id: XmlNodeId,
+        node_id: XmlNode,
         w: &mut impl Write,
         fullname_serializer: &mut FullnameSerializer,
         data: &XmlData,
@@ -44,8 +44,8 @@ impl Document {
         let node = &data.arena[node_id.get()];
         let xml_node = node.get();
         match xml_node {
-            XmlNode::Root => {}
-            XmlNode::Element(element) => {
+            XmlValue::Root => {}
+            XmlValue::Element(element) => {
                 if !element.namespace_info.to_prefix.is_empty() {
                     fullname_serializer.push(&element.namespace_info.to_prefix);
                 }
@@ -75,13 +75,13 @@ impl Document {
                     write!(w, ">")?;
                 }
             }
-            XmlNode::Text(text) => {
+            XmlValue::Text(text) => {
                 write!(w, "{}", serialize_text(text.get().into()))?;
             }
-            XmlNode::Comment(comment) => {
+            XmlValue::Comment(comment) => {
                 write!(w, "<!--{}-->", comment.get())?;
             }
-            XmlNode::ProcessingInstruction(pi) => {
+            XmlValue::ProcessingInstruction(pi) => {
                 if let Some(data) = pi.get_data() {
                     write!(w, "<?{} {}?>", pi.get_target(), data)?;
                 } else {
@@ -94,14 +94,14 @@ impl Document {
 
     fn handle_edge_end(
         &self,
-        node_id: XmlNodeId,
+        node_id: XmlNode,
         w: &mut impl Write,
         fullname_serializer: &mut FullnameSerializer,
         data: &XmlData,
     ) -> Result<(), Error> {
         let node = &data.arena[node_id.get()];
         let xml_node = node.get();
-        if let XmlNode::Element(element) = xml_node {
+        if let XmlValue::Element(element) = xml_node {
             if node.first_child().is_some() {
                 let fullname = fullname_serializer.fullname(element.name_id)?;
                 write!(w, "</{}>", fullname)?;

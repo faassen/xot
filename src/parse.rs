@@ -9,8 +9,8 @@ use crate::name::{Name, NameId};
 use crate::namespace::Namespace;
 use crate::prefix::{Prefix, PrefixId};
 use crate::xmldata::XmlData;
-use crate::xmlnode::{
-    Attributes, Comment, Element, NamespaceInfo, ProcessingInstruction, Text, ToNamespace, XmlNode,
+use crate::xmlvalue::{
+    Attributes, Comment, Element, NamespaceInfo, ProcessingInstruction, Text, ToNamespace, XmlValue,
 };
 
 struct ElementBuilder {
@@ -74,7 +74,7 @@ struct DocumentBuilder<'a> {
 
 impl<'a> DocumentBuilder<'a> {
     fn new(data: &'a mut XmlData) -> Self {
-        let root = data.arena.new_node(XmlNode::Root);
+        let root = data.arena.new_node(XmlValue::Root);
         let mut name_id_builder = NameIdBuilder::new();
         let mut base_to_namespace = ToNamespace::new();
         base_to_namespace.insert(data.empty_prefix_id, data.no_namespace_id);
@@ -120,7 +120,7 @@ impl<'a> DocumentBuilder<'a> {
         Ok(())
     }
 
-    fn add(&mut self, xml_node: XmlNode) -> NodeId {
+    fn add(&mut self, xml_node: XmlValue) -> NodeId {
         let node_id = self.data.arena.new_node(xml_node);
         self.current_node_id.append(node_id, &mut self.data.arena);
         node_id
@@ -128,7 +128,7 @@ impl<'a> DocumentBuilder<'a> {
 
     fn open_element(&mut self) -> Result<(), Error> {
         let element_builder = self.element_builder.take().unwrap();
-        let element = XmlNode::Element(element_builder.into_element(self)?);
+        let element = XmlValue::Element(element_builder.into_element(self)?);
         let node_id = self.add(element);
         self.current_node_id = node_id;
         Ok(())
@@ -136,13 +136,13 @@ impl<'a> DocumentBuilder<'a> {
 
     fn text(&mut self, content: &str) -> Result<(), Error> {
         let content = parse_text(content.into())?;
-        self.add(XmlNode::Text(Text::new(content.to_string())));
+        self.add(XmlValue::Text(Text::new(content.to_string())));
         Ok(())
     }
 
     fn close_element_immediate(&mut self) {
         let current_node = self.data.arena.get(self.current_node_id).unwrap();
-        if let XmlNode::Element(element) = current_node.get() {
+        if let XmlValue::Element(element) = current_node.get() {
             self.name_id_builder
                 .pop(&element.namespace_info.to_namespace);
         }
@@ -156,7 +156,7 @@ impl<'a> DocumentBuilder<'a> {
             self.data,
         )?;
         let current_node = self.data.arena.get(self.current_node_id).unwrap();
-        if let XmlNode::Element(element) = current_node.get() {
+        if let XmlValue::Element(element) = current_node.get() {
             if element.name_id != name_id {
                 return Err(Error::InvalidCloseTag(prefix.to_string(), name.to_string()));
             }
@@ -170,14 +170,14 @@ impl<'a> DocumentBuilder<'a> {
     fn comment(&mut self, content: &str) -> Result<(), Error> {
         // XXX are there illegal comments, like those with -- inside? or
         // won't they pass the parser?
-        self.add(XmlNode::Comment(Comment::new(content.to_string())));
+        self.add(XmlValue::Comment(Comment::new(content.to_string())));
         Ok(())
     }
 
     fn processing_instruction(&mut self, target: &str, content: Option<&str>) -> Result<(), Error> {
         // XXX are there illegal processing instructions, like those with
         // ?> inside? or won't they pass the parser?
-        self.add(XmlNode::ProcessingInstruction(ProcessingInstruction::new(
+        self.add(XmlValue::ProcessingInstruction(ProcessingInstruction::new(
             target.to_string(),
             content.map(|s| s.to_string()),
         )));
@@ -185,7 +185,7 @@ impl<'a> DocumentBuilder<'a> {
     }
 
     fn is_current_node_root(&self) -> bool {
-        matches!(self.data.arena[self.current_node_id].get(), XmlNode::Root)
+        matches!(self.data.arena[self.current_node_id].get(), XmlValue::Root)
     }
 }
 

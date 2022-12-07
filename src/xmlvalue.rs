@@ -6,7 +6,7 @@ use crate::namespace::NamespaceId;
 use crate::prefix::PrefixId;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub enum NodeType {
+pub enum ValueType {
     Root,
     Element,
     Text,
@@ -15,7 +15,7 @@ pub enum NodeType {
 }
 
 #[derive(Debug)]
-pub enum XmlNode {
+pub enum XmlValue {
     Root,
     Element(Element),
     Text(Text),
@@ -23,14 +23,14 @@ pub enum XmlNode {
     ProcessingInstruction(ProcessingInstruction),
 }
 
-impl XmlNode {
-    pub fn node_type(&self) -> NodeType {
+impl XmlValue {
+    pub fn value_type(&self) -> ValueType {
         match self {
-            XmlNode::Root => NodeType::Root,
-            XmlNode::Element(_) => NodeType::Element,
-            XmlNode::Text(_) => NodeType::Text,
-            XmlNode::Comment(_) => NodeType::Comment,
-            XmlNode::ProcessingInstruction(_) => NodeType::ProcessingInstruction,
+            XmlValue::Root => ValueType::Root,
+            XmlValue::Element(_) => ValueType::Element,
+            XmlValue::Text(_) => ValueType::Text,
+            XmlValue::Comment(_) => ValueType::Comment,
+            XmlValue::ProcessingInstruction(_) => ValueType::ProcessingInstruction,
         }
     }
 }
