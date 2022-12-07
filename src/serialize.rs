@@ -11,11 +11,11 @@ impl XmlData {
         let mut fullname_serializer = FullnameSerializer::new(self);
         for edge in self.traverse(node) {
             match edge {
-                NodeEdge::Start(node_id) => {
-                    self.handle_edge_start(node_id, w, &mut fullname_serializer)?;
+                NodeEdge::Start(node) => {
+                    self.handle_edge_start(node, w, &mut fullname_serializer)?;
                 }
-                NodeEdge::End(node_id) => {
-                    self.handle_edge_end(node_id, w, &mut fullname_serializer)?;
+                NodeEdge::End(node) => {
+                    self.handle_edge_end(node, w, &mut fullname_serializer)?;
                 }
             }
         }
@@ -34,9 +34,8 @@ impl XmlData {
         w: &mut impl Write,
         fullname_serializer: &mut FullnameSerializer,
     ) -> Result<(), Error> {
-        let node = &self.arena[node.get()];
-        let xml_node = node.get();
-        match xml_node {
+        let value = self.value(node);
+        match value {
             Value::Root => {}
             Value::Element(element) => {
                 if !element.namespace_info.to_prefix.is_empty() {
@@ -62,7 +61,7 @@ impl XmlData {
                     write!(w, " {}=\"{}\"", fullname, serialize_text(value.into()))?;
                 }
 
-                if node.first_child().is_none() {
+                if self.first_child(node).is_none() {
                     write!(w, "/>")?;
                 } else {
                     write!(w, ">")?;
@@ -91,10 +90,9 @@ impl XmlData {
         w: &mut impl Write,
         fullname_serializer: &mut FullnameSerializer,
     ) -> Result<(), Error> {
-        let node = &self.arena[node.get()];
-        let xml_node = node.get();
-        if let Value::Element(element) = xml_node {
-            if node.first_child().is_some() {
+        let value = self.value(node);
+        if let Value::Element(element) = value {
+            if self.first_child(node).is_some() {
                 let fullname = fullname_serializer.fullname(element.name_id)?;
                 write!(w, "</{}>", fullname)?;
             }
