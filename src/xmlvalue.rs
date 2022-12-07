@@ -107,14 +107,6 @@ impl Element {
     pub fn get_prefixes(&self) -> &ToPrefix {
         &self.namespace_info.to_prefix
     }
-
-    // pub fn get_attributes(&'a self) -> &'a Attributes<'a> {
-    //     &self.attributes
-    // }
-
-    // pub fn get_attributes_mut(&'a mut self) -> &'a mut Attributes<'a> {
-    //     &mut self.attributes
-    // }
 }
 
 #[derive(Debug)]
