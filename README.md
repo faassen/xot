@@ -18,10 +18,10 @@ tree manipulation or serialization at all, I recommend
 
 For features such as tree manipulation and Xpath, you can use
 [libxml](https://github.com/KWARC/rust-libxml) which wraps the libxml2 C
-library. Unfortunately its tree manipulation facilities entirely complete, and
-I've experienced odd errors and even crashes when using it; this was part
-of the reason I created Xot.
+library. Unfortunately its tree access facilities aren't entirely complete, and
+I've experienced odd errors and even crashes when using it; this was part of
+the reason I created Xot.
 
 If you need to process big XML data with high performance, you may not want to
-use a tree library and instead use one of the various parser/serialization
+use a tree library and instead use one of the various XML parser/serialization
 libraries.
