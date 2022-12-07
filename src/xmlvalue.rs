@@ -104,7 +104,7 @@ impl Element {
         self.namespace_info.to_namespace.get(&prefix_id).copied()
     }
 
-    pub fn get_prefixes(&self) -> &ToPrefix {
+    pub fn prefixes(&self) -> &ToPrefix {
         &self.namespace_info.to_prefix
     }
 }
