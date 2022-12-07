@@ -6,102 +6,104 @@ use crate::name::NameId;
 use crate::xmldata::{Node, NodeEdge, XmlData};
 use crate::xmlvalue::{ToPrefix, Value};
 
-pub fn serialize_node(node_id: Node, w: &mut impl Write, data: &XmlData) -> Result<(), Error> {
-    let mut fullname_serializer = FullnameSerializer::new(data);
-    for edge in data.traverse(node_id) {
-        match edge {
-            NodeEdge::Start(node_id) => {
-                handle_edge_start(node_id, w, &mut fullname_serializer, data)?;
-            }
-            NodeEdge::End(node_id) => {
-                handle_edge_end(node_id, w, &mut fullname_serializer, data)?;
-            }
-        }
-    }
-    Ok(())
-}
-
-pub fn serialize_to_string(node_id: Node, data: &XmlData) -> Result<String, Error> {
-    let mut buf = Vec::new();
-    serialize_node(node_id, &mut buf, data)?;
-    Ok(String::from_utf8(buf).unwrap())
-}
-
-fn handle_edge_start(
-    node_id: Node,
-    w: &mut impl Write,
-    fullname_serializer: &mut FullnameSerializer,
-    data: &XmlData,
-) -> Result<(), Error> {
-    let node = &data.arena[node_id.get()];
-    let xml_node = node.get();
-    match xml_node {
-        Value::Root => {}
-        Value::Element(element) => {
-            if !element.namespace_info.to_prefix.is_empty() {
-                fullname_serializer.push(&element.namespace_info.to_prefix);
-            }
-            let fullname = fullname_serializer.fullname(element.name_id)?;
-            write!(w, "<{}", fullname)?;
-            for (prefix_id, namespace_id) in element.namespace_info.to_namespace.iter() {
-                let namespace = data.namespace_lookup.get_value(*namespace_id);
-                if prefix_id == &data.empty_prefix_id {
-                    write!(w, " xmlns=\"{}\"", namespace)?;
-                } else {
-                    write!(
-                        w,
-                        " xmlns:{}=\"{}\"",
-                        data.prefix_lookup.get_value(*prefix_id),
-                        namespace
-                    )?;
+impl XmlData {
+    pub fn serialize_node(&self, node_id: Node, w: &mut impl Write) -> Result<(), Error> {
+        let mut fullname_serializer = FullnameSerializer::new(self);
+        for edge in self.traverse(node_id) {
+            match edge {
+                NodeEdge::Start(node_id) => {
+                    self.handle_edge_start(node_id, w, &mut fullname_serializer)?;
+                }
+                NodeEdge::End(node_id) => {
+                    self.handle_edge_end(node_id, w, &mut fullname_serializer)?;
                 }
             }
-            for (name_id, value) in element.attributes.iter() {
-                let fullname = fullname_serializer.fullname(*name_id)?;
-                write!(w, " {}=\"{}\"", fullname, serialize_text(value.into()))?;
-            }
-
-            if node.first_child().is_none() {
-                write!(w, "/>")?;
-            } else {
-                write!(w, ">")?;
-            }
         }
-        Value::Text(text) => {
-            write!(w, "{}", serialize_text(text.get().into()))?;
-        }
-        Value::Comment(comment) => {
-            write!(w, "<!--{}-->", comment.get())?;
-        }
-        Value::ProcessingInstruction(pi) => {
-            if let Some(data) = pi.get_data() {
-                write!(w, "<?{} {}?>", pi.get_target(), data)?;
-            } else {
-                write!(w, "<?{}?>", pi.get_target())?;
-            }
-        }
+        Ok(())
     }
-    Ok(())
-}
 
-fn handle_edge_end(
-    node_id: Node,
-    w: &mut impl Write,
-    fullname_serializer: &mut FullnameSerializer,
-    data: &XmlData,
-) -> Result<(), Error> {
-    let node = &data.arena[node_id.get()];
-    let xml_node = node.get();
-    if let Value::Element(element) = xml_node {
-        if node.first_child().is_some() {
-            let fullname = fullname_serializer.fullname(element.name_id)?;
-            write!(w, "</{}>", fullname)?;
-        }
-        if !element.namespace_info.to_prefix.is_empty() {
-            fullname_serializer.pop();
-        }
+    pub fn serialize_to_string(&self, node_id: Node) -> Result<String, Error> {
+        let mut buf = Vec::new();
+        self.serialize_node(node_id, &mut buf)?;
+        Ok(String::from_utf8(buf).unwrap())
     }
-    Ok(())
+
+    fn handle_edge_start(
+        &self,
+        node_id: Node,
+        w: &mut impl Write,
+        fullname_serializer: &mut FullnameSerializer,
+    ) -> Result<(), Error> {
+        let node = &self.arena[node_id.get()];
+        let xml_node = node.get();
+        match xml_node {
+            Value::Root => {}
+            Value::Element(element) => {
+                if !element.namespace_info.to_prefix.is_empty() {
+                    fullname_serializer.push(&element.namespace_info.to_prefix);
+                }
+                let fullname = fullname_serializer.fullname(element.name_id)?;
+                write!(w, "<{}", fullname)?;
+                for (prefix_id, namespace_id) in element.namespace_info.to_namespace.iter() {
+                    let namespace = self.namespace_lookup.get_value(*namespace_id);
+                    if *prefix_id == self.empty_prefix_id {
+                        write!(w, " xmlns=\"{}\"", namespace)?;
+                    } else {
+                        write!(
+                            w,
+                            " xmlns:{}=\"{}\"",
+                            self.prefix_lookup.get_value(*prefix_id),
+                            namespace
+                        )?;
+                    }
+                }
+                for (name_id, value) in element.attributes.iter() {
+                    let fullname = fullname_serializer.fullname(*name_id)?;
+                    write!(w, " {}=\"{}\"", fullname, serialize_text(value.into()))?;
+                }
+
+                if node.first_child().is_none() {
+                    write!(w, "/>")?;
+                } else {
+                    write!(w, ">")?;
+                }
+            }
+            Value::Text(text) => {
+                write!(w, "{}", serialize_text(text.get().into()))?;
+            }
+            Value::Comment(comment) => {
+                write!(w, "<!--{}-->", comment.get())?;
+            }
+            Value::ProcessingInstruction(pi) => {
+                if let Some(data) = pi.get_data() {
+                    write!(w, "<?{} {}?>", pi.get_target(), data)?;
+                } else {
+                    write!(w, "<?{}?>", pi.get_target())?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn handle_edge_end(
+        &self,
+        node_id: Node,
+        w: &mut impl Write,
+        fullname_serializer: &mut FullnameSerializer,
+    ) -> Result<(), Error> {
+        let node = &self.arena[node_id.get()];
+        let xml_node = node.get();
+        if let Value::Element(element) = xml_node {
+            if node.first_child().is_some() {
+                let fullname = fullname_serializer.fullname(element.name_id)?;
+                write!(w, "</{}>", fullname)?;
+            }
+            if !element.namespace_info.to_prefix.is_empty() {
+                fullname_serializer.pop();
+            }
+        }
+        Ok(())
+    }
 }
 
 struct FullnameSerializer<'a> {

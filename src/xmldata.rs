@@ -3,9 +3,7 @@ use indextree::{Arena, NodeEdge as IndexTreeNodeEdge, NodeId};
 use crate::error::Error;
 use crate::name::{Name, NameId, NameLookup};
 use crate::namespace::{Namespace, NamespaceId, NamespaceLookup};
-use crate::parse::parse;
 use crate::prefix::{Prefix, PrefixId, PrefixLookup};
-use crate::serialize::serialize_to_string;
 use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value, ValueType};
 
 pub(crate) type XmlArena = Arena<Value>;
@@ -72,15 +70,6 @@ impl XmlData {
     #[inline]
     pub fn value_mut(&mut self, node_id: Node) -> &mut Value {
         self.arena[node_id.0].get_mut()
-    }
-
-    // parsing & serializing
-    pub fn parse(&mut self, xml: &str) -> Result<Node, Error> {
-        parse(xml, self)
-    }
-
-    pub fn serialize_to_string(&mut self, node: Node) -> Result<String, Error> {
-        serialize_to_string(node, self)
     }
 
     // manipulators

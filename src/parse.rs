@@ -275,68 +275,72 @@ impl NameIdBuilder {
     }
 }
 
-pub(crate) fn parse(xml: &str, data: &mut XmlData) -> Result<Node, Error> {
-    use Token::*;
+impl XmlData {
+    pub fn parse(&mut self, xml: &str) -> Result<Node, Error> {
+        use Token::*;
 
-    let mut builder = DocumentBuilder::new(data);
+        let mut builder = DocumentBuilder::new(self);
 
-    for token in Tokenizer::from(xml) {
-        match token? {
-            Attribute {
-                prefix,
-                local,
-                value,
-                span: _,
-            } => {
-                if prefix.as_str() == "xmlns" {
-                    builder.prefix(local.as_str(), value.as_str());
-                } else if local.as_str() == "xmlns" {
-                    builder.prefix("", value.as_str());
-                } else {
-                    builder.attribute(prefix.as_str(), local.as_str(), value.as_str())?;
-                }
-            }
-            Text { text } => {
-                builder.text(text.as_str())?;
-            }
-            ElementStart {
-                prefix,
-                local,
-                span: _,
-            } => {
-                builder.element(prefix.as_str(), local.as_str());
-            }
-            ElementEnd { end, span: _ } => {
-                use self::ElementEnd::*;
-
-                match end {
-                    Open => {
-                        builder.open_element()?;
-                    }
-                    Close(prefix, local) => {
-                        builder.close_element(prefix.as_str(), local.as_str())?;
-                    }
-                    Empty => {
-                        builder.open_element()?;
-                        builder.close_element_immediate();
+        for token in Tokenizer::from(xml) {
+            match token? {
+                Attribute {
+                    prefix,
+                    local,
+                    value,
+                    span: _,
+                } => {
+                    if prefix.as_str() == "xmlns" {
+                        builder.prefix(local.as_str(), value.as_str());
+                    } else if local.as_str() == "xmlns" {
+                        builder.prefix("", value.as_str());
+                    } else {
+                        builder.attribute(prefix.as_str(), local.as_str(), value.as_str())?;
                     }
                 }
+                Text { text } => {
+                    builder.text(text.as_str())?;
+                }
+                ElementStart {
+                    prefix,
+                    local,
+                    span: _,
+                } => {
+                    builder.element(prefix.as_str(), local.as_str());
+                }
+                ElementEnd { end, span: _ } => {
+                    use self::ElementEnd::*;
+
+                    match end {
+                        Open => {
+                            builder.open_element()?;
+                        }
+                        Close(prefix, local) => {
+                            builder.close_element(prefix.as_str(), local.as_str())?;
+                        }
+                        Empty => {
+                            builder.open_element()?;
+                            builder.close_element_immediate();
+                        }
+                    }
+                }
+                Comment { text, span: _ } => {
+                    builder.comment(text.as_str())?;
+                }
+                ProcessingInstruction {
+                    target,
+                    content,
+                    span: _,
+                } => {
+                    builder.processing_instruction(target.as_str(), content.map(|s| s.as_str()))?
+                }
+                _ => {}
             }
-            Comment { text, span: _ } => {
-                builder.comment(text.as_str())?;
-            }
-            ProcessingInstruction {
-                target,
-                content,
-                span: _,
-            } => builder.processing_instruction(target.as_str(), content.map(|s| s.as_str()))?,
-            _ => {}
         }
-    }
 
-    if builder.is_current_node_root() {
-        Ok(Node::new(builder.tree))
-    } else {
-        Err(Error::UnclosedTag)
+        if builder.is_current_node_root() {
+            Ok(Node::new(builder.tree))
+        } else {
+            Err(Error::UnclosedTag)
+        }
     }
 }
