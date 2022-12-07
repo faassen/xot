@@ -36,7 +36,7 @@ fn test_add_attribute() {
     let doc = data.parse(r#"<doc/>"#).unwrap();
     let el_id = data.root_element(doc);
     assert!(data.name("a").is_none());
-    let a = data.name_mut("a");
+    let a = data.add_name("a");
 
     if let Value::Element(element) = data.value_mut(el_id) {
         element.set_attribute(a, "Created".to_string());
@@ -75,7 +75,7 @@ fn test_add_attribute_ns() {
     let el_id = data.root_element(doc);
     let ns = data.namespace("http://example.com").unwrap();
     assert!(data.name_ns("a", ns).is_none());
-    let a = data.name_ns_mut("a", ns);
+    let a = data.add_name_ns("a", ns);
 
     if let Value::Element(element) = data.value_mut(el_id) {
         element.set_attribute(a, "Created".to_string());
@@ -91,7 +91,7 @@ fn test_append_element() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc/>"#).unwrap();
     let el_id = data.root_element(doc);
-    let name = data.name_mut("a");
+    let name = data.add_name("a");
     data.append_element(el_id, name).unwrap();
     assert_eq!(data.serialize_to_string(doc).unwrap(), r#"<doc><a/></doc>"#);
 }
@@ -101,7 +101,7 @@ fn test_prepend_element() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc><b/></doc>"#).unwrap();
     let el_id = data.root_element(doc);
-    let name = data.name_mut("a");
+    let name = data.add_name("a");
     let new_el_id = data.new_element(name);
     data.prepend(el_id, new_el_id).unwrap();
     assert_eq!(
@@ -116,7 +116,7 @@ fn test_insert_before_element() {
     let doc = data.parse(r#"<doc><b/></doc>"#).unwrap();
     let el_id = data.root_element(doc);
     let before_id = data.first_child(el_id).unwrap();
-    let name = data.name_mut("a");
+    let name = data.add_name("a");
     let new_el_id = data.new_element(name);
     data.insert_before(before_id, new_el_id).unwrap();
     assert_eq!(
@@ -131,7 +131,7 @@ fn test_insert_after_element() {
     let doc = data.parse(r#"<doc><b/></doc>"#).unwrap();
     let el_id = data.root_element(doc);
     let before_id = data.first_child(el_id).unwrap();
-    let name = data.name_mut("a");
+    let name = data.add_name("a");
     let new_el_id = data.new_element(name);
     data.insert_after(before_id, new_el_id).unwrap();
     assert_eq!(
@@ -235,7 +235,7 @@ fn test_prepend_consolidate_text() {
 fn test_root_node_can_have_only_single_element_append() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc/>"#).unwrap();
-    let name = data.name_mut("a");
+    let name = data.add_name("a");
     assert!(data.append_element(doc, name).is_err());
 }
 
@@ -244,7 +244,7 @@ fn test_root_node_can_have_only_single_element_insert_before() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc/>"#).unwrap();
     let el_id = data.root_element(doc);
-    let name = data.name_mut("a");
+    let name = data.add_name("a");
     let new_el_id = data.new_element(name);
     assert!(data.insert_before(el_id, new_el_id).is_err());
 }
@@ -284,8 +284,8 @@ fn test_create_missing_prefixes() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc></doc>"#).unwrap();
     let root_id = data.root_element(doc);
-    let ns_id = data.namespace_mut("http://example.com");
-    let name_id = data.name_ns_mut("a", ns_id);
+    let ns_id = data.add_namespace("http://example.com");
+    let name_id = data.add_name_ns("a", ns_id);
     data.append_element(root_id, name_id).unwrap();
     data.create_missing_prefixes(root_id).unwrap();
     assert_eq!(

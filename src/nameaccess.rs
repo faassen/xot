@@ -14,8 +14,8 @@ impl XmlData {
         self.name_ns(name, self.no_namespace_id)
     }
 
-    pub fn name_mut(&mut self, name: &str) -> NameId {
-        self.name_ns_mut(name, self.no_namespace_id)
+    pub fn add_name(&mut self, name: &str) -> NameId {
+        self.add_name_ns(name, self.no_namespace_id)
     }
 
     pub fn name_ns(&self, name: &str, namespace_id: NamespaceId) -> Option<NameId> {
@@ -23,7 +23,7 @@ impl XmlData {
             .get_id(Name::new(name.to_string(), namespace_id))
     }
 
-    pub fn name_ns_mut(&mut self, name: &str, namespace_id: NamespaceId) -> NameId {
+    pub fn add_name_ns(&mut self, name: &str, namespace_id: NamespaceId) -> NameId {
         self.name_lookup
             .get_id_mut(Name::new(name.to_string(), namespace_id))
     }
@@ -33,7 +33,7 @@ impl XmlData {
             .get_id(Namespace::new(namespace.to_string()))
     }
 
-    pub fn namespace_mut(&mut self, namespace: &str) -> NamespaceId {
+    pub fn add_namespace(&mut self, namespace: &str) -> NamespaceId {
         self.namespace_lookup
             .get_id_mut(Namespace::new(namespace.to_string()))
     }
@@ -42,7 +42,7 @@ impl XmlData {
         self.prefix_lookup.get_id(Prefix::new(prefix.to_string()))
     }
 
-    pub fn prefix_mut(&mut self, prefix: &str) -> PrefixId {
+    pub fn add_prefix(&mut self, prefix: &str) -> PrefixId {
         self.prefix_lookup
             .get_id_mut(Prefix::new(prefix.to_string()))
     }
@@ -84,7 +84,7 @@ impl XmlData {
         let mut prefixes_to_add = HashMap::default();
         for (i, namespace_id) in missing_namespace_ids.iter().enumerate() {
             let prefix = format!("n{}", i);
-            let prefix_id = self.prefix_mut(&prefix);
+            let prefix_id = self.add_prefix(&prefix);
             prefixes_to_add.insert(prefix_id, namespace_id);
         }
         let value = self.element_mut(node).unwrap();

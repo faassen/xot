@@ -20,7 +20,7 @@ fn test_add_attribute_entities() {
     let doc = data.parse(r#"<doc/>"#).unwrap();
     let el_id = data.root_element(doc);
     assert!(data.name("a").is_none());
-    let a = data.name_mut("a");
+    let a = data.add_name("a");
 
     if let Value::Element(element) = data.value_mut(el_id) {
         element.set_attribute(a, "Created & set".to_string());
