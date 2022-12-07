@@ -4,6 +4,7 @@ use crate::access::NodeEdge;
 use crate::entity::serialize_text;
 use crate::error::Error;
 use crate::name::NameId;
+use crate::namespace::NamespaceId;
 use crate::xmldata::{Node, XmlData};
 use crate::xmlvalue::{ToPrefix, Value};
 
@@ -41,7 +42,8 @@ impl XmlData {
             Value::Element(element) => {
                 fullname_serializer.push(&element.namespace_info.to_prefix);
 
-                let fullname = fullname_serializer.fullname(element.name_id)?;
+                let fullname = fullname_serializer.fullname_or_err(element.name_id)?;
+
                 write!(w, "<{}", fullname)?;
                 for (prefix_id, namespace_id) in element.namespace_info.to_namespace.iter() {
                     let namespace = self.namespace_lookup.get_value(*namespace_id);
@@ -57,7 +59,7 @@ impl XmlData {
                     }
                 }
                 for (name_id, value) in element.attributes.iter() {
-                    let fullname = fullname_serializer.fullname(*name_id)?;
+                    let fullname = fullname_serializer.fullname_or_err(*name_id)?;
                     write!(w, " {}=\"{}\"", fullname, serialize_text(value.into()))?;
                 }
 
@@ -93,7 +95,7 @@ impl XmlData {
         let value = self.value(node);
         if let Value::Element(element) = value {
             if self.first_child(node).is_some() {
-                let fullname = fullname_serializer.fullname(element.name_id)?;
+                let fullname = fullname_serializer.fullname_or_err(element.name_id)?;
                 write!(w, "</{}>", fullname)?;
             }
             fullname_serializer.pop(&element.namespace_info.to_prefix);
@@ -102,20 +104,25 @@ impl XmlData {
     }
 }
 
-struct FullnameSerializer<'a> {
+pub(crate) struct FullnameSerializer<'a> {
     data: &'a XmlData,
     prefix_stack: Vec<ToPrefix>,
 }
 
+pub(crate) enum Fullname {
+    Name(String),
+    MissingPrefix(NamespaceId),
+}
+
 impl<'a> FullnameSerializer<'a> {
-    fn new(data: &'a XmlData) -> Self {
+    pub(crate) fn new(data: &'a XmlData) -> Self {
         Self {
             data,
             prefix_stack: Vec::new(),
         }
     }
 
-    fn push(&mut self, to_prefix: &ToPrefix) {
+    pub(crate) fn push(&mut self, to_prefix: &ToPrefix) {
         if to_prefix.is_empty() {
             return;
         }
@@ -129,7 +136,7 @@ impl<'a> FullnameSerializer<'a> {
         self.prefix_stack.push(entry);
     }
 
-    fn pop(&mut self, to_prefix: &ToPrefix) {
+    pub(crate) fn pop(&mut self, to_prefix: &ToPrefix) {
         if to_prefix.is_empty() {
             return;
         }
@@ -141,31 +148,32 @@ impl<'a> FullnameSerializer<'a> {
         &self.prefix_stack[self.prefix_stack.len() - 1]
     }
 
-    fn fullname(&self, name_id: NameId) -> Result<String, Error> {
+    pub(crate) fn fullname(&self, name_id: NameId) -> Fullname {
         let name = self.data.name_lookup.get_value(name_id);
         if name.namespace_id == self.data.no_namespace_id {
-            return Ok(name.name.to_string());
+            return Fullname::Name(name.name.to_string());
         }
         let prefix_id = if !self.prefix_stack.is_empty() {
             self.top().get(&name.namespace_id)
         } else {
             None
         };
-        // if prefix_id cannot be found, then that's an error: we have removed
-        // a prefix declaration even though it is still in use
-        let prefix_id = *prefix_id.ok_or_else(|| {
-            Error::NoPrefixForNamespace(
-                self.data
-                    .namespace_lookup
-                    .get_value(name.namespace_id)
-                    .to_string(),
-            )
-        })?;
-        if prefix_id == self.data.empty_prefix_id {
-            Ok(name.name.to_string())
+        if let Some(prefix_id) = prefix_id {
+            if *prefix_id == self.data.empty_prefix_id {
+                Fullname::Name(name.name.to_string())
+            } else {
+                let prefix = self.data.prefix_lookup.get_value(*prefix_id);
+                Fullname::Name(format!("{}:{}", prefix, name.name))
+            }
         } else {
-            let prefix = self.data.prefix_lookup.get_value(prefix_id);
-            Ok(format!("{}:{}", prefix, name.name))
+            Fullname::MissingPrefix(name.namespace_id)
+        }
+    }
+
+    fn fullname_or_err(&self, name_id: NameId) -> Result<String, Error> {
+        match self.fullname(name_id) {
+            Fullname::Name(name) => Ok(name),
+            Fullname::MissingPrefix(namespace_id) => Err(Error::MissingPrefix(namespace_id)),
         }
     }
 }

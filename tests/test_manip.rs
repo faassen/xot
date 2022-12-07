@@ -278,3 +278,18 @@ fn test_remove_text_consolidation() {
         r#"<doc>AlphaBeta</doc>"#
     );
 }
+
+#[test]
+fn test_create_missing_prefixes() {
+    let mut data = XmlData::new();
+    let doc = data.parse(r#"<doc></doc>"#).unwrap();
+    let root_id = data.root_element(doc);
+    let ns_id = data.namespace_mut("http://example.com");
+    let name_id = data.name_ns_mut("a", ns_id);
+    data.append_element(root_id, name_id).unwrap();
+    data.create_missing_prefixes(root_id).unwrap();
+    assert_eq!(
+        data.serialize_to_string(doc).unwrap(),
+        r#"<doc xmlns:n0="http://example.com"><n0:a/></doc>"#
+    );
+}

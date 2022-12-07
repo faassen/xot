@@ -1,12 +1,20 @@
+use crate::namespace::NamespaceId;
+use crate::xmldata::Node;
+
 #[derive(Debug)]
 pub enum Error {
     // manipulation errors
     InvalidOperation(String),
     InvalidComment(String),
     NodeError(indextree::NodeError),
+    NotElement(Node),
 
     // serializer
-    NoPrefixForNamespace(String),
+    /// Missing prefix for namespace
+    /// Can occur during serialization if a namespace is used that has no
+    /// prefix is declared. Use `XmlData::create_missing_prefixes`
+    /// to fix this.
+    MissingPrefix(NamespaceId),
 
     // parser errors
     UnclosedTag,

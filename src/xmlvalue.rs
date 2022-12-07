@@ -80,12 +80,32 @@ impl Element {
         self.name_id
     }
 
+    pub fn attributes(&self) -> &Attributes {
+        &self.attributes
+    }
+
     pub fn get_attribute(&self, name_id: NameId) -> Option<&str> {
         self.attributes.get(&name_id).map(|s| s.as_str())
     }
 
     pub fn set_attribute(&mut self, name_id: NameId, value: String) {
         self.attributes.insert(name_id, value);
+    }
+
+    pub fn set_prefix(&mut self, prefix_id: PrefixId, namespace_id: NamespaceId) {
+        self.namespace_info.add(prefix_id, namespace_id);
+    }
+
+    pub fn get_prefix(&self, namespace_id: NamespaceId) -> Option<PrefixId> {
+        self.namespace_info.to_prefix.get(&namespace_id).copied()
+    }
+
+    pub fn get_namespace(&self, prefix_id: PrefixId) -> Option<NamespaceId> {
+        self.namespace_info.to_namespace.get(&prefix_id).copied()
+    }
+
+    pub fn get_prefixes(&self) -> &ToPrefix {
+        &self.namespace_info.to_prefix
     }
 
     // pub fn get_attributes(&'a self) -> &'a Attributes<'a> {
