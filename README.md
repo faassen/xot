@@ -42,3 +42,10 @@ the reason I created Xot.
 If you need to process big XML data with high performance, you may not want to
 use a tree library and instead use one of the various XML parser/serialization
 libraries.
+
+## Implementation notes
+
+Xot underneath uses the
+[indextree](https://docs.rs/indextree/latest/indextree/) crate. Xot completely
+wraps the indextree functionality but the various operations it allows are
+mostly literally taken from indextree.
