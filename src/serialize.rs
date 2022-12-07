@@ -7,9 +7,9 @@ use crate::xmldata::{Node, NodeEdge, XmlData};
 use crate::xmlvalue::{ToPrefix, Value};
 
 impl XmlData {
-    pub fn serialize_node(&self, node_id: Node, w: &mut impl Write) -> Result<(), Error> {
+    pub fn serialize_node(&self, node: Node, w: &mut impl Write) -> Result<(), Error> {
         let mut fullname_serializer = FullnameSerializer::new(self);
-        for edge in self.traverse(node_id) {
+        for edge in self.traverse(node) {
             match edge {
                 NodeEdge::Start(node_id) => {
                     self.handle_edge_start(node_id, w, &mut fullname_serializer)?;
@@ -22,19 +22,19 @@ impl XmlData {
         Ok(())
     }
 
-    pub fn serialize_to_string(&self, node_id: Node) -> Result<String, Error> {
+    pub fn serialize_to_string(&self, node: Node) -> Result<String, Error> {
         let mut buf = Vec::new();
-        self.serialize_node(node_id, &mut buf)?;
+        self.serialize_node(node, &mut buf)?;
         Ok(String::from_utf8(buf).unwrap())
     }
 
     fn handle_edge_start(
         &self,
-        node_id: Node,
+        node: Node,
         w: &mut impl Write,
         fullname_serializer: &mut FullnameSerializer,
     ) -> Result<(), Error> {
-        let node = &self.arena[node_id.get()];
+        let node = &self.arena[node.get()];
         let xml_node = node.get();
         match xml_node {
             Value::Root => {}
@@ -87,11 +87,11 @@ impl XmlData {
 
     fn handle_edge_end(
         &self,
-        node_id: Node,
+        node: Node,
         w: &mut impl Write,
         fullname_serializer: &mut FullnameSerializer,
     ) -> Result<(), Error> {
-        let node = &self.arena[node_id.get()];
+        let node = &self.arena[node.get()];
         let xml_node = node.get();
         if let Value::Element(element) = xml_node {
             if node.first_child().is_some() {
