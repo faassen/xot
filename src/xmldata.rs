@@ -52,6 +52,7 @@ impl XmlData {
         }
     }
 
+    // basic accesss
     #[inline]
     pub(crate) fn arena(&self) -> &XmlArena {
         &self.arena
@@ -70,6 +71,16 @@ impl XmlData {
     #[inline]
     pub fn value_mut(&mut self, node_id: Node) -> &mut Value {
         self.arena[node_id.0].get_mut()
+    }
+
+    // parsing & serializing
+    pub fn parse(&mut self, xml: &str) -> Result<Node, Error> {
+        Ok(Node(Document::parse(xml, self)?.root))
+    }
+
+    pub fn serialize_to_string(&mut self, node: Node) -> Result<String, Error> {
+        let doc = Document { root: node.0 };
+        doc.serialize_to_string(self)
     }
 
     // manipulators
@@ -322,8 +333,11 @@ impl XmlData {
 
     // accessors
 
-    pub fn root_element(&self, document: &Document) -> Node {
-        for child in self.children(document.root()) {
+    pub fn root_element(&self, node: Node) -> Node {
+        if self.value_type(node) != ValueType::Root {
+            unreachable!("Can only obtain the root element for document root");
+        }
+        for child in self.children(node) {
             if let Value::Element(_) = self.value(child) {
                 return child;
             }

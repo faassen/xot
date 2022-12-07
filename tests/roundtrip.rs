@@ -1,6 +1,6 @@
 use rstest::rstest;
 
-use xot::{Document, XmlData};
+use xot::XmlData;
 
 type RoundTripEntry = (&'static str, &'static str);
 
@@ -51,7 +51,7 @@ fn roundtrip(#[values(
 )] value: RoundTripEntry) {
     let (name, xml) = value;
     let mut data = XmlData::new();
-    let doc = Document::parse(xml, &mut data).unwrap();
-    let output_xml = doc.serialize_to_string(&data).unwrap();
+    let doc = data.parse(xml).unwrap();
+    let output_xml = data.serialize_to_string(doc).unwrap();
     assert_eq!(xml, &output_xml, "roundtrip failed for: {}", name);
 }

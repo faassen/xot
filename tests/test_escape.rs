@@ -1,10 +1,10 @@
-use xot::{Document, Value, XmlData};
+use xot::{Value, XmlData};
 
 #[test]
 fn test_escape_in_text() {
     let mut data = XmlData::new();
-    let doc = Document::parse(r#"<a>&lt;</a>"#, &mut data).unwrap();
-    let text_id = data.first_child(data.root_element(&doc)).unwrap();
+    let doc = data.parse(r#"<a>&lt;</a>"#).unwrap();
+    let text_id = data.first_child(data.root_element(doc)).unwrap();
     assert!(matches!(data.value(text_id), Value::Text(_)));
     match data.value(text_id) {
         Value::Text(text) => {
@@ -17,8 +17,8 @@ fn test_escape_in_text() {
 #[test]
 fn test_add_attribute_entities() {
     let mut data = XmlData::new();
-    let doc = Document::parse(r#"<doc/>"#, &mut data).unwrap();
-    let el_id = data.root_element(&doc);
+    let doc = data.parse(r#"<doc/>"#).unwrap();
+    let el_id = data.root_element(doc);
     assert!(data.name("a").is_none());
     let a = data.name_mut("a");
 
@@ -26,7 +26,7 @@ fn test_add_attribute_entities() {
         element.set_attribute(a, "Created & set".to_string());
     }
     assert_eq!(
-        doc.serialize_to_string(&data).unwrap(),
+        data.serialize_to_string(doc).unwrap(),
         r#"<doc a="Created &amp; set"/>"#
     );
 }

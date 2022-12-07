@@ -281,7 +281,7 @@ impl NameIdBuilder {
 }
 
 impl Document {
-    pub fn parse(xml: &str, data: &mut XmlData) -> Result<Self, Error> {
+    pub(crate) fn parse(xml: &str, data: &mut XmlData) -> Result<Self, Error> {
         use Token::*;
 
         let mut builder = DocumentBuilder::new(data);

@@ -5,7 +5,7 @@ use crate::prefix::PrefixId;
 use crate::xmldata::{Node, XmlArena};
 use crate::xmlvalue::Value;
 
-pub struct Document {
+pub(crate) struct Document {
     pub(crate) root: NodeId,
 }
 
