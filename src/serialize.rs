@@ -1,9 +1,10 @@
 use std::io::Write;
 
+use crate::access::NodeEdge;
 use crate::entity::serialize_text;
 use crate::error::Error;
 use crate::name::NameId;
-use crate::xmldata::{Node, NodeEdge, XmlData};
+use crate::xmldata::{Node, XmlData};
 use crate::xmlvalue::{ToPrefix, Value};
 
 impl XmlData {
