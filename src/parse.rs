@@ -342,7 +342,41 @@ impl XmlData {
                 } => {
                     builder.processing_instruction(target.as_str(), content.map(|s| s.as_str()))?
                 }
-                _ => {}
+                Declaration {
+                    version,
+                    encoding,
+                    standalone,
+                    span: _,
+                } => {
+                    if version.as_str() != "1.0" {
+                        return Err(Error::UnsupportedVersion(version.to_string()));
+                    }
+                    if let Some(encoding) = encoding {
+                        if encoding.as_str() != "UTF-8" {
+                            return Err(Error::UnsupportedEncoding(encoding.to_string()));
+                        }
+                    }
+                    if let Some(standalone) = standalone {
+                        if !standalone {
+                            return Err(Error::UnsupportedNotStandalone);
+                        }
+                    }
+                }
+                Cdata { text, span: _ } => {
+                    builder.text(text.as_str())?;
+                }
+                DtdStart { .. } => {
+                    return Err(Error::DtdUnsupported);
+                }
+                DtdEnd { .. } => {
+                    return Err(Error::DtdUnsupported);
+                }
+                EmptyDtd { .. } => {
+                    return Err(Error::DtdUnsupported);
+                }
+                EntityDeclaration { .. } => {
+                    return Err(Error::DtdUnsupported);
+                }
             }
         }
 

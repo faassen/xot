@@ -35,3 +35,10 @@ fn test_duplicate_attributes_ns() {
         unreachable!();
     }
 }
+
+#[test]
+fn test_parse_xml_declaration() {
+    let mut data = XmlData::new();
+    let doc = data.parse(r#"<?xml version="1.0" encoding="UTF-8"?><a/>"#);
+    assert!(doc.is_ok());
+}
