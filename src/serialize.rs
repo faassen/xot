@@ -6,16 +6,19 @@ use crate::error::Error;
 use crate::name::NameId;
 use crate::namespace::NamespaceId;
 use crate::xmldata::{Node, XmlData};
-use crate::xmlvalue::{ToPrefix, Value};
+use crate::xmlvalue::{ToPrefix, Value, ValueType};
 
 impl XmlData {
     pub fn serialize(&mut self, node: Node, w: &mut impl Write) {
-        let root_element = self.top_element(node);
+        let root_element = self.root_element(node);
         self.create_missing_prefixes(root_element).unwrap();
         self.serialize_or_missing_prefix(node, w).unwrap();
     }
 
     pub fn serialize_or_missing_prefix(&self, node: Node, w: &mut impl Write) -> Result<(), Error> {
+        if self.value_type(node) != ValueType::Root {
+            panic!("Can only serialize root nodes");
+        }
         let mut fullname_serializer = FullnameSerializer::new(self);
         for edge in self.traverse(node) {
             match edge {

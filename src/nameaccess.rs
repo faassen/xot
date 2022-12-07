@@ -93,4 +93,8 @@ impl XmlData {
         }
         Ok(())
     }
+
+    // deduplicate namespaces
+    // if a namespace is used by multiple prefixes, use the first one
+    // rename the names of the elements and attributes to use the first prefix
 }
