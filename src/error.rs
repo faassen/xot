@@ -1,20 +1,28 @@
 #[derive(Debug)]
 pub enum Error {
+    // manipulation errors
+    InvalidOperation(String),
+    InvalidComment(String),
+    NodeError(indextree::NodeError),
+
+    // serializer
+    NoPrefixForNamespace(String),
+
+    // parser errors
     UnclosedTag,
     InvalidCloseTag(String, String),
-    InvalidOperation(String),
     UnclosedEntity(String),
     InvalidEntity(String),
-    NoPrefixForNamespace(String),
     UnknownPrefix(String),
     DuplicateAttribute(String),
     UnsupportedVersion(String),
     UnsupportedEncoding(String),
     UnsupportedNotStandalone,
     DtdUnsupported,
-    NodeError(indextree::NodeError),
-    Io(std::io::Error),
     Parser(xmlparser::Error),
+
+    // io
+    Io(std::io::Error),
 }
 
 impl From<indextree::NodeError> for Error {

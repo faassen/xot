@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 use vector_map::VecMap;
 
+use crate::error::Error;
 use crate::name::NameId;
 use crate::namespace::NamespaceId;
 use crate::prefix::PrefixId;
@@ -129,8 +130,12 @@ impl Comment {
         &self.text
     }
 
-    pub fn set(&mut self, text: String) {
+    pub fn set(&mut self, text: String) -> Result<(), Error> {
+        if text.contains("__") {
+            return Err(Error::InvalidComment(text));
+        }
         self.text = text;
+        Ok(())
     }
 }
 
