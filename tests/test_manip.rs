@@ -198,7 +198,7 @@ fn test_insert_before_consolidate_text() {
     let el_id = data.first_child(data.root_element(&doc)).unwrap();
     let txt = data.new_text("Beta");
     data.insert_before(el_id, txt).unwrap();
-    assert_eq!(data.text(el_id), Some("BetaAlpha"));
+    assert_eq!(data.text(el_id).map(|n| n.get()), Some("BetaAlpha"));
     assert_eq!(
         doc.serialize_to_string(&data).unwrap(),
         r#"<doc>BetaAlpha</doc>"#
@@ -212,7 +212,7 @@ fn test_insert_after_consolidate_text() {
     let el_id = data.first_child(data.root_element(&doc)).unwrap();
     let txt = data.new_text("Beta");
     data.insert_after(el_id, txt).unwrap();
-    assert_eq!(data.text(el_id), Some("AlphaBeta"));
+    assert_eq!(data.text(el_id).map(|n| n.get()), Some("AlphaBeta"));
     assert_eq!(
         doc.serialize_to_string(&data).unwrap(),
         r#"<doc>AlphaBeta</doc>"#
@@ -227,7 +227,7 @@ fn test_prepend_consolidate_text() {
     let txt = data.new_text("Beta");
     data.prepend(el_id, txt).unwrap();
     let text_el_id = data.first_child(el_id).unwrap();
-    assert_eq!(data.text(text_el_id), Some("BetaAlpha"));
+    assert_eq!(data.text(text_el_id).map(|n| n.get()), Some("BetaAlpha"));
     assert_eq!(
         doc.serialize_to_string(&data).unwrap(),
         r#"<doc>BetaAlpha</doc>"#
@@ -262,5 +262,24 @@ fn test_root_node_append_comment() {
     assert_eq!(
         doc.serialize_to_string(&data).unwrap(),
         r#"<doc/><!--hello-->"#
+    );
+}
+
+#[test]
+fn test_remove_text_consolidation() {
+    let mut data = XmlData::new();
+    let doc = Document::parse(r#"<doc>Alpha<a/>Beta</doc>"#, &mut data).unwrap();
+    let el_id = data.children(data.root_element(&doc)).nth(1).unwrap();
+    // we found the a element
+    let a = data.name("a").unwrap();
+    assert_eq!(data.element(el_id).unwrap().name_id(), a);
+    // now we remove it
+    data.remove(el_id).unwrap();
+    // we should have a single text node
+    let text_el_id = data.first_child(data.root_element(&doc)).unwrap();
+    assert_eq!(data.text_str(text_el_id), Some("AlphaBeta"));
+    assert_eq!(
+        doc.serialize_to_string(&data).unwrap(),
+        r#"<doc>AlphaBeta</doc>"#
     );
 }

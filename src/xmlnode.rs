@@ -75,6 +75,10 @@ impl Element {
         }
     }
 
+    pub fn name_id(&self) -> NameId {
+        self.name_id
+    }
+
     pub fn get_attribute(&self, name_id: NameId) -> Option<&str> {
         self.attributes.get(&name_id).map(|s| s.as_str())
     }
