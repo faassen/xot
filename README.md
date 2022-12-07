@@ -3,6 +3,23 @@
 Xot is an XML library for Rust. With Xot you can load XML data into an object
 tree which you can then manipulate, and serialize back out to XML.
 
+## Xot approach
+
+Xot exposes a single `XmlData` struct that you use to access, create and
+manipulate all your XML data. Multiple XML trees can exist in an `XmlData`
+struct at the same time, and you're free to move nodes between these trees.
+
+The way to access and manipulate XML tree structure in Xot is through the
+`Node`. You can use various functions on `XmlData` in order to access and
+manipulate information about nodes.
+
+To access and manipulate XML specific data, you use the `Value` for a node.
+This is an enum that's either an `Element`, `Text`, `Root`, `Comment` or
+`ProcessingInstruction`.
+
+XML names and namespaces in Xot are consolidated into ids. In order to
+construct or compare an element, you first need to get hold of a name.
+
 ## Why another XML library for Rust?
 
 Use Xot if you need to be able to access XML as a tree, mutate it where
