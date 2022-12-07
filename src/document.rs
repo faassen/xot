@@ -5,10 +5,6 @@ use crate::prefix::PrefixId;
 use crate::xmldata::{Node, XmlArena};
 use crate::xmlvalue::Value;
 
-pub(crate) struct Document {
-    pub(crate) root: NodeId,
-}
-
 pub(crate) fn prefix_by_namespace(
     node_id: NodeId,
     namespace_id: NamespaceId,
@@ -41,41 +37,35 @@ pub(crate) fn namespace_by_prefix(
     None
 }
 
-impl Document {
-    pub fn root(&self) -> Node {
-        Node::new(self.root)
-    }
-
-    // XXX probably break this into convenience methods
-    // to lookup prefix. Getting the prefix is only handy when doing
-    // tree manipulation in rare cases, as usually namespace is
-    // fine. During serialization we use a special stack for
-    // performance reasons.
-    // fn fullname(&self, node_id: NodeId, name_id: NameId) -> Result<String, Error> {
-    //     let name = self.data.name_lookup.get_value(name_id);
-    //     if name.namespace_id == self.data.no_namespace_id {
-    //         return Ok(name.name.to_string());
-    //     }
-    //     // XXX this is relatively slow
-    //     let prefix_id = prefix_by_namespace(node_id, name.namespace_id, &self.data.arena);
-    //     // if prefix_id cannot be found, then that's an error: we have removed
-    //     // a prefix declaration even though it is still in use
-    //     let prefix_id = prefix_id.ok_or_else(|| {
-    //         Error::NoPrefixForNamespace(
-    //             self.data
-    //                 .namespace_lookup
-    //                 .get_value(name.namespace_id)
-    //                 .to_string(),
-    //         )
-    //     })?;
-    //     if prefix_id == self.data.empty_prefix_id {
-    //         Ok(format!("{}", name.name))
-    //     } else {
-    //         let prefix = self.data.prefix_lookup.get_value(prefix_id);
-    //         Ok(format!("{}:{}", prefix, name.name))
-    //     }
-    // }
-}
+// XXX probably break this into convenience methods
+// to lookup prefix. Getting the prefix is only handy when doing
+// tree manipulation in rare cases, as usually namespace is
+// fine. During serialization we use a special stack for
+// performance reasons.
+// fn fullname(&self, node_id: NodeId, name_id: NameId) -> Result<String, Error> {
+//     let name = self.data.name_lookup.get_value(name_id);
+//     if name.namespace_id == self.data.no_namespace_id {
+//         return Ok(name.name.to_string());
+//     }
+//     // XXX this is relatively slow
+//     let prefix_id = prefix_by_namespace(node_id, name.namespace_id, &self.data.arena);
+//     // if prefix_id cannot be found, then that's an error: we have removed
+//     // a prefix declaration even though it is still in use
+//     let prefix_id = prefix_id.ok_or_else(|| {
+//         Error::NoPrefixForNamespace(
+//             self.data
+//                 .namespace_lookup
+//                 .get_value(name.namespace_id)
+//                 .to_string(),
+//         )
+//     })?;
+//     if prefix_id == self.data.empty_prefix_id {
+//         Ok(format!("{}", name.name))
+//     } else {
+//         let prefix = self.data.prefix_lookup.get_value(prefix_id);
+//         Ok(format!("{}:{}", prefix, name.name))
+//     }
+// }
 
 // impl<'a> Debug for Document<'a> {
 //     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

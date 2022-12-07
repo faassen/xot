@@ -1,6 +1,5 @@
 use std::io::Write;
 
-use crate::document::Document;
 use crate::entity::serialize_text;
 use crate::error::Error;
 use crate::name::NameId;
