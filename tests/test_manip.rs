@@ -283,6 +283,19 @@ fn test_move_text_consolidation() {
 }
 
 #[test]
+fn test_move_not_allowed_as_takes_document_element() {
+    let mut data = XmlData::new();
+    let doc_a = data.parse(r#"<doc></doc>"#).unwrap();
+    let doc_b = data.parse(r#"<doc></doc>"#).unwrap();
+
+    let el_a = data.document_element(doc_a).unwrap();
+    let el_b = data.document_element(doc_b).unwrap();
+
+    // not allowed as el_b is document element
+    assert!(data.append(el_a, el_b).is_err());
+}
+
+#[test]
 fn test_create_missing_prefixes() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc></doc>"#).unwrap();
