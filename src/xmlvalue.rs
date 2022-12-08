@@ -14,7 +14,7 @@ use crate::prefix::PrefixId;
 ///    
 /// The `ValueType` can be used if you are interested in
 /// the type of the value without needing to match on it.
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum ValueType {
     /// Document root that holds everything.
     /// Note that this not the same as the document
@@ -34,7 +34,7 @@ pub enum ValueType {
 ///
 /// Access it using [`Xot::value`](crate::xotdata::Xot::value) or
 /// mutably using [`Xot::value_mut`](crate::xotdata::Xot::value_mut).
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Value {
     /// Document root that holds everything. Note that this not the same as the document
     /// element.
@@ -66,7 +66,7 @@ pub(crate) type Attributes = VecMap<NameId, String>;
 pub(crate) type ToNamespace = VecMap<PrefixId, NamespaceId>;
 pub(crate) type ToPrefix = VecMap<NamespaceId, PrefixId>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct NamespaceInfo {
     pub(crate) to_namespace: ToNamespace,
     pub(crate) to_prefix: ToPrefix,
@@ -89,7 +89,7 @@ impl NamespaceInfo {
 /// XML element value.
 ///
 /// Example: `<foo/>` or `<foo bar="baz"/>`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Element {
     pub(crate) name_id: NameId,
     pub(crate) attributes: Attributes,
@@ -155,7 +155,7 @@ impl Element {
 /// XML text value.
 ///
 /// Example: `Bar` in `<foo>Bar</foo>`, or `hello` and `world` in `<greeting>hello<sep/>world</greeting>`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Text {
     pub(crate) text: String,
 }
@@ -179,7 +179,7 @@ impl Text {
 /// XML comment.
 ///
 /// Example: `<!-- foo -->`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Comment {
     pub(crate) text: String,
 }
@@ -209,7 +209,7 @@ impl Comment {
 /// XML processing instruction value.
 ///
 /// Example: `<?foo?>` or `<?foo bar?>`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ProcessingInstruction {
     pub(crate) target: String,
     pub(crate) data: Option<String>,

@@ -1,5 +1,6 @@
 use crate::xotdata::{Node, Xot};
 
+use crate::access::NodeEdge;
 use crate::error::Error;
 use crate::name::NameId;
 use crate::xmlvalue::{Value, ValueType};
@@ -167,6 +168,50 @@ impl Xot {
         node.get().remove_subtree(self.arena_mut());
         self.remove_consolidate_text_nodes(prev_node, next_node);
         Ok(())
+    }
+
+    /// Clone a node and its descendants into a new fragment
+    ///
+    /// The cloned nodes are not attached to the tree.
+    pub fn clone(&mut self, node: Node) -> Node {
+        let mut to_create = Vec::new();
+        enum OpenClose {
+            Open(Value),
+            Close,
+        }
+        for edge in self.traverse(node) {
+            match edge {
+                NodeEdge::Start(node) => {
+                    let value = self.value(node).clone();
+                    to_create.push(OpenClose::Open(value));
+                }
+                NodeEdge::End(_) => {
+                    to_create.push(OpenClose::Close);
+                }
+            }
+        }
+
+        // temporary top node
+        let top_name = self.add_name("top_name");
+        let top = self.new_element(top_name);
+
+        let mut current = top;
+        for open_close in to_create {
+            match open_close {
+                OpenClose::Open(value) => {
+                    let new_node = self.new_node(value);
+                    self.append(current, new_node).unwrap();
+                    current = new_node;
+                }
+                OpenClose::Close => {
+                    current = self.parent(current).unwrap();
+                }
+            }
+        }
+        let node = self.first_child(top).unwrap();
+        // remove top node again
+        top.get().remove(self.arena_mut());
+        node
     }
 
     fn add_structure_check(&self, parent: Option<Node>, child: Node) -> Result<(), Error> {
