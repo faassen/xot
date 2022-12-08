@@ -3,6 +3,22 @@
 Xot is an XML library for Rust. With Xot you can load XML data into an object
 tree which you can then manipulate, and serialize back out to XML.
 
+## Support
+
+Xot has well-rounded XML support. Supported are namespaces for both elements
+and attributes, comments, processing instructions. Both documents as well
+as XML fragments are supported.
+
+Xot exposes the entire XML structure for access and programmatic manipulation.
+
+## Limitations
+
+There are two limitations:
+
+- DTDs are not supported.
+
+- Only the UTF-8 encoding is supported.
+
 ## Xot approach
 
 Xot exposes a single `XmlData` struct that you use to access, create and
