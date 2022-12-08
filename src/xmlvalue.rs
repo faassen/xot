@@ -9,7 +9,11 @@ use crate::prefix::PrefixId;
 /// The type of the XML node.
 ///
 /// Access it using [`Value::value_type`] or
-/// [`XmlData::value_type`](crate::xmldata::XmlData::value_type).
+/// [`Xot::value_type`](crate::xotdata::Xot::value_type).
+///
+///    
+/// The `ValueType` can be used if you are interested in
+/// the type of the value without needing to match on it.
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum ValueType {
     /// Document root that holds everything.
@@ -28,8 +32,8 @@ pub enum ValueType {
 
 /// An XML value.
 ///
-/// Access it using [`XmlData::value`](crate::xmldata::XmlData::value) or
-/// mutably using [`XmlData::value_mut`](crate::xmldata::XmlData::value_mut).
+/// Access it using [`Xot::value`](crate::xotdata::Xot::value) or
+/// mutably using [`Xot::value_mut`](crate::xotdata::Xot::value_mut).
 #[derive(Debug)]
 pub enum Value {
     /// Document root that holds everything. Note that this not the same as the document

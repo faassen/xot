@@ -1,11 +1,7 @@
 use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value, ValueType};
 use crate::xotdata::{Node, Xot};
 
-/// Obtain XML values and their types.
-///
-/// These are handy if you only need to match against a single value or know
-/// the value type already. If you want to handle all value types, use a
-/// `match` statement on [`Value`](crate::xmlvalue::Value) instead.
+/// ## Value and type access
 impl Xot {
     /// Access to the XML value for this node.
     ///
@@ -25,12 +21,38 @@ impl Xot {
     ///   _ => { }
     /// }
     /// ```
+    ///
+    /// Note that if you already know the type of a node value or are
+    /// only interested in a single type, you can use the convenience
+    /// methods like [`Xot::element`].
     #[inline]
     pub fn value(&self, node_id: Node) -> &Value {
         self.arena[node_id.get()].get()
     }
 
     /// Mutable access to the XML value for this node.
+    ///
+    /// ```rust
+    /// use xot::{Xot, Value};
+    ///
+    /// let mut xot = Xot::new();
+    ///
+    /// let doc = xot.parse("<doc>Example</doc>").unwrap();
+    /// let root = xot.document_element(doc).unwrap();
+    ///
+    /// let attr_name = xot.add_name("foo");
+    ///
+    /// match xot.value_mut(root) {
+    ///    Value::Element(element) => {
+    ///       element.set_attribute(attr_name, "Foo!")
+    ///   }
+    ///   _ => { }
+    /// }
+    ///
+    /// ```
+    /// Note that if you already know the type of a node value or are
+    /// only interested in a single type, you can use the convenience
+    /// methods like [`Xot::element_mut`]
     #[inline]
     pub fn value_mut(&mut self, node_id: Node) -> &mut Value {
         self.arena[node_id.get()].get_mut()

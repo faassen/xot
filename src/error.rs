@@ -28,7 +28,7 @@ pub enum Error {
     // serializer
     /// Missing prefix for namespace.
     /// Can occur during serialization if a namespace is used that has no
-    /// prefix is declared. Use [`XmlData::create_missing_prefixes`](crate::xmldata::XmlData::create_missing_prefixes)
+    /// prefix is declared. Use [`Xot::create_missing_prefixes`](crate::xotdata::Xot::create_missing_prefixes)
     /// to fix this.
     MissingPrefix(NamespaceId),
 

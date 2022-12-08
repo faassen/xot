@@ -4,9 +4,9 @@ use crate::error::Error;
 use crate::name::NameId;
 use crate::xmlvalue::{Value, ValueType};
 
-/// Manipulation of the tree structure.
+/// ## Manipulation
 ///
-/// This maintains an XML structure:
+/// These methods maintain a well-formed XML structure:
 /// - There is only one document element under the root node which cannot be removed.
 /// - The only other nodes that can exist directly under the root node are comments and processing instructions.
 /// - You cannot add a node to a node that is not an element or the
@@ -44,8 +44,22 @@ impl Xot {
 
     /// Append an element node to a parent node given a name.
     ///
-    /// Create a name id using [`XmlData::add_name`] or [`XmlData::add_name_ns`], or
-    /// reuse an existing name id using [`XmlData::name`], [`XmlData::name_ns`].
+    /// Create a name id using [`Xot::add_name`] or [`Xot::add_name_ns`], or
+    /// reuse an existing name id using [`Xot::name`], [`Xot::name_ns`].
+    ///
+    /// Example:
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    ///
+    /// let root = xot.parse(r#"<doc></doc>"#).unwrap();
+    /// let doc_el = xot.document_element(root).unwrap();
+    ///
+    /// let name_id = xot.add_name("foo");
+    /// xot.append_element(doc_el, name_id).unwrap();
+    ///
+    /// assert_eq!(xot.serialize_to_string(root), "<doc><foo/></doc>");
     pub fn append_element(&mut self, parent: Node, name_id: NameId) -> Result<(), Error> {
         let element_node_id = self.new_element(name_id);
         self.append(parent, element_node_id)?;

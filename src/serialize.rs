@@ -9,6 +9,7 @@ use crate::prefix::PrefixId;
 use crate::xmlvalue::{ToNamespace, ToPrefix, Value, ValueType};
 use crate::xotdata::{Node, Xot};
 
+/// ## Serialization
 impl Xot {
     /// Serialize document to a writer.
     ///
@@ -43,7 +44,7 @@ impl Xot {
     /// Serialize document.
     ///
     /// This fails if there is a namespace without
-    /// a prefix. Use [`XmlData::serialize`] if you want
+    /// a prefix. Use [`Xot::serialize`] if you want
     /// it to generate synthetic prefixes instead.
     pub fn serialize_or_missing_prefix(&self, node: Node, w: &mut impl Write) -> Result<(), Error> {
         if self.value_type(node) != ValueType::Root {
@@ -74,7 +75,7 @@ impl Xot {
 
     /// Serialize document to a string.
     ///
-    /// Like [`XmlData::serialize_or_missing_prefix`], but returns a string instead of writing to a writer.
+    /// Like [`Xot::serialize_or_missing_prefix`], but returns a string instead of writing to a writer.
     pub fn serialize_or_missing_prefix_to_string(&self, node: Node) -> Result<String, Error> {
         let mut buf = Vec::new();
         self.serialize_or_missing_prefix(node, &mut buf)?;

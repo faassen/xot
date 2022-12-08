@@ -24,9 +24,12 @@ impl Node {
     }
 }
 
-/// The `XmlData` struct manages the XML data. It lets you
+/// The `Xot` struct manages all XML tree data in your program. It lets you
 /// access and manipulate one or more XML documents and
 /// fragments.
+///
+/// Xot is implemented in several sections focusing on different aspects
+/// of accessing and manipulating XML data.
 pub struct Xot {
     pub(crate) arena: XmlArena,
     pub(crate) namespace_lookup: NamespaceLookup,
@@ -37,7 +40,7 @@ pub struct Xot {
 }
 
 impl Xot {
-    /// Create a new `XmlData` instance.
+    /// Create a new `Xot` instance.
     pub fn new() -> Self {
         let mut namespace_lookup = NamespaceLookup::new();
         let no_namespace_id = namespace_lookup.get_id_mut(Namespace::new("".into()));

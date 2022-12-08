@@ -284,6 +284,7 @@ impl NameIdBuilder {
     }
 }
 
+/// ## Parsing
 impl Xot {
     /// Parse a string containing XML into a node.
     ///

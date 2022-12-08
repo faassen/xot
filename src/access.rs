@@ -6,15 +6,14 @@ use crate::xotdata::{Node, Xot};
 
 /// Node edges.
 ///
-/// Used by [`XmlData::traverse`] and [`XmlData::reverse_traverse`].
+/// Used by [`Xot::traverse`] and [`Xot::reverse_traverse`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NodeEdge {
     Start(Node),
     End(Node),
 }
 
-/// Read-only access to tree structure information.
-///
+/// ## Read-only access
 impl Xot {
     /// Obtain the root element from the document root.
     /// Returns [`Error::NotRoot`](`crate::error::Error::NotRoot`) error if

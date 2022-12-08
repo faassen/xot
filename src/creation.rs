@@ -2,7 +2,9 @@ use crate::name::NameId;
 use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value};
 use crate::xotdata::{Node, Xot};
 
-/// XML node creation.
+/// ## Creation
+/// See also the convenience manipulation methods like [`Xot::append_element`]
+/// in the manipulation section.
 impl Xot {
     pub(crate) fn new_node(&mut self, value: Value) -> Node {
         Node::new(self.arena.new_node(value))
@@ -18,13 +20,13 @@ impl Xot {
     ///
     /// You supply a name id.
     ///  
-    /// To create a potentially new name id you can use [`XmlData::add_name`] or
-    /// [`XmlData::add_name_ns`]. If the name already exists
+    /// To create a potentially new name id you can use [`Xot::add_name`] or
+    /// [`Xot::add_name_ns`]. If the name already exists
     /// the existing name id is returned.
     ///
     /// To reuse an existing name that has been
     /// previously used, you can use
-    /// [`XmlData::name`] or [`XmlData::name_ns`].
+    /// [`Xot::name`] or [`Xot::name_ns`].
     pub fn new_element(&mut self, name_id: NameId) -> Node {
         let element_node = Value::Element(Element::new(name_id));
         self.new_node(element_node)
