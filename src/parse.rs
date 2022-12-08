@@ -295,7 +295,7 @@ impl Xot {
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();
-    /// let doc = xot.parse("<hello/>").unwrap();
+    /// let root = xot.parse("<hello/>").unwrap();
     /// ```
     pub fn parse(&mut self, xml: &str) -> Result<Node, Error> {
         use Token::*;

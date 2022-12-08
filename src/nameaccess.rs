@@ -145,11 +145,11 @@ mod tests {
     #[test]
     fn test_prefixes_in_scope() {
         let mut xot = Xot::new();
-        let doc = xot
+        let root = xot
             .parse(r#"<doc xmlns:foo="http://example.com"><a><b xmlns:foo="http://example.com/foo" xmlns:bar="http://example.com/bar" /></a></doc>"#)
             .unwrap();
-        let root = xot.document_element(doc).unwrap();
-        let a = xot.first_child(root).unwrap();
+        let doc_el = xot.document_element(root).unwrap();
+        let a = xot.first_child(doc_el).unwrap();
         let b = xot.first_child(a).unwrap();
 
         let foo = xot.prefix("foo").unwrap();
@@ -159,7 +159,7 @@ mod tests {
         let bar = xot.prefix("bar").unwrap();
 
         assert_eq!(
-            xot.to_namespace_in_scope(root),
+            xot.to_namespace_in_scope(doc_el),
             VecMap::from_iter(vec![(foo, ns)])
         );
 

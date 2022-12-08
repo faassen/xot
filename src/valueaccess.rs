@@ -10,11 +10,11 @@ impl Xot {
     ///
     /// let mut xot = Xot::new();
     ///
-    /// let doc = xot.parse("<doc>Example</doc>").unwrap();
-    /// let root = xot.document_element(doc).unwrap();
+    /// let root = xot.parse("<doc>Example</doc>").unwrap();
+    /// let doc_el = xot.document_element(root).unwrap();
     /// let doc_name = xot.name("doc").unwrap();
     ///
-    /// match xot.value(root) {
+    /// match xot.value(doc_el) {
     ///    Value::Element(element) => {
     ///       assert_eq!(element.name_id(), doc_name);
     ///   }
@@ -37,12 +37,12 @@ impl Xot {
     ///
     /// let mut xot = Xot::new();
     ///
-    /// let doc = xot.parse("<doc>Example</doc>").unwrap();
-    /// let root = xot.document_element(doc).unwrap();
+    /// let root = xot.parse("<doc>Example</doc>").unwrap();
+    /// let doc_el = xot.document_element(root).unwrap();
     ///
     /// let attr_name = xot.add_name("foo");
     ///
-    /// match xot.value_mut(root) {
+    /// match xot.value_mut(doc_el) {
     ///    Value::Element(element) => {
     ///       element.set_attribute(attr_name, "Foo!")
     ///   }

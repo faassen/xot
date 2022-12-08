@@ -8,13 +8,13 @@
 //!
 //! let mut xot = Xot::new();
 //!
-//! let doc = xot.parse("<p>Example</p>").unwrap();
-//! let root = xot.document_element(doc).unwrap();
-//! let txt = xot.first_child(root).unwrap();
+//! let root = xot.parse("<p>Example</p>").unwrap();
+//! let doc_el = xot.document_element(root).unwrap();
+//! let txt = xot.first_child(doc_el).unwrap();
 //! let txt_value = xot.text_mut(txt).unwrap();
 //! txt_value.set("Hello, world!");
 //!
-//! assert_eq!(xot.serialize_to_string(doc), "<p>Hello, world!</p>");
+//! assert_eq!(xot.serialize_to_string(root), "<p>Hello, world!</p>");
 //! ```
 //!
 //! ## Xot approach
