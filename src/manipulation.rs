@@ -238,9 +238,9 @@ impl Xot {
         clone
     }
 
-    /// Unwrap a node; its children are moved to its parent.
+    /// Unwrap an element; its children are moved to its parent.
     /// The node itself is removed.
-    pub fn unwrap(&mut self, node: Node) -> Result<(), Error> {
+    pub fn element_unwrap(&mut self, node: Node) -> Result<(), Error> {
         if !self.is_element(node) {
             return Err(Error::InvalidOperation(
                 "Cannot unwrap non-element nodes".to_string(),
@@ -276,10 +276,41 @@ impl Xot {
         Ok(())
     }
 
-    // /// Wrap a node in a new element
-    // pub fn wrap(&mut self, node: Node, name_id: NameId) -> Result<Node, Error> {
-
-    // }
+    /// Wrap a node in a new element
+    /// It's not allowed to wrap the root node or nodes immediately under
+    /// the root node, including the document element.
+    pub fn element_wrap(&mut self, node: Node, name_id: NameId) -> Result<Node, Error> {
+        if self.is_root(node) {
+            return Err(Error::InvalidOperation(
+                "Cannot wrap document root".to_string(),
+            ));
+        }
+        // we forbid wrapping nodes under the root too. Theoretically
+        // it would be possible but it's tricky to check and very uncommon.
+        if self.is_under_root(node) {
+            return Err(Error::InvalidOperation(
+                "Cannot wrap nodes under document root".to_string(),
+            ));
+        }
+        // there should always be a parent as we're not in document element level
+        let parent = self.parent(node).unwrap();
+        // record previous sibling
+        let previous_node = self.previous_sibling(node);
+        // create new element
+        let wrapper = self.new_element(name_id);
+        // detach the node, use low-level detach as we don't want to consolidate
+        // text nodes
+        node.get().detach(self.arena_mut());
+        // append the node to the wrapper
+        self.append(wrapper, node)?;
+        // now insert the wrapper element
+        if let Some(previous_node) = previous_node {
+            self.insert_after(previous_node, wrapper)?;
+        } else {
+            self.prepend(parent, wrapper)?;
+        }
+        Ok(wrapper)
+    }
 
     fn add_structure_check(&self, parent: Option<Node>, child: Node) -> Result<(), Error> {
         let parent = parent.ok_or_else(|| {
