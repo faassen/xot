@@ -90,6 +90,12 @@ impl NamespaceInfo {
             self.to_namespace.remove(&prefix_id);
         }
     }
+
+    pub(crate) fn remove_by_prefix_id(&mut self, prefix_id: PrefixId) {
+        if let Some(namespace_id) = self.to_namespace.remove(&prefix_id) {
+            self.to_prefix.remove(&namespace_id);
+        }
+    }
 }
 
 /// XML element value.
@@ -141,6 +147,13 @@ impl Element {
         self.namespace_info.add(prefix_id, namespace_id);
     }
 
+    /// Remove namespace prefix and associated namespace.
+    ///
+    /// This may result in documents with missing prefixes.
+    pub fn remove_prefix(&mut self, prefix_id: PrefixId) {
+        self.namespace_info.remove_by_prefix_id(prefix_id);
+    }
+
     /// Get the prefix for a namespace, if defined on this element.
     ///
     /// This does not check for ancestor namespace definitions.
@@ -153,13 +166,6 @@ impl Element {
     /// This does not check for ancestor namespace definitions.
     pub fn get_namespace(&self, prefix_id: PrefixId) -> Option<NamespaceId> {
         self.namespace_info.to_namespace.get(&prefix_id).copied()
-    }
-
-    /// Remove namespace
-    ///
-    /// This also removes the prefix mapping for that namespace.
-    pub fn remove_namespace(&mut self, namespace_id: NamespaceId) {
-        self.namespace_info.remove_by_namespace_id(namespace_id);
     }
 
     /// Get a map of prefixes to namespaces.
