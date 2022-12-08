@@ -269,4 +269,8 @@ impl<'a> FullnameSerializer<'a> {
             Fullname::MissingPrefix(namespace_id) => Err(Error::MissingPrefix(namespace_id)),
         }
     }
+
+    pub(crate) fn is_namespace_known(&self, namespace_id: NamespaceId) -> bool {
+        self.top().contains_key(&namespace_id)
+    }
 }

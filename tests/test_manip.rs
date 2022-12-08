@@ -517,3 +517,29 @@ fn test_wrap_middle() {
         r#"<doc><first/><p>Alpha</p><second/></doc>"#
     );
 }
+
+#[test]
+fn test_unduplicate_namespace() {
+    let mut xot = Xot::new();
+    let root = xot
+        .parse(r#"<doc xmlns="http://example.com"><a xmlns="http://example.com">Hello!</a></doc>"#)
+        .unwrap();
+    xot.unduplicate_namespaces(root);
+    assert_eq!(
+        xot.serialize_to_string(root),
+        r#"<doc xmlns="http://example.com"><a>Hello!</a></doc>"#
+    );
+}
+
+#[test]
+fn test_unduplicate_named_namespace() {
+    let mut xot = Xot::new();
+    let root = xot
+        .parse(r#"<doc xmlns="http://example.com"><foo:a xmlns:foo="http://example.com">Hello!</foo:a></doc>"#)
+        .unwrap();
+    xot.unduplicate_namespaces(root);
+    assert_eq!(
+        xot.serialize_to_string(root),
+        r#"<doc xmlns="http://example.com"><a>Hello!</a></doc>"#
+    );
+}

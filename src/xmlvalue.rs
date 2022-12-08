@@ -84,6 +84,12 @@ impl NamespaceInfo {
         self.to_namespace.insert(prefix_id, namespace_id);
         self.to_prefix.insert(namespace_id, prefix_id);
     }
+
+    pub(crate) fn remove_by_namespace_id(&mut self, namespace_id: NamespaceId) {
+        if let Some(prefix_id) = self.to_prefix.remove(&namespace_id) {
+            self.to_namespace.remove(&prefix_id);
+        }
+    }
 }
 
 /// XML element value.

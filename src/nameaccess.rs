@@ -115,6 +115,61 @@ impl Xot {
         Ok(())
     }
 
+    /// Unduplicate namespaces.
+    ///
+    /// Any namespace definition lower down that
+    /// defines a prefix for a namespace that is already known in an ancestor
+    /// is removed.
+    pub fn unduplicate_namespaces(&mut self, node: Node) {
+        let mut fullname_serializer = FullnameSerializer::new(self);
+        let mut fixup_nodes = Vec::new();
+        // determine nodes we need to fix up
+        for edge in self.traverse(node) {
+            match edge {
+                NodeEdge::Start(node) => {
+                    let element = self.element(node);
+                    if let Some(element) = element {
+                        // if we already know a namespace, remove it
+                        let to_remove = element
+                            .prefixes()
+                            .iter()
+                            .filter_map(|(_, namespace_id)| {
+                                if fullname_serializer.is_namespace_known(*namespace_id) {
+                                    Some(*namespace_id)
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect::<Vec<_>>();
+                        fixup_nodes.push((node, to_remove.clone()));
+                        // need to adjust prefixes seen for this node with
+                        // ones we want to remove
+                        let mut to_prefix = element.namespace_info.to_prefix.clone();
+                        for namespace_id in to_remove {
+                            to_prefix.remove(&namespace_id);
+                        }
+                        fullname_serializer.push(&to_prefix);
+                    }
+                }
+                NodeEdge::End(node) => {
+                    let element = self.element(node);
+                    if let Some(element) = element {
+                        // to_prefix is only used to determine whether to pop
+                        // so should be okay to send here
+                        fullname_serializer.pop(&element.namespace_info.to_prefix);
+                    }
+                }
+            }
+        }
+        // now actually fix up the nodes, removing superfluous namespaces
+        for (node, to_remove) in fixup_nodes {
+            let element = self.element_mut(node).unwrap();
+            for namespace_id in to_remove {
+                element.namespace_info.remove_by_namespace_id(namespace_id)
+            }
+        }
+    }
+
     pub(crate) fn to_namespace_in_scope(&self, node: Node) -> ToNamespace {
         let mut to_namespace = ToNamespace::new();
         for ancestor in self.ancestors(node) {
