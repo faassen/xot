@@ -2,7 +2,7 @@ use indextree::NodeEdge as IndexTreeNodeEdge;
 
 use crate::error::Error;
 use crate::xmlvalue::{Value, ValueType};
-use crate::xot::{Node, XmlData};
+use crate::xotdata::{Node, XmlData};
 
 /// Node edges.
 ///

@@ -1,5 +1,5 @@
 use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value, ValueType};
-use crate::xot::{Node, XmlData};
+use crate::xotdata::{Node, XmlData};
 
 /// Obtain XML values and their types.
 ///

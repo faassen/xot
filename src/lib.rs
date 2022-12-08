@@ -30,9 +30,9 @@ mod prefix;
 mod serialize;
 mod valueaccess;
 mod xmlvalue;
-mod xot;
+mod xotdata;
 
 pub use access::NodeEdge;
 pub use error::Error;
 pub use xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value, ValueType};
-pub use xot::{Node, XmlData};
+pub use xotdata::{Node, XmlData};

@@ -10,7 +10,7 @@ use crate::prefix::{Prefix, PrefixId};
 use crate::xmlvalue::{
     Attributes, Comment, Element, NamespaceInfo, ProcessingInstruction, Text, ToNamespace, Value,
 };
-use crate::xot::{Node, XmlData};
+use crate::xotdata::{Node, XmlData};
 
 struct ElementBuilder {
     prefix: String,

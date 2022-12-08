@@ -1,6 +1,6 @@
 use crate::name::NameId;
 use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value};
-use crate::xot::{Node, XmlData};
+use crate::xotdata::{Node, XmlData};
 
 /// XML node creation.
 impl XmlData {

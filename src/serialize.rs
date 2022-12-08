@@ -7,7 +7,7 @@ use crate::name::NameId;
 use crate::namespace::NamespaceId;
 use crate::prefix::PrefixId;
 use crate::xmlvalue::{ToNamespace, ToPrefix, Value, ValueType};
-use crate::xot::{Node, XmlData};
+use crate::xotdata::{Node, XmlData};
 
 impl XmlData {
     /// Serialize document to a writer.
