@@ -6,7 +6,7 @@ fn test_manipulate_text() {
     let doc = data.parse(r#"<doc>Data</doc>"#).unwrap();
     let text_id = data.first_child(data.root_element(doc).unwrap()).unwrap();
     if let Value::Text(node) = data.value_mut(text_id) {
-        node.set("Changed".into());
+        node.set("Changed");
     }
     assert_eq!(data.serialize_to_string(doc), r#"<doc>Changed</doc>"#);
 }

@@ -117,8 +117,8 @@ impl Element {
     }
 
     /// Set an attribute value.
-    pub fn set_attribute(&mut self, name_id: NameId, value: String) {
-        self.attributes.insert(name_id, value);
+    pub fn set_attribute<S: Into<String>>(&mut self, name_id: NameId, value: S) {
+        self.attributes.insert(name_id, value.into());
     }
 
     /// Add a prefix to namespace mapping.
@@ -167,8 +167,8 @@ impl Text {
     }
 
     /// Set the text value.
-    pub fn set(&mut self, text: String) {
-        self.text = text;
+    pub fn set<S: Into<String>>(&mut self, text: S) {
+        self.text = text.into();
     }
 }
 
@@ -192,7 +192,8 @@ impl Comment {
 
     /// Set the comment text. Rejects
     /// comments that contain `--` as illegal.
-    pub fn set(&mut self, text: String) -> Result<(), Error> {
+    pub fn set<S: Into<String>>(&mut self, text: S) -> Result<(), Error> {
+        let text = text.into();
         if text.contains("--") {
             return Err(Error::InvalidComment(text));
         }
@@ -227,7 +228,8 @@ impl ProcessingInstruction {
 
     /// Set target. Rejects any target that is
     /// the string `"xml"` (or case variations) as it's reserved for XML.
-    pub fn set_target(&mut self, target: String) -> Result<(), Error> {
+    pub fn set_target<S: Into<String>>(&mut self, target: S) -> Result<(), Error> {
+        let target = target.into();
         if target.to_lowercase() == "xml" {
             return Err(Error::InvalidTarget(target));
         }
@@ -237,9 +239,9 @@ impl ProcessingInstruction {
     }
 
     /// Set data.
-    pub fn set_data(&mut self, data: Option<String>) {
+    pub fn set_data<S: Into<String>>(&mut self, data: Option<S>) {
         // XXX Ideally check that data follows XML spec, i.e. not contain
         // "?>".
-        self.data = data;
+        self.data = data.map(|s| s.into());
     }
 }

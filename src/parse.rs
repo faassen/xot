@@ -289,6 +289,13 @@ impl XmlData {
     ///
     /// The returned node is the root node of the
     /// parsed XML document.
+    ///
+    /// ```rust
+    /// use xot::XmlData;
+    ///
+    /// let mut xml_data = XmlData::new();
+    /// let doc = xml_data.parse("<hello/>").unwrap();
+    /// ```
     pub fn parse(&mut self, xml: &str) -> Result<Node, Error> {
         use Token::*;
 
