@@ -6,8 +6,8 @@ use crate::name::{Name, NameId};
 use crate::namespace::{Namespace, NamespaceId};
 use crate::prefix::{Prefix, PrefixId};
 use crate::serialize::{Fullname, FullnameSerializer};
-use crate::xmldata::{Node, XmlData};
 use crate::xmlvalue::ToNamespace;
+use crate::xot::{Node, XmlData};
 
 /// Creation and lookup of names, namespaces and prefixes.
 impl XmlData {

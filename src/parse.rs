@@ -7,10 +7,10 @@ use crate::error::Error;
 use crate::name::{Name, NameId};
 use crate::namespace::Namespace;
 use crate::prefix::{Prefix, PrefixId};
-use crate::xmldata::{Node, XmlData};
 use crate::xmlvalue::{
     Attributes, Comment, Element, NamespaceInfo, ProcessingInstruction, Text, ToNamespace, Value,
 };
+use crate::xot::{Node, XmlData};
 
 struct ElementBuilder {
     prefix: String,

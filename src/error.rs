@@ -1,5 +1,5 @@
 use crate::namespace::NamespaceId;
-use crate::xmldata::Node;
+use crate::xot::Node;
 
 /// Xot errors
 #[derive(Debug)]

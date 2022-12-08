@@ -1,4 +1,4 @@
-use crate::xmldata::{Node, XmlData};
+use crate::xot::{Node, XmlData};
 
 use crate::error::Error;
 use crate::name::NameId;

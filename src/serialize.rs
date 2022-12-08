@@ -6,8 +6,8 @@ use crate::error::Error;
 use crate::name::NameId;
 use crate::namespace::NamespaceId;
 use crate::prefix::PrefixId;
-use crate::xmldata::{Node, XmlData};
 use crate::xmlvalue::{ToNamespace, ToPrefix, Value, ValueType};
+use crate::xot::{Node, XmlData};
 
 impl XmlData {
     /// Serialize document to a writer.
