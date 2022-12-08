@@ -143,6 +143,14 @@ impl XmlData {
         let parent = parent.ok_or_else(|| {
             Error::InvalidOperation("Cannot create siblings for document root".into())
         })?;
+        if !matches!(
+            self.value_type(parent),
+            ValueType::Element | ValueType::Root
+        ) {
+            return Err(Error::InvalidOperation(
+                "Cannot add children to non-element and non-root node".into(),
+            ));
+        }
         match self.value_type(child) {
             ValueType::Root => {
                 return Err(Error::InvalidOperation("Cannot move document root".into()));

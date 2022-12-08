@@ -134,6 +134,15 @@ fn test_append_text() {
 }
 
 #[test]
+fn test_cannot_append_under_text() {
+    let mut data = XmlData::new();
+    let doc = data.parse(r#"<doc>text</doc>"#).unwrap();
+    let el_id = data.document_element(doc).unwrap();
+    let txt_id = data.first_child(el_id).unwrap();
+    assert!(data.append_text(txt_id, "Changed").is_err());
+}
+
+#[test]
 fn test_append_text_after_text_consolidates_nodes() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc/>"#).unwrap();
