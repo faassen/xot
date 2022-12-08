@@ -21,12 +21,12 @@ There are two limitations:
 
 ## Xot approach
 
-Xot exposes a single `XmlData` struct that you use to access, create and
-manipulate all your XML data. Multiple XML trees can exist in an `XmlData`
+Xot exposes a single `Xot` struct that you use to access, create and
+manipulate all your XML data. Multiple XML trees can exist in an `Xot`
 struct at the same time, and you're free to move nodes between these trees.
 
 The way to access and manipulate XML tree structure in Xot is through the
-`Node`. You can use various functions on `XmlData` in order to access and
+`Node`. You can use various functions on `Xot` in order to access and
 manipulate information about nodes.
 
 To access and manipulate XML specific data, you use the `Value` for a node.
