@@ -371,3 +371,102 @@ fn test_clone_with_prefixes() {
         r#"<a xmlns="http://example.com">Hello!</a>"#
     );
 }
+
+#[test]
+fn test_remove_unwrap_consolidation_single_element() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc>Alpha<a/>Beta</doc>"#).unwrap();
+    let el_id = xot
+        .children(xot.document_element(doc).unwrap())
+        .nth(1)
+        .unwrap();
+    // we found the a element
+    let a = xot.name("a").unwrap();
+    assert_eq!(xot.element(el_id).unwrap().name_id(), a);
+    // now we unwrap it
+    xot.unwrap(el_id).unwrap();
+    // we should have a single text node
+    let text_el_id = xot.first_child(xot.document_element(doc).unwrap()).unwrap();
+    assert_eq!(xot.text_str(text_el_id), Some("AlphaBeta"));
+    assert_eq!(xot.serialize_to_string(doc), r#"<doc>AlphaBeta</doc>"#);
+}
+
+#[test]
+fn test_remove_unwrap_consolidation_text_in_element() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc>Alpha<a>!</a>Beta</doc>"#).unwrap();
+    let el_id = xot
+        .children(xot.document_element(doc).unwrap())
+        .nth(1)
+        .unwrap();
+    // we found the a element
+    let a = xot.name("a").unwrap();
+    assert_eq!(xot.element(el_id).unwrap().name_id(), a);
+    // now we unwrap it
+    xot.unwrap(el_id).unwrap();
+    // we should have a single text node
+    let text_el_id = xot.first_child(xot.document_element(doc).unwrap()).unwrap();
+    assert_eq!(xot.text_str(text_el_id), Some("Alpha!Beta"));
+    assert_eq!(xot.serialize_to_string(doc), r#"<doc>Alpha!Beta</doc>"#);
+}
+
+#[test]
+fn test_remove_unwrap_consolidation_text_in_element_at_beginning() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc>Alpha<a>!<b/></a>Beta</doc>"#).unwrap();
+    let el_id = xot
+        .children(xot.document_element(doc).unwrap())
+        .nth(1)
+        .unwrap();
+    // we found the a element
+    let a = xot.name("a").unwrap();
+    assert_eq!(xot.element(el_id).unwrap().name_id(), a);
+    // now we unwrap it
+    xot.unwrap(el_id).unwrap();
+    let text_el_id = xot.first_child(xot.document_element(doc).unwrap()).unwrap();
+    assert_eq!(xot.text_str(text_el_id), Some("Alpha!"));
+    assert_eq!(xot.serialize_to_string(doc), r#"<doc>Alpha!<b/>Beta</doc>"#);
+}
+
+#[test]
+fn test_remove_unwrap_consolidation_text_in_element_at_end() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc>Alpha<a><b/>!</a>Beta</doc>"#).unwrap();
+    let el_id = xot
+        .children(xot.document_element(doc).unwrap())
+        .nth(1)
+        .unwrap();
+    // we found the a element
+    let a = xot.name("a").unwrap();
+    assert_eq!(xot.element(el_id).unwrap().name_id(), a);
+    // now we unwrap it
+    xot.unwrap(el_id).unwrap();
+
+    let text_el_id = xot.last_child(xot.document_element(doc).unwrap()).unwrap();
+    assert_eq!(xot.text_str(text_el_id), Some("!Beta"));
+    assert_eq!(xot.serialize_to_string(doc), r#"<doc>Alpha<b/>!Beta</doc>"#);
+}
+
+#[test]
+fn test_remove_unwrap_consolidation_text_in_element_both_ends() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc>Alpha<a>?<b/>!</a>Beta</doc>"#).unwrap();
+    let el_id = xot
+        .children(xot.document_element(doc).unwrap())
+        .nth(1)
+        .unwrap();
+    // we found the a element
+    let a = xot.name("a").unwrap();
+    assert_eq!(xot.element(el_id).unwrap().name_id(), a);
+    // now we unwrap it
+    xot.unwrap(el_id).unwrap();
+
+    let text_el_id = xot.first_child(xot.document_element(doc).unwrap()).unwrap();
+    assert_eq!(xot.text_str(text_el_id), Some("Alpha?"));
+    let text_el_id = xot.last_child(xot.document_element(doc).unwrap()).unwrap();
+    assert_eq!(xot.text_str(text_el_id), Some("!Beta"));
+    assert_eq!(
+        xot.serialize_to_string(doc),
+        r#"<doc>Alpha?<b/>!Beta</doc>"#
+    );
+}

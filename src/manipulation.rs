@@ -238,6 +238,44 @@ impl Xot {
         clone
     }
 
+    /// Unwrap a node; its children are moved to its parent.
+    /// The node itself is removed.
+    pub fn unwrap(&mut self, node: Node) -> Result<(), Error> {
+        if !self.is_element(node) {
+            return Err(Error::InvalidOperation(
+                "Cannot unwrap non-element nodes".to_string(),
+            ));
+        }
+        self.remove_structure_check(node)?;
+        let first_child = self.first_child(node);
+        // without children this is like a remove
+        if first_child.is_none() {
+            return self.remove(node);
+        }
+        let first_child = first_child.unwrap();
+        // there is guaranteed to be a last child if there's a first child
+        let last_child = self.last_child(node).unwrap();
+        node.get().remove(self.arena_mut());
+
+        let prev_node = self.previous_sibling(first_child);
+        let next_node = self.next_sibling(last_child);
+        if self.remove_consolidate_text_nodes(prev_node, Some(first_child)) {
+            // if first child got consolidated
+            if first_child == last_child {
+                // if there was only a single child, try to consolidate prev_node with
+                // next sibling of last child
+                self.remove_consolidate_text_nodes(prev_node, next_node);
+            } else {
+                // otherwise consolidate last child with next sibling
+                self.remove_consolidate_text_nodes(Some(last_child), self.next_sibling(last_child));
+            }
+        } else {
+            // first child did not get consolidated
+            self.remove_consolidate_text_nodes(Some(last_child), self.next_sibling(last_child));
+        }
+        Ok(())
+    }
+
     fn add_structure_check(&self, parent: Option<Node>, child: Node) -> Result<(), Error> {
         let parent = parent.ok_or_else(|| {
             Error::InvalidOperation("Cannot create siblings for document root".into())
