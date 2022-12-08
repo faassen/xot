@@ -4,7 +4,7 @@ use xot::{Value, XmlData};
 fn test_escape_in_text() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<a>&lt;</a>"#).unwrap();
-    let text_id = data.first_child(data.root_element(doc)).unwrap();
+    let text_id = data.first_child(data.root_element(doc).unwrap()).unwrap();
     assert!(matches!(data.value(text_id), Value::Text(_)));
     match data.value(text_id) {
         Value::Text(text) => {
@@ -18,7 +18,7 @@ fn test_escape_in_text() {
 fn test_add_attribute_entities() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc/>"#).unwrap();
-    let el_id = data.root_element(doc);
+    let el_id = data.root_element(doc).unwrap();
     assert!(data.name("a").is_none());
     let a = data.add_name("a");
 

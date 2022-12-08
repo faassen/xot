@@ -3,6 +3,9 @@ use crate::xmldata::Node;
 
 #[derive(Debug)]
 pub enum Error {
+    // access errors
+    NotRoot(Node),
+
     // manipulation errors
     InvalidOperation(String),
     InvalidComment(String),

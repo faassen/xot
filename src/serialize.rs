@@ -10,12 +10,19 @@ use crate::xmldata::{Node, XmlData};
 use crate::xmlvalue::{ToPrefix, Value, ValueType};
 
 impl XmlData {
+    /// Serialize document to a writer.
+    ///
+    /// This only works with a root node.
     pub fn serialize(&mut self, node: Node, w: &mut impl Write) {
-        let root_element = self.root_element(node);
+        let root_element = self.root_element(node).unwrap();
         self.create_missing_prefixes(root_element).unwrap();
         self.serialize_or_missing_prefix(node, w).unwrap();
     }
 
+    /// Serialize a fragment to a writer.
+    ///
+    /// This works with any node and produces an XML fragment.
+    /// Any prefixes needed for the fragment are added to the root element.
     pub fn serialize_fragment(&mut self, node: Node, w: &mut impl Write) {
         let root_element = self.top_element(node);
         self.create_missing_prefixes(root_element).unwrap();
@@ -33,6 +40,11 @@ impl XmlData {
         self.serialize_node(node, w, to_prefix).unwrap();
     }
 
+    /// Serialize document.
+    ///
+    /// This fails if there is a namespace without
+    /// a prefix. Use [`XmlData::serialize`] if you want
+    /// it to generate synthetic prefixes instead.
     pub fn serialize_or_missing_prefix(&self, node: Node, w: &mut impl Write) -> Result<(), Error> {
         if self.value_type(node) != ValueType::Root {
             panic!("Can only serialize root nodes");
@@ -60,18 +72,27 @@ impl XmlData {
         Ok(())
     }
 
+    /// Serialize document to a string.
+    ///
+    /// Like [`XmlData::serialize_or_missing_prefix`], but returns a string instead of writing to a writer.
     pub fn serialize_or_missing_prefix_to_string(&self, node: Node) -> Result<String, Error> {
         let mut buf = Vec::new();
         self.serialize_or_missing_prefix(node, &mut buf)?;
         Ok(String::from_utf8(buf).unwrap())
     }
 
+    /// Serialize document to a string.
+    ///
+    /// This only works with a root node.
     pub fn serialize_to_string(&mut self, node: Node) -> String {
         let mut buf = Vec::new();
         self.serialize(node, &mut buf);
         String::from_utf8(buf).unwrap()
     }
 
+    /// Serialize a fragment to a string.
+    ///
+    /// This works with any node and produces an XML fragment.
     pub fn serialize_fragment_to_string(&mut self, node: Node) -> String {
         let mut buf = Vec::new();
         self.serialize_fragment(node, &mut buf);

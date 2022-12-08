@@ -285,6 +285,10 @@ impl NameIdBuilder {
 }
 
 impl XmlData {
+    /// Parse a string containing XML into a node.
+    ///
+    /// The returned node is the root node of the
+    /// parsed XML document.
     pub fn parse(&mut self, xml: &str) -> Result<Node, Error> {
         use Token::*;
 

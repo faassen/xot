@@ -4,7 +4,26 @@ use crate::error::Error;
 use crate::name::NameId;
 use crate::xmlvalue::{Value, ValueType};
 
+/// Manipulation of the tree structure.
+///
+/// This maintains an XML structure:
+/// - There is only one document element under the root node which cannot be removed.
+/// - The only other nodes that can exist directly under the root node are comments and processing instructions.
+/// - You cannot add a node to a node that is not an element or the
+///   root node.
+///
+/// It also ensures that text nodes are consolidated:
+/// two text nodes never appear consecutively. If you
+/// add a text node after or before another text node,
+/// the text is appended to the existing text node,
+/// and the added text node is removed. This also
+/// happens if you remove a node causing two text
+/// nodes to be adjacent; the second text node is
+/// removed.
 impl XmlData {
+    /// Append a child to the end of the children of the given parent.
+    ///
+    /// It is now the new last node of the parent.
     pub fn append(&mut self, parent: Node, child: Node) -> Result<(), Error> {
         self.add_structure_check(Some(parent), child)?;
         if self.add_consolidate_text_nodes(child, self.last_child(parent), None) {
@@ -14,24 +33,31 @@ impl XmlData {
         Ok(())
     }
 
+    /// Append a text node to a parent node given text.
     pub fn append_text(&mut self, parent: Node, text: &str) -> Result<(), Error> {
         let text_node_id = self.new_text(text);
         self.append(parent, text_node_id)?;
         Ok(())
     }
 
+    /// Append an element node to a parent node given a name.
+    ///
+    /// Create a name id using [`XmlData::add_name`] or [`XmlData::add_name_ns`], or
+    /// reuse an existing name id using [`XmlData::name`], [`XmlData::name_ns`].
     pub fn append_element(&mut self, parent: Node, name_id: NameId) -> Result<(), Error> {
         let element_node_id = self.new_element(name_id);
         self.append(parent, element_node_id)?;
         Ok(())
     }
 
+    /// Append a comment node to a parent node given comment text.
     pub fn append_comment(&mut self, parent: Node, comment: &str) -> Result<(), Error> {
         let comment_node_id = self.new_comment(comment);
         self.append(parent, comment_node_id)?;
         Ok(())
     }
 
+    /// Append a processing instruction node to a parent node given target and data.
     pub fn append_processing_instruction(
         &mut self,
         parent: Node,
@@ -43,6 +69,9 @@ impl XmlData {
         Ok(())
     }
 
+    /// Prepend a child to the beginning of the children of the given parent.
+    ///
+    /// It is now the new first node of the parent.
     pub fn prepend(&mut self, parent: Node, child: Node) -> Result<(), Error> {
         self.add_structure_check(Some(parent), child)?;
         if self.add_consolidate_text_nodes(child, None, self.first_child(parent)) {
@@ -54,6 +83,7 @@ impl XmlData {
         Ok(())
     }
 
+    /// Insert a new sibling after a reference node.
     pub fn insert_after(&mut self, reference_node: Node, new_sibling: Node) -> Result<(), Error> {
         self.add_structure_check(self.parent(reference_node), new_sibling)?;
         if self.add_consolidate_text_nodes(
@@ -69,6 +99,7 @@ impl XmlData {
         Ok(())
     }
 
+    /// Insert a new sibling before a reference node.
     pub fn insert_before(&mut self, reference_node: Node, new_sibling: Node) -> Result<(), Error> {
         self.add_structure_check(self.parent(reference_node), new_sibling)?;
         if self.add_consolidate_text_nodes(
@@ -84,6 +115,9 @@ impl XmlData {
         Ok(())
     }
 
+    /// Detach a node (and its descendants) from the tree.
+    ///
+    /// It now becomes a new xml fragment.
     pub fn detach(&mut self, node: Node) -> Result<(), Error> {
         self.remove_structure_check(node)?;
         let prev_node = self.previous_sibling(node);
@@ -93,6 +127,9 @@ impl XmlData {
         Ok(())
     }
 
+    /// Remove a node (and its descendants) from the tree
+    ///
+    /// This removes the nodes from the XmlData.
     pub fn remove(&mut self, node: Node) -> Result<(), Error> {
         self.remove_structure_check(node)?;
         let prev_node = self.previous_sibling(node);

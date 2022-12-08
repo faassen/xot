@@ -19,4 +19,4 @@ mod xmlvalue;
 pub use access::NodeEdge;
 pub use error::Error;
 pub use xmldata::{Node, XmlData};
-pub use xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value};
+pub use xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value, ValueType};

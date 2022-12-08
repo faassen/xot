@@ -4,7 +4,7 @@ use xot::{Value, XmlData};
 fn test_manipulate_text() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc>Data</doc>"#).unwrap();
-    let text_id = data.first_child(data.root_element(doc)).unwrap();
+    let text_id = data.first_child(data.root_element(doc).unwrap()).unwrap();
     if let Value::Text(node) = data.value_mut(text_id) {
         node.set("Changed".into());
     }
@@ -15,7 +15,7 @@ fn test_manipulate_text() {
 fn test_manipulate_attribute() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc a="Foo"/>"#).unwrap();
-    let el_id = data.root_element(doc);
+    let el_id = data.root_element(doc).unwrap();
     let a = data.name("a").unwrap();
 
     if let Value::Element(element) = data.value_mut(el_id) {
@@ -28,7 +28,7 @@ fn test_manipulate_attribute() {
 fn test_add_attribute() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc/>"#).unwrap();
-    let el_id = data.root_element(doc);
+    let el_id = data.root_element(doc).unwrap();
     assert!(data.name("a").is_none());
     let a = data.add_name("a");
 
@@ -44,7 +44,7 @@ fn test_manipulate_attribute_ns() {
     let doc = data
         .parse(r#"<doc xmlns:ns="http://example.com" ns:a="Foo"/>"#)
         .unwrap();
-    let el_id = data.root_element(doc);
+    let el_id = data.root_element(doc).unwrap();
     let ns = data.namespace("http://example.com").unwrap();
     let a = data.name_ns("a", ns).unwrap();
 
@@ -63,7 +63,7 @@ fn test_add_attribute_ns() {
     let doc = data
         .parse(r#"<doc xmlns:foo="http://example.com"/>"#)
         .unwrap();
-    let el_id = data.root_element(doc);
+    let el_id = data.root_element(doc).unwrap();
     let ns = data.namespace("http://example.com").unwrap();
     assert!(data.name_ns("a", ns).is_none());
     let a = data.add_name_ns("a", ns);
@@ -81,7 +81,7 @@ fn test_add_attribute_ns() {
 fn test_append_element() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc/>"#).unwrap();
-    let el_id = data.root_element(doc);
+    let el_id = data.root_element(doc).unwrap();
     let name = data.add_name("a");
     data.append_element(el_id, name).unwrap();
     assert_eq!(data.serialize_to_string(doc), r#"<doc><a/></doc>"#);
@@ -91,7 +91,7 @@ fn test_append_element() {
 fn test_prepend_element() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc><b/></doc>"#).unwrap();
-    let el_id = data.root_element(doc);
+    let el_id = data.root_element(doc).unwrap();
     let name = data.add_name("a");
     let new_el_id = data.new_element(name);
     data.prepend(el_id, new_el_id).unwrap();
@@ -102,7 +102,7 @@ fn test_prepend_element() {
 fn test_insert_before_element() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc><b/></doc>"#).unwrap();
-    let el_id = data.root_element(doc);
+    let el_id = data.root_element(doc).unwrap();
     let before_id = data.first_child(el_id).unwrap();
     let name = data.add_name("a");
     let new_el_id = data.new_element(name);
@@ -114,7 +114,7 @@ fn test_insert_before_element() {
 fn test_insert_after_element() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc><b/></doc>"#).unwrap();
-    let el_id = data.root_element(doc);
+    let el_id = data.root_element(doc).unwrap();
     let before_id = data.first_child(el_id).unwrap();
     let name = data.add_name("a");
     let new_el_id = data.new_element(name);
@@ -126,7 +126,7 @@ fn test_insert_after_element() {
 fn test_append_text() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc/>"#).unwrap();
-    let el_id = data.root_element(doc);
+    let el_id = data.root_element(doc).unwrap();
     data.append_text(el_id, "Changed").unwrap();
     assert_eq!(data.serialize_to_string(doc), r#"<doc>Changed</doc>"#);
 }
@@ -135,7 +135,7 @@ fn test_append_text() {
 fn test_append_text_after_text_consolidates_nodes() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc/>"#).unwrap();
-    let el_id = data.root_element(doc);
+    let el_id = data.root_element(doc).unwrap();
     data.append_text(el_id, "Alpha").unwrap();
     data.append_text(el_id, "Beta").unwrap();
     match data.value(data.first_child(el_id).unwrap()) {
@@ -149,7 +149,7 @@ fn test_append_text_after_text_consolidates_nodes() {
 fn test_append_text_after_text_consolidates_nodes_direct_append() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc/>"#).unwrap();
-    let el_id = data.root_element(doc);
+    let el_id = data.root_element(doc).unwrap();
     let txt1 = data.new_text("Alpha");
     let txt2 = data.new_text("Beta");
     data.append(el_id, txt1).unwrap();
@@ -165,7 +165,7 @@ fn test_append_text_after_text_consolidates_nodes_direct_append() {
 fn test_insert_before_consolidate_text() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc>Alpha</doc>"#).unwrap();
-    let el_id = data.first_child(data.root_element(doc)).unwrap();
+    let el_id = data.first_child(data.root_element(doc).unwrap()).unwrap();
     let txt = data.new_text("Beta");
     data.insert_before(el_id, txt).unwrap();
     assert_eq!(data.text(el_id).map(|n| n.get()), Some("BetaAlpha"));
@@ -176,7 +176,7 @@ fn test_insert_before_consolidate_text() {
 fn test_insert_after_consolidate_text() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc>Alpha</doc>"#).unwrap();
-    let el_id = data.first_child(data.root_element(doc)).unwrap();
+    let el_id = data.first_child(data.root_element(doc).unwrap()).unwrap();
     let txt = data.new_text("Beta");
     data.insert_after(el_id, txt).unwrap();
     assert_eq!(data.text(el_id).map(|n| n.get()), Some("AlphaBeta"));
@@ -187,7 +187,7 @@ fn test_insert_after_consolidate_text() {
 fn test_prepend_consolidate_text() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc>Alpha</doc>"#).unwrap();
-    let el_id = data.root_element(doc);
+    let el_id = data.root_element(doc).unwrap();
     let txt = data.new_text("Beta");
     data.prepend(el_id, txt).unwrap();
     let text_el_id = data.first_child(el_id).unwrap();
@@ -207,7 +207,7 @@ fn test_root_node_can_have_only_single_element_append() {
 fn test_root_node_can_have_only_single_element_insert_before() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc/>"#).unwrap();
-    let el_id = data.root_element(doc);
+    let el_id = data.root_element(doc).unwrap();
     let name = data.add_name("a");
     let new_el_id = data.new_element(name);
     assert!(data.insert_before(el_id, new_el_id).is_err());
@@ -225,14 +225,17 @@ fn test_root_node_append_comment() {
 fn test_remove_text_consolidation() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc>Alpha<a/>Beta</doc>"#).unwrap();
-    let el_id = data.children(data.root_element(doc)).nth(1).unwrap();
+    let el_id = data
+        .children(data.root_element(doc).unwrap())
+        .nth(1)
+        .unwrap();
     // we found the a element
     let a = data.name("a").unwrap();
     assert_eq!(data.element(el_id).unwrap().name_id(), a);
     // now we remove it
     data.remove(el_id).unwrap();
     // we should have a single text node
-    let text_el_id = data.first_child(data.root_element(doc)).unwrap();
+    let text_el_id = data.first_child(data.root_element(doc).unwrap()).unwrap();
     assert_eq!(data.text_str(text_el_id), Some("AlphaBeta"));
     assert_eq!(data.serialize_to_string(doc), r#"<doc>AlphaBeta</doc>"#);
 }
@@ -241,7 +244,7 @@ fn test_remove_text_consolidation() {
 fn test_create_missing_prefixes() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc></doc>"#).unwrap();
-    let root_id = data.root_element(doc);
+    let root_id = data.root_element(doc).unwrap();
     let ns_id = data.add_namespace("http://example.com");
     let name_id = data.add_name_ns("a", ns_id);
     data.append_element(root_id, name_id).unwrap();

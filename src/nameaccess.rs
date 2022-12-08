@@ -9,47 +9,67 @@ use crate::serialize::{Fullname, FullnameSerializer};
 use crate::xmldata::{Node, XmlData};
 use crate::xmlvalue::ToPrefix;
 
+/// Creation and lookup of names, namespaces and prefixes.
 impl XmlData {
-    // name & namespace
+    /// Look up name without a namespace.
     pub fn name(&self, name: &str) -> Option<NameId> {
         self.name_ns(name, self.no_namespace_id)
     }
 
+    /// Add name without a namespace.
+    /// If the name already exists, return its id.
     pub fn add_name(&mut self, name: &str) -> NameId {
         self.add_name_ns(name, self.no_namespace_id)
     }
 
+    /// Look up name with a namespace.
     pub fn name_ns(&self, name: &str, namespace_id: NamespaceId) -> Option<NameId> {
         self.name_lookup
             .get_id(Name::new(name.to_string(), namespace_id))
     }
 
+    /// Add name with a namespace.
+    /// If the name already exists, return its id.
     pub fn add_name_ns(&mut self, name: &str, namespace_id: NamespaceId) -> NameId {
         self.name_lookup
             .get_id_mut(Name::new(name.to_string(), namespace_id))
     }
 
+    /// Look up namespace.
     pub fn namespace(&self, namespace: &str) -> Option<NamespaceId> {
         self.namespace_lookup
             .get_id(Namespace::new(namespace.to_string()))
     }
 
+    /// Add namespace.
+    /// If the namespace already exists, return its id.
     pub fn add_namespace(&mut self, namespace: &str) -> NamespaceId {
         self.namespace_lookup
             .get_id_mut(Namespace::new(namespace.to_string()))
     }
 
+    /// Look up prefix.
     pub fn prefix(&self, prefix: &str) -> Option<PrefixId> {
         self.prefix_lookup.get_id(Prefix::new(prefix.to_string()))
     }
 
+    /// Add prefix.
+    /// If the prefix already exists, return its id.
     pub fn add_prefix(&mut self, prefix: &str) -> PrefixId {
         self.prefix_lookup
             .get_id_mut(Prefix::new(prefix.to_string()))
     }
 
-    // For any namespace under node that does not have a prefix, create
-    // a prefix for it and add it to the node
+    /// Creating missing prefixes.
+    ///
+    /// Due to creation or moving subtrees
+    /// you can end up with XML elements or attributes
+    /// that have names in a namespace without a prefix
+    /// to define the namespace in its ancestors.
+    ///
+    /// This function creates the missing prefixes
+    /// on the given node. The prefixes are named
+    /// "n0", "n1", "n2", etc.
     pub fn create_missing_prefixes(&mut self, node: Node) -> Result<(), Error> {
         if !self.is_element(node) {
             return Err(Error::NotElement(node));

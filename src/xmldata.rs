@@ -7,6 +7,8 @@ use crate::xmlvalue::Value;
 
 pub(crate) type XmlArena = Arena<Value>;
 
+/// A node in the XML tree.
+/// This is a lightweight value and can be copied.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Node(NodeId);
 
@@ -22,6 +24,9 @@ impl Node {
     }
 }
 
+/// The `XmlData` struct manages the XML data. It lets you
+/// access and manipulate one or more XML documents and
+/// fragments.
 pub struct XmlData {
     pub(crate) arena: XmlArena,
     pub(crate) namespace_lookup: NamespaceLookup,
@@ -32,6 +37,7 @@ pub struct XmlData {
 }
 
 impl XmlData {
+    /// Create a new `XmlData` instance.
     pub fn new() -> Self {
         let mut namespace_lookup = NamespaceLookup::new();
         let no_namespace_id = namespace_lookup.get_id_mut(Namespace::new("".into()));
@@ -57,11 +63,13 @@ impl XmlData {
         &mut self.arena
     }
 
+    /// Access to the XML value for this node.
     #[inline]
     pub fn value(&self, node_id: Node) -> &Value {
         self.arena[node_id.0].get()
     }
 
+    /// Mutable access to the XML value for this node.
     #[inline]
     pub fn value_mut(&mut self, node_id: Node) -> &mut Value {
         self.arena[node_id.0].get_mut()
