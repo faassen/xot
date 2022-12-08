@@ -26,6 +26,8 @@ impl XmlData {
     /// It is now the new last node of the parent.
     pub fn append(&mut self, parent: Node, child: Node) -> Result<(), Error> {
         self.add_structure_check(Some(parent), child)?;
+        self.remove_structure_check(child)?;
+        self.remove_consolidate_text_nodes(self.previous_sibling(child), self.next_sibling(child));
         if self.add_consolidate_text_nodes(child, self.last_child(parent), None) {
             return Ok(());
         }
@@ -74,6 +76,8 @@ impl XmlData {
     /// It is now the new first node of the parent.
     pub fn prepend(&mut self, parent: Node, child: Node) -> Result<(), Error> {
         self.add_structure_check(Some(parent), child)?;
+        self.remove_structure_check(child)?;
+        self.remove_consolidate_text_nodes(self.previous_sibling(child), self.next_sibling(child));
         if self.add_consolidate_text_nodes(child, None, self.first_child(parent)) {
             return Ok(());
         }
@@ -86,6 +90,11 @@ impl XmlData {
     /// Insert a new sibling after a reference node.
     pub fn insert_after(&mut self, reference_node: Node, new_sibling: Node) -> Result<(), Error> {
         self.add_structure_check(self.parent(reference_node), new_sibling)?;
+        self.remove_structure_check(new_sibling)?;
+        self.remove_consolidate_text_nodes(
+            self.previous_sibling(new_sibling),
+            self.next_sibling(new_sibling),
+        );
         if self.add_consolidate_text_nodes(
             new_sibling,
             Some(reference_node),
@@ -102,6 +111,11 @@ impl XmlData {
     /// Insert a new sibling before a reference node.
     pub fn insert_before(&mut self, reference_node: Node, new_sibling: Node) -> Result<(), Error> {
         self.add_structure_check(self.parent(reference_node), new_sibling)?;
+        self.remove_structure_check(new_sibling)?;
+        self.remove_consolidate_text_nodes(
+            self.previous_sibling(new_sibling),
+            self.next_sibling(new_sibling),
+        );
         if self.add_consolidate_text_nodes(
             new_sibling,
             self.previous_sibling(reference_node),

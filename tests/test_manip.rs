@@ -258,6 +258,31 @@ fn test_remove_text_consolidation() {
 }
 
 #[test]
+fn test_move_text_consolidation() {
+    let mut data = XmlData::new();
+    let doc_a = data.parse(r#"<doc></doc>"#).unwrap();
+    let doc_b = data.parse(r#"<doc>Alpha<a/>Beta</doc>"#).unwrap();
+
+    let a_id = data
+        .children(data.document_element(doc_b).unwrap())
+        .nth(1)
+        .unwrap();
+    // we found the a element
+    let a = data.name("a").unwrap();
+    assert_eq!(data.element(a_id).unwrap().name_id(), a);
+    // now we append it into doc_a
+    let doc_a_root = data.document_element(doc_a).unwrap();
+    data.append(doc_a_root, a_id).unwrap();
+    // we should have a single text node in b
+    let text_el_id = data
+        .first_child(data.document_element(doc_b).unwrap())
+        .unwrap();
+    assert_eq!(data.text_str(text_el_id), Some("AlphaBeta"));
+    assert_eq!(data.serialize_to_string(doc_a), r#"<doc><a/></doc>"#);
+    assert_eq!(data.serialize_to_string(doc_b), r#"<doc>AlphaBeta</doc>"#);
+}
+
+#[test]
 fn test_create_missing_prefixes() {
     let mut data = XmlData::new();
     let doc = data.parse(r#"<doc></doc>"#).unwrap();
