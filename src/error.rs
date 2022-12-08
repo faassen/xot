@@ -82,3 +82,35 @@ impl From<xmlparser::Error> for Error {
         Error::Parser(e)
     }
 }
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Error::NotRoot(_) => write!(f, "Not a root node"),
+            Error::InvalidOperation(s) => write!(f, "Invalid operation: {}", s),
+            Error::InvalidComment(s) => write!(f, "Invalid comment: {}", s),
+            Error::InvalidTarget(s) => write!(f, "Invalid target: {}", s),
+            Error::NotElement(_) => write!(f, "Not an element"),
+            Error::NodeError(e) => write!(f, "Node error: {}", e),
+            Error::MissingPrefix(_) => write!(f, "Missing prefix"),
+            Error::UnclosedTag => write!(f, "Unclosed tag"),
+            Error::InvalidCloseTag(s, s2) => write!(f, "Invalid close tag: {} {}", s, s2),
+            Error::UnclosedEntity(s) => write!(f, "Unclosed entity: {}", s),
+            Error::InvalidEntity(s) => write!(f, "Invalid entity: {}", s),
+            Error::UnknownPrefix(s) => write!(f, "Unknown prefix: {}", s),
+            Error::DuplicateAttribute(s) => write!(f, "Duplicate attribute: {}", s),
+            Error::UnsupportedVersion(s) => write!(f, "Unsupported version: {}", s),
+            Error::UnsupportedEncoding(s) => write!(f, "Unsupported encoding: {}", s),
+            Error::UnsupportedNotStandalone => write!(f, "Unsupported standalone"),
+            Error::DtdUnsupported => write!(f, "DTD is not supported"),
+            Error::Parser(e) => write!(f, "Parser error: {}", e),
+            Error::Io(e) => write!(f, "IO error: {}", e),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn description(&self) -> &str {
+        "Xot error"
+    }
+}
