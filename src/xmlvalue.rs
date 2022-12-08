@@ -143,8 +143,8 @@ impl Element {
     /// Get a map of prefixes to namespaces.
     /// It only returns those prefixes that are defined
     /// on this element.
-    pub fn prefixes(&self) -> &ToPrefix {
-        &self.namespace_info.to_prefix
+    pub fn prefixes(&self) -> &ToNamespace {
+        &self.namespace_info.to_namespace
     }
 }
 

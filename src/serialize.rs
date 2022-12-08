@@ -7,7 +7,7 @@ use crate::name::NameId;
 use crate::namespace::NamespaceId;
 use crate::prefix::PrefixId;
 use crate::xmldata::{Node, XmlData};
-use crate::xmlvalue::{ToPrefix, Value, ValueType};
+use crate::xmlvalue::{ToNamespace, ToPrefix, Value, ValueType};
 
 impl XmlData {
     /// Serialize document to a writer.
@@ -27,17 +27,17 @@ impl XmlData {
         let root_element = self.top_element(node);
         self.create_missing_prefixes(root_element).unwrap();
         // collect namespace prefixes for all ancestors of the fragment
-        let to_prefix = if let Some(parent) = self.parent(node) {
+        let to_namespace = if let Some(parent) = self.parent(node) {
             if self.value_type(parent) != ValueType::Root {
-                self.to_prefix_seen(parent)
+                self.to_namespace_in_scope(parent)
             } else {
-                ToPrefix::new()
+                ToNamespace::new()
             }
         } else {
-            ToPrefix::new()
+            ToNamespace::new()
         };
         // now serialize with those additional prefixes
-        self.serialize_node(node, w, to_prefix).unwrap();
+        self.serialize_node(node, w, to_namespace).unwrap();
     }
 
     /// Serialize document.
@@ -49,16 +49,16 @@ impl XmlData {
         if self.value_type(node) != ValueType::Root {
             panic!("Can only serialize root nodes");
         }
-        self.serialize_node(node, w, ToPrefix::new())
+        self.serialize_node(node, w, ToNamespace::new())
     }
 
     fn serialize_node(
         &self,
         node: Node,
         w: &mut impl Write,
-        to_prefix: ToPrefix,
+        to_namespace: ToNamespace,
     ) -> Result<(), Error> {
-        let mut fullname_serializer = FullnameSerializer::with_to_prefix(to_prefix, self);
+        let mut fullname_serializer = FullnameSerializer::with_to_namespace(to_namespace, self);
         for edge in self.traverse(node) {
             match edge {
                 NodeEdge::Start(node) => {
@@ -202,10 +202,14 @@ pub(crate) enum Fullname {
 
 impl<'a> FullnameSerializer<'a> {
     pub(crate) fn new(data: &'a XmlData) -> Self {
-        Self::with_to_prefix(ToPrefix::new(), data)
+        Self::with_to_namespace(ToNamespace::new(), data)
     }
 
-    pub(crate) fn with_to_prefix(to_prefix: ToPrefix, data: &'a XmlData) -> Self {
+    pub(crate) fn with_to_namespace(to_namespace: ToNamespace, data: &'a XmlData) -> Self {
+        let to_prefix = to_namespace
+            .iter()
+            .map(|(prefix, namespace)| (*namespace, *prefix))
+            .collect::<ToPrefix>();
         let prefix_stack = vec![to_prefix];
         Self { data, prefix_stack }
     }

@@ -7,7 +7,7 @@ use crate::namespace::{Namespace, NamespaceId};
 use crate::prefix::{Prefix, PrefixId};
 use crate::serialize::{Fullname, FullnameSerializer};
 use crate::xmldata::{Node, XmlData};
-use crate::xmlvalue::ToPrefix;
+use crate::xmlvalue::ToNamespace;
 
 /// Creation and lookup of names, namespaces and prefixes.
 impl XmlData {
@@ -115,32 +115,62 @@ impl XmlData {
         Ok(())
     }
 
-    pub(crate) fn to_prefix_seen(&self, node: Node) -> ToPrefix {
-        let mut fullname_serializer = FullnameSerializer::new(self);
-        let mut to_prefix = ToPrefix::new();
-        for edge in self.traverse(node) {
-            match edge {
-                NodeEdge::Start(sub_node) => {
-                    let element = self.element(node);
-                    if let Some(element) = element {
-                        fullname_serializer.push(&element.namespace_info.to_prefix);
-                        if node == sub_node {
-                            to_prefix = fullname_serializer.top().clone();
-                        }
+    pub(crate) fn to_namespace_in_scope(&self, node: Node) -> ToNamespace {
+        let mut to_namespace = ToNamespace::new();
+        for ancestor in self.ancestors(node) {
+            let element = self.element(ancestor);
+            if let Some(element) = element {
+                for (prefix_id, namespace_id) in element.prefixes() {
+                    // prefixes defined later override those defined earlier
+                    if to_namespace.contains_key(prefix_id) {
+                        continue;
                     }
-                }
-                NodeEdge::End(node) => {
-                    let element = self.element(node);
-                    if let Some(element) = element {
-                        fullname_serializer.pop(&element.namespace_info.to_prefix);
-                    }
+                    to_namespace.insert(*prefix_id, *namespace_id);
                 }
             }
         }
-        to_prefix
+        to_namespace
     }
 
     // deduplicate namespaces
     // if a namespace is used by multiple prefixes, use the first one
     // rename the names of the elements and attributes to use the first prefix
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use vector_map::VecMap;
+
+    #[test]
+    fn test_prefixes_in_scope() {
+        let mut data = XmlData::new();
+        let doc = data
+            .parse(r#"<doc xmlns:foo="http://example.com"><a><b xmlns:foo="http://example.com/foo" xmlns:bar="http://example.com/bar" /></a></doc>"#)
+            .unwrap();
+        let root = data.document_element(doc).unwrap();
+        let a = data.first_child(root).unwrap();
+        let b = data.first_child(a).unwrap();
+
+        let foo = data.prefix("foo").unwrap();
+        let ns = data.namespace("http://example.com").unwrap();
+        let ns_foo = data.namespace("http://example.com/foo").unwrap();
+        let ns_bar = data.namespace("http://example.com/bar").unwrap();
+        let bar = data.prefix("bar").unwrap();
+
+        assert_eq!(
+            data.to_namespace_in_scope(root),
+            VecMap::from_iter(vec![(foo, ns)])
+        );
+
+        assert_eq!(
+            data.to_namespace_in_scope(a),
+            VecMap::from_iter(vec![(foo, ns)])
+        );
+
+        assert_eq!(
+            data.to_namespace_in_scope(b),
+            VecMap::from_iter(vec![(foo, ns_foo), (bar, ns_bar)])
+        );
+    }
 }
