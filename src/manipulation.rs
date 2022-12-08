@@ -276,6 +276,11 @@ impl Xot {
         Ok(())
     }
 
+    // /// Wrap a node in a new element
+    // pub fn wrap(&mut self, node: Node, name_id: NameId) -> Result<Node, Error> {
+
+    // }
+
     fn add_structure_check(&self, parent: Option<Node>, child: Node) -> Result<(), Error> {
         let parent = parent.ok_or_else(|| {
             Error::InvalidOperation("Cannot create siblings for document root".into())

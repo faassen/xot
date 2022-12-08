@@ -373,6 +373,28 @@ fn test_clone_with_prefixes() {
 }
 
 #[test]
+fn test_remove_unwrap() {
+    let mut xot = Xot::new();
+    let doc = xot
+        .parse(r#"<doc><first/><a><one/><two/></a><second/></doc>"#)
+        .unwrap();
+    let el_id = xot
+        .children(xot.document_element(doc).unwrap())
+        .nth(1)
+        .unwrap();
+    // we found the a element
+    let a = xot.name("a").unwrap();
+    assert_eq!(xot.element(el_id).unwrap().name_id(), a);
+    // now we unwrap it
+    xot.unwrap(el_id).unwrap();
+
+    assert_eq!(
+        xot.serialize_to_string(doc),
+        r#"<doc><first/><one/><two/><second/></doc>"#
+    );
+}
+
+#[test]
 fn test_remove_unwrap_consolidation_single_element() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<doc>Alpha<a/>Beta</doc>"#).unwrap();
