@@ -7,9 +7,9 @@ use crate::name::NameId;
 use crate::namespace::NamespaceId;
 use crate::prefix::PrefixId;
 use crate::xmlvalue::{ToNamespace, ToPrefix, Value, ValueType};
-use crate::xotdata::{Node, XmlData};
+use crate::xotdata::{Node, Xot};
 
-impl XmlData {
+impl Xot {
     /// Serialize document to a writer.
     ///
     /// This only works with a root node.
@@ -191,7 +191,7 @@ impl XmlData {
 }
 
 pub(crate) struct FullnameSerializer<'a> {
-    data: &'a XmlData,
+    data: &'a Xot,
     prefix_stack: Vec<ToPrefix>,
 }
 
@@ -201,11 +201,11 @@ pub(crate) enum Fullname {
 }
 
 impl<'a> FullnameSerializer<'a> {
-    pub(crate) fn new(data: &'a XmlData) -> Self {
+    pub(crate) fn new(data: &'a Xot) -> Self {
         Self::with_to_namespace(ToNamespace::new(), data)
     }
 
-    pub(crate) fn with_to_namespace(to_namespace: ToNamespace, data: &'a XmlData) -> Self {
+    pub(crate) fn with_to_namespace(to_namespace: ToNamespace, data: &'a Xot) -> Self {
         let to_prefix = to_namespace
             .iter()
             .map(|(prefix, namespace)| (*namespace, *prefix))

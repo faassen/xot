@@ -1,9 +1,9 @@
 use crate::name::NameId;
 use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value};
-use crate::xotdata::{Node, XmlData};
+use crate::xotdata::{Node, Xot};
 
 /// XML node creation.
-impl XmlData {
+impl Xot {
     pub(crate) fn new_node(&mut self, value: Value) -> Node {
         Node::new(self.arena.new_node(value))
     }

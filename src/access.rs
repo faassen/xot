@@ -2,7 +2,7 @@ use indextree::NodeEdge as IndexTreeNodeEdge;
 
 use crate::error::Error;
 use crate::xmlvalue::{Value, ValueType};
-use crate::xotdata::{Node, XmlData};
+use crate::xotdata::{Node, Xot};
 
 /// Node edges.
 ///
@@ -15,7 +15,7 @@ pub enum NodeEdge {
 
 /// Read-only access to tree structure information.
 ///
-impl XmlData {
+impl Xot {
     /// Obtain the root element from the document root.
     /// Returns [`Error::NotRoot`](`crate::error::Error::NotRoot`) error if
     /// this is not the document root.

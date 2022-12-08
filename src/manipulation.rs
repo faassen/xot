@@ -1,4 +1,4 @@
-use crate::xotdata::{Node, XmlData};
+use crate::xotdata::{Node, Xot};
 
 use crate::error::Error;
 use crate::name::NameId;
@@ -20,7 +20,7 @@ use crate::xmlvalue::{Value, ValueType};
 /// happens if you remove a node causing two text
 /// nodes to be adjacent; the second text node is
 /// removed.
-impl XmlData {
+impl Xot {
     /// Append a child to the end of the children of the given parent.
     ///
     /// It is now the new last node of the parent.

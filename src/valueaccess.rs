@@ -1,24 +1,24 @@
 use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value, ValueType};
-use crate::xotdata::{Node, XmlData};
+use crate::xotdata::{Node, Xot};
 
 /// Obtain XML values and their types.
 ///
 /// These are handy if you only need to match against a single value or know
 /// the value type already. If you want to handle all value types, use a
 /// `match` statement on [`Value`](crate::xmlvalue::Value) instead.
-impl XmlData {
+impl Xot {
     /// Access to the XML value for this node.
     ///
     /// ```rust
-    /// use xot::{XmlData, Value};
+    /// use xot::{Xot, Value};
     ///
-    /// let mut data = XmlData::new();
+    /// let mut xot = Xot::new();
     ///
-    /// let doc = data.parse("<doc>Example</doc>").unwrap();
-    /// let root = data.document_element(doc).unwrap();
-    /// let doc_name = data.name("doc").unwrap();
+    /// let doc = xot.parse("<doc>Example</doc>").unwrap();
+    /// let root = xot.document_element(doc).unwrap();
+    /// let doc_name = xot.name("doc").unwrap();
     ///
-    /// match data.value(root) {
+    /// match xot.value(root) {
     ///    Value::Element(element) => {
     ///       assert_eq!(element.name_id(), doc_name);
     ///   }

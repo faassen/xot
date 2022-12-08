@@ -27,7 +27,7 @@ impl Node {
 /// The `XmlData` struct manages the XML data. It lets you
 /// access and manipulate one or more XML documents and
 /// fragments.
-pub struct XmlData {
+pub struct Xot {
     pub(crate) arena: XmlArena,
     pub(crate) namespace_lookup: NamespaceLookup,
     pub(crate) prefix_lookup: PrefixLookup,
@@ -36,14 +36,14 @@ pub struct XmlData {
     pub(crate) empty_prefix_id: PrefixId,
 }
 
-impl XmlData {
+impl Xot {
     /// Create a new `XmlData` instance.
     pub fn new() -> Self {
         let mut namespace_lookup = NamespaceLookup::new();
         let no_namespace_id = namespace_lookup.get_id_mut(Namespace::new("".into()));
         let mut prefix_lookup = PrefixLookup::new();
         let empty_prefix_id = prefix_lookup.get_id_mut(Prefix::new("".into()));
-        XmlData {
+        Xot {
             arena: XmlArena::new(),
             namespace_lookup,
             prefix_lookup,
@@ -64,7 +64,7 @@ impl XmlData {
     }
 }
 
-impl Default for XmlData {
+impl Default for Xot {
     fn default() -> Self {
         Self::new()
     }

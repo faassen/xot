@@ -3,17 +3,17 @@
 //! Xot is an XML library that lets you access manipulate XML documents as a tree in memory.
 //!  
 //! ```rust
-//! use xot::XmlData;
+//! use xot::Xot;
 //!
-//! let mut data = XmlData::new();
+//! let mut xot = Xot::new();
 //!
-//! let doc = data.parse("<p>Example</p>").unwrap();
-//! let root = data.document_element(doc).unwrap();
-//! let txt = data.first_child(root).unwrap();
-//! let txt_value = data.text_mut(txt).unwrap();
+//! let doc = xot.parse("<p>Example</p>").unwrap();
+//! let root = xot.document_element(doc).unwrap();
+//! let txt = xot.first_child(root).unwrap();
+//! let txt_value = xot.text_mut(txt).unwrap();
 //! txt_value.set("Hello, world!");
 //!
-//! assert_eq!(data.serialize_to_string(doc), "<p>Hello, world!</p>");
+//! assert_eq!(xot.serialize_to_string(doc), "<p>Hello, world!</p>");
 //! ```
 
 mod access;
@@ -35,4 +35,4 @@ mod xotdata;
 pub use access::NodeEdge;
 pub use error::Error;
 pub use xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value, ValueType};
-pub use xotdata::{Node, XmlData};
+pub use xotdata::{Node, Xot};

@@ -10,7 +10,7 @@ use crate::prefix::{Prefix, PrefixId};
 use crate::xmlvalue::{
     Attributes, Comment, Element, NamespaceInfo, ProcessingInstruction, Text, ToNamespace, Value,
 };
-use crate::xotdata::{Node, XmlData};
+use crate::xotdata::{Node, Xot};
 
 struct ElementBuilder {
     prefix: String,
@@ -64,7 +64,7 @@ impl ElementBuilder {
 }
 
 struct DocumentBuilder<'a> {
-    data: &'a mut XmlData,
+    data: &'a mut Xot,
     tree: NodeId,
     current_node_id: NodeId,
     name_id_builder: NameIdBuilder,
@@ -72,7 +72,7 @@ struct DocumentBuilder<'a> {
 }
 
 impl<'a> DocumentBuilder<'a> {
-    fn new(data: &'a mut XmlData) -> Self {
+    fn new(data: &'a mut Xot) -> Self {
         let root = data.arena.new_node(Value::Root);
         let mut name_id_builder = NameIdBuilder::new();
         let mut base_to_namespace = ToNamespace::new();
@@ -234,7 +234,7 @@ impl NameIdBuilder {
         &mut self,
         prefix: String,
         name: String,
-        data: &mut XmlData,
+        data: &mut Xot,
     ) -> Result<NameId, Error> {
         let prefix_clone = prefix.clone();
         let prefix_id = data.prefix_lookup.get_id_mut(Prefix::new(prefix));
@@ -249,7 +249,7 @@ impl NameIdBuilder {
         &mut self,
         prefix: String,
         name: String,
-        data: &mut XmlData,
+        data: &mut Xot,
     ) -> Result<NameId, Error> {
         // an unprefixed attribute is in no namespace, not
         // in the default namespace
@@ -271,7 +271,7 @@ impl NameIdBuilder {
         &mut self,
         prefix_id: PrefixId,
         name: String,
-        data: &mut XmlData,
+        data: &mut Xot,
     ) -> Result<NameId, ()> {
         let namespace_id = if !self.namespace_stack.is_empty() {
             self.top().get(&prefix_id)
@@ -284,17 +284,17 @@ impl NameIdBuilder {
     }
 }
 
-impl XmlData {
+impl Xot {
     /// Parse a string containing XML into a node.
     ///
     /// The returned node is the root node of the
     /// parsed XML document.
     ///
     /// ```rust
-    /// use xot::XmlData;
+    /// use xot::Xot;
     ///
-    /// let mut xml_data = XmlData::new();
-    /// let doc = xml_data.parse("<hello/>").unwrap();
+    /// let mut xot = Xot::new();
+    /// let doc = xot.parse("<hello/>").unwrap();
     /// ```
     pub fn parse(&mut self, xml: &str) -> Result<Node, Error> {
         use Token::*;

@@ -7,10 +7,10 @@ use crate::namespace::{Namespace, NamespaceId};
 use crate::prefix::{Prefix, PrefixId};
 use crate::serialize::{Fullname, FullnameSerializer};
 use crate::xmlvalue::ToNamespace;
-use crate::xotdata::{Node, XmlData};
+use crate::xotdata::{Node, Xot};
 
 /// Creation and lookup of names, namespaces and prefixes.
-impl XmlData {
+impl Xot {
     /// Look up name without a namespace.
     pub fn name(&self, name: &str) -> Option<NameId> {
         self.name_ns(name, self.no_namespace_id)
@@ -144,32 +144,32 @@ mod tests {
 
     #[test]
     fn test_prefixes_in_scope() {
-        let mut data = XmlData::new();
-        let doc = data
+        let mut xot = Xot::new();
+        let doc = xot
             .parse(r#"<doc xmlns:foo="http://example.com"><a><b xmlns:foo="http://example.com/foo" xmlns:bar="http://example.com/bar" /></a></doc>"#)
             .unwrap();
-        let root = data.document_element(doc).unwrap();
-        let a = data.first_child(root).unwrap();
-        let b = data.first_child(a).unwrap();
+        let root = xot.document_element(doc).unwrap();
+        let a = xot.first_child(root).unwrap();
+        let b = xot.first_child(a).unwrap();
 
-        let foo = data.prefix("foo").unwrap();
-        let ns = data.namespace("http://example.com").unwrap();
-        let ns_foo = data.namespace("http://example.com/foo").unwrap();
-        let ns_bar = data.namespace("http://example.com/bar").unwrap();
-        let bar = data.prefix("bar").unwrap();
+        let foo = xot.prefix("foo").unwrap();
+        let ns = xot.namespace("http://example.com").unwrap();
+        let ns_foo = xot.namespace("http://example.com/foo").unwrap();
+        let ns_bar = xot.namespace("http://example.com/bar").unwrap();
+        let bar = xot.prefix("bar").unwrap();
 
         assert_eq!(
-            data.to_namespace_in_scope(root),
+            xot.to_namespace_in_scope(root),
             VecMap::from_iter(vec![(foo, ns)])
         );
 
         assert_eq!(
-            data.to_namespace_in_scope(a),
+            xot.to_namespace_in_scope(a),
             VecMap::from_iter(vec![(foo, ns)])
         );
 
         assert_eq!(
-            data.to_namespace_in_scope(b),
+            xot.to_namespace_in_scope(b),
             VecMap::from_iter(vec![(foo, ns_foo), (bar, ns_bar)])
         );
     }
