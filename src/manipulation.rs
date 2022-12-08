@@ -7,19 +7,21 @@ use crate::xmlvalue::{Value, ValueType};
 /// ## Manipulation
 ///
 /// These methods maintain a well-formed XML structure:
-/// - There is only one document element under the root node which cannot be removed.
-/// - The only other nodes that can exist directly under the root node are comments and processing instructions.
-/// - You cannot add a node to a node that is not an element or the
-///   root node.
+/// - There is only one document element under the root node which cannot be
+///   removed.
+/// - The only other nodes that can exist directly under the root node are
+///   comments and processing instructions.
+/// - You cannot add a node to a node that is not an element or the root node.
 ///
-/// It also ensures that text nodes are consolidated:
-/// two text nodes never appear consecutively. If you
-/// add a text node after or before another text node,
-/// the text is appended to the existing text node,
-/// and the added text node is removed. This also
-/// happens if you remove a node causing two text
-/// nodes to be adjacent; the second text node is
-/// removed.
+/// It also ensures that text nodes are consolidated: two text nodes never
+/// appear consecutively. If you add a text node after or before another text
+/// node, the text is appended to the existing text node, and the added text
+/// node is removed. This also happens if you remove a node causing two text
+/// nodes to be adjacent; the second text node is removed.
+///
+/// Note that you can use these manipulation methods to move nodes between
+/// trees -- if you append a node that's in another tree, that node is first
+/// detached from the other tree before it's inserted into the new location.
 impl Xot {
     /// Append a child to the end of the children of the given parent.
     ///
