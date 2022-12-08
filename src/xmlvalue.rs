@@ -131,26 +131,39 @@ impl Element {
         self.attributes.insert(name_id, value.into());
     }
 
+    /// Remove an attribute.
+    pub fn remove_attribute(&mut self, name_id: NameId) {
+        self.attributes.remove(&name_id);
+    }
+
     /// Add a prefix to namespace mapping.
     pub fn set_prefix(&mut self, prefix_id: PrefixId, namespace_id: NamespaceId) {
         self.namespace_info.add(prefix_id, namespace_id);
     }
 
-    /// Get the prefix for a namespace, if defined
-    /// on this element. This does not check for
-    /// ancestor namespace definitions.
+    /// Get the prefix for a namespace, if defined on this element.
+    ///
+    /// This does not check for ancestor namespace definitions.
     pub fn get_prefix(&self, namespace_id: NamespaceId) -> Option<PrefixId> {
         self.namespace_info.to_prefix.get(&namespace_id).copied()
     }
 
-    /// Get the namespace for a prefix, if defined on
-    /// this element. This does not check for
-    /// ancestor namespace definitions.
+    /// Get the namespace for a prefix, if defined on this element.
+    ///
+    /// This does not check for ancestor namespace definitions.
     pub fn get_namespace(&self, prefix_id: PrefixId) -> Option<NamespaceId> {
         self.namespace_info.to_namespace.get(&prefix_id).copied()
     }
 
+    /// Remove namespace
+    ///
+    /// This also removes the prefix mapping for that namespace.
+    pub fn remove_namespace(&mut self, namespace_id: NamespaceId) {
+        self.namespace_info.remove_by_namespace_id(namespace_id);
+    }
+
     /// Get a map of prefixes to namespaces.
+    ///
     /// It only returns those prefixes that are defined
     /// on this element.
     pub fn prefixes(&self) -> &ToNamespace {
