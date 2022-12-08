@@ -19,37 +19,18 @@ There are two limitations:
 
 - Only the UTF-8 encoding is supported.
 
-## Xot approach
-
-Xot exposes a single `Xot` struct that you use to access, create and
-manipulate all your XML data. Multiple XML trees can exist in an `Xot`
-struct at the same time, and you're free to move nodes between these trees.
-
-The way to access and manipulate XML tree structure in Xot is through the
-`Node`. You can use various functions on `Xot` in order to access and
-manipulate information about nodes.
-
-To access and manipulate XML specific data, you use the `Value` for a node.
-This is an enum that's either an `Element`, `Text`, `Root`, `Comment` or
-`ProcessingInstruction`.
-
-XML names and namespaces in Xot are consolidated into ids. In order to
-construct or compare an element, you first need to get hold of a name.
-
 ## Why another XML library for Rust?
 
 Use Xot if you need to be able to access XML as a tree, mutate it where
-necessary, and serialize it back out again. Various XML tree libraries exist
-but none seem particularly interested in a complete tree manipulation API.
-
-Xot doesn't aim to be the fastest XML library out there, though it being Rust
-its performance should still be pretty good.
+necessary, and serialize it back out again. Various Rust XML tree libraries
+exist but none seem particularly interested in a complete tree manipulation
+API, so Xot aims to fill that gap.
 
 If you need to access XML as a tree, very high performance, and do not need
 tree manipulation or serialization at all, I recommend
 [roxmltree](https://github.com/RazrFalcon/roxmltree).
 
-For features such as tree manipulation and Xpath, you can use
+For extensive features such as Xpath as well as tree manipulation, you can use
 [libxml](https://github.com/KWARC/rust-libxml) which wraps the libxml2 C
 library. Unfortunately its tree access facilities aren't entirely complete, and
 I've experienced odd errors and even crashes when using it; this was part of

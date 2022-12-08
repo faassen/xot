@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
-//! Xot is an XML library that lets you access manipulate XML documents as a tree in memory.
+//! Xot is an XML library that lets you access manipulate XML documents as a
+//! tree in memory.
 //!  
 //! ```rust
 //! use xot::Xot;
@@ -15,6 +16,29 @@
 //!
 //! assert_eq!(xot.serialize_to_string(doc), "<p>Hello, world!</p>");
 //! ```
+//!
+//! ## Xot approach
+//!
+//! Xot exposes a single [`Xot`] struct that you use to access, create and
+//! manipulate all your XML data. Multiple XML trees can exist in an [`Xot`]
+//! struct at the same time, and you're free to move nodes between these trees.
+//!
+//! To access and manipulate XML tree structure through [`Node`]. This is a
+//! lightweight handle to a node in the XML tree. To navigate the tree use
+//! accessors such as [`Xot::first_child`] or iterators such a
+//! [`Xot::children`]. You then use operations such as [`Xot::append`] to
+//! manipulate the tree.
+//!
+//! To access and manipulate XML specific data, you use the [`Value`] for a
+//! node. This is an enum that's either an [`Element`], [`Text`], [`Comment`]
+//! or [`ProcessingInstruction`], or `Root` (which has no value). You can use
+//! [`Xot::value`] to get the [`Value`]. Sometimes it's more handy to use the
+//! specific accessors for a value, such a [`Xot::element`] or [`Xot::text`].
+//!
+//! XML names and namespaces in Xot are referenced by ids. In order to
+//! construct or compare an element, you first need to get hold of a name. To
+//! access a name, use [`Xot::name`]. To create a new name if necessary, use
+//! [`Xot::add_name`].
 
 mod access;
 mod creation;
