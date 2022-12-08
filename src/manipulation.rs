@@ -174,13 +174,6 @@ impl Xot {
     ///
     /// The cloned nodes are not attached to the tree.
     pub fn clone(&mut self, node: Node) -> Node {
-        // get all prefixes defined in scope
-        let to_namespace = if let Some(node) = self.parent(node) {
-            self.to_namespace_in_scope(node)
-        } else {
-            ToNamespace::new()
-        };
-
         let mut to_create = Vec::new();
         enum OpenClose {
             Open(Value),
@@ -218,9 +211,23 @@ impl Xot {
         let node = self.first_child(top).unwrap();
         // remove top node again
         top.get().remove(self.arena_mut());
+        node
+    }
 
+    /// Clone a node and its descendants into a new fragment
+    ///
+    /// If the cloned node is an element, required namespace prefixes that are
+    /// in scope are added to the cloned node.
+    pub fn clone_with_prefixes(&mut self, node: Node) -> Node {
+        // get all prefixes defined in scope
+        let to_namespace = if let Some(node) = self.parent(node) {
+            self.to_namespace_in_scope(node)
+        } else {
+            ToNamespace::new()
+        };
+        let clone = self.clone(node);
         // add any prefixes from outer scope we may need
-        if let Some(element) = self.element_mut(node) {
+        if let Some(element) = self.element_mut(clone) {
             for (prefix, ns) in to_namespace {
                 if element.prefixes().contains_key(&prefix) {
                     continue;
@@ -228,7 +235,7 @@ impl Xot {
                 element.set_prefix(prefix, ns);
             }
         }
-        node
+        clone
     }
 
     fn add_structure_check(&self, parent: Option<Node>, child: Node) -> Result<(), Error> {
