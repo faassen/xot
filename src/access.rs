@@ -19,7 +19,7 @@ impl XmlData {
     /// Obtain the root element from the document root.
     /// Returns [`Error::NotRoot`](`crate::error::Error::NotRoot`) error if
     /// this is not the document root.
-    pub fn root_element(&self, node: Node) -> Result<Node, Error> {
+    pub fn document_element(&self, node: Node) -> Result<Node, Error> {
         if self.value_type(node) != ValueType::Root {
             return Err(Error::NotRoot(node));
         }
@@ -39,7 +39,7 @@ impl XmlData {
     /// fragment.
     pub fn top_element(&self, node: Node) -> Node {
         if self.value_type(node) == ValueType::Root {
-            return self.root_element(node).unwrap();
+            return self.document_element(node).unwrap();
         }
         let mut top = node;
         for ancestor in self.ancestors(node) {

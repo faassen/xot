@@ -62,18 +62,6 @@ impl XmlData {
     pub(crate) fn arena_mut(&mut self) -> &mut XmlArena {
         &mut self.arena
     }
-
-    /// Access to the XML value for this node.
-    #[inline]
-    pub fn value(&self, node_id: Node) -> &Value {
-        self.arena[node_id.0].get()
-    }
-
-    /// Mutable access to the XML value for this node.
-    #[inline]
-    pub fn value_mut(&mut self, node_id: Node) -> &mut Value {
-        self.arena[node_id.0].get_mut()
-    }
 }
 
 impl Default for XmlData {

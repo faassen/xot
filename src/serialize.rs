@@ -14,7 +14,7 @@ impl XmlData {
     ///
     /// This only works with a root node.
     pub fn serialize(&mut self, node: Node, w: &mut impl Write) {
-        let root_element = self.root_element(node).unwrap();
+        let root_element = self.document_element(node).unwrap();
         self.create_missing_prefixes(root_element).unwrap();
         self.serialize_or_missing_prefix(node, w).unwrap();
     }

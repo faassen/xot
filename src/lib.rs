@@ -7,13 +7,13 @@
 //!
 //! let mut data = XmlData::new();
 //!
-//! let doc = data.parse("<doc>Example</doc>").unwrap();
-//! let root = data.root_element(doc).unwrap();
+//! let doc = data.parse("<p>Example</p>").unwrap();
+//! let root = data.document_element(doc).unwrap();
 //! let txt = data.first_child(root).unwrap();
 //! let txt_value = data.text_mut(txt).unwrap();
 //! txt_value.set("Hello, world!");
 //!
-//! assert_eq!(data.serialize_to_string(doc), "<doc>Hello, world!</doc>");
+//! assert_eq!(data.serialize_to_string(doc), "<p>Hello, world!</p>");
 //! ```
 
 mod access;

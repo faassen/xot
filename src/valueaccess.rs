@@ -7,12 +7,43 @@ use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value, Valu
 /// the value type already. If you want to handle all value types, use a
 /// `match` statement on [`Value`](crate::xmlvalue::Value) instead.
 impl XmlData {
+    /// Access to the XML value for this node.
+    ///
+    /// ```rust
+    /// use xot::{XmlData, Value};
+    ///
+    /// let mut data = XmlData::new();
+    ///
+    /// let doc = data.parse("<doc>Example</doc>").unwrap();
+    /// let root = data.document_element(doc).unwrap();
+    /// let doc_name = data.name("doc").unwrap();
+    ///
+    /// match data.value(root) {
+    ///    Value::Element(element) => {
+    ///       assert_eq!(element.name_id(), doc_name);
+    ///   }
+    ///   _ => { }
+    /// }
+    /// ```
+    #[inline]
+    pub fn value(&self, node_id: Node) -> &Value {
+        self.arena[node_id.get()].get()
+    }
+
+    /// Mutable access to the XML value for this node.
+    #[inline]
+    pub fn value_mut(&mut self, node_id: Node) -> &mut Value {
+        self.arena[node_id.get()].get_mut()
+    }
+
     /// Get the [`ValueType`](crate::xmlvalue::ValueType) of a node.
     pub fn value_type(&self, node: Node) -> ValueType {
         self.value(node).value_type()
     }
 
     /// Return true if node is directly under the document root.
+    /// This means it's either the document element or a comment or
+    /// processing instruction.
     pub fn is_under_root(&self, node: Node) -> bool {
         if let Some(parent_id) = self.parent(node) {
             self.value_type(parent_id) == ValueType::Root
