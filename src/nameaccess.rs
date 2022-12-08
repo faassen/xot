@@ -9,7 +9,7 @@ use crate::serialize::{Fullname, FullnameSerializer};
 use crate::xmlvalue::ToNamespace;
 use crate::xotdata::{Node, Xot};
 
-/// Creation and lookup of names, namespaces and prefixes.
+/// ## Names, namespaces and prefixes.
 impl Xot {
     /// Look up name without a namespace.
     pub fn name(&self, name: &str) -> Option<NameId> {

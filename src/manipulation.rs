@@ -3,7 +3,7 @@ use crate::xotdata::{Node, Xot};
 use crate::access::NodeEdge;
 use crate::error::Error;
 use crate::name::NameId;
-use crate::xmlvalue::{Value, ValueType};
+use crate::xmlvalue::{ToNamespace, Value, ValueType};
 
 /// ## Manipulation
 ///
@@ -174,6 +174,13 @@ impl Xot {
     ///
     /// The cloned nodes are not attached to the tree.
     pub fn clone(&mut self, node: Node) -> Node {
+        // get all prefixes defined in scope
+        let to_namespace = if let Some(node) = self.parent(node) {
+            self.to_namespace_in_scope(node)
+        } else {
+            ToNamespace::new()
+        };
+
         let mut to_create = Vec::new();
         enum OpenClose {
             Open(Value),
@@ -211,6 +218,16 @@ impl Xot {
         let node = self.first_child(top).unwrap();
         // remove top node again
         top.get().remove(self.arena_mut());
+
+        // add any prefixes from outer scope we may need
+        if let Some(element) = self.element_mut(node) {
+            for (prefix, ns) in to_namespace {
+                if element.prefixes().contains_key(&prefix) {
+                    continue;
+                }
+                element.set_prefix(prefix, ns);
+            }
+        }
         node
     }
 

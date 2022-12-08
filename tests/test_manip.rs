@@ -323,3 +323,27 @@ fn test_clone() {
         r#"<a>Hello!</a>"#
     );
 }
+
+#[test]
+fn test_clone_namespace() {
+    let mut xot = Xot::new();
+    let root = xot
+        .parse(r#"<doc xmlns="http://example.com"><a>Hello!</a></doc>"#)
+        .unwrap();
+    let doc_id = xot.document_element(root).unwrap();
+    let a_id = xot.first_child(doc_id).unwrap();
+    let a_id_clone = xot.clone(a_id);
+    // change original won't affect the clone
+    xot.text_mut(xot.first_child(a_id).unwrap())
+        .unwrap()
+        .set("Goodbye!");
+    assert_eq!(
+        xot.serialize_to_string(root),
+        r#"<doc xmlns="http://example.com"><a>Goodbye!</a></doc>"#
+    );
+    assert!(!xot.is_removed(a_id_clone));
+    assert_eq!(
+        xot.serialize_fragment_to_string(a_id_clone),
+        r#"<a xmlns="http://example.com">Hello!</a>"#
+    );
+}
