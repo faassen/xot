@@ -133,6 +133,8 @@ impl Xot {
     }
 
     /// Traverse over node edges in reverse order.
+    ///
+    /// Like [`Xot::traverse`] but in reverse order.
     pub fn reverse_traverse(&self, node: Node) -> impl Iterator<Item = NodeEdge> + '_ {
         node.get()
             .reverse_traverse(self.arena())

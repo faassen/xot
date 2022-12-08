@@ -543,3 +543,85 @@ fn test_unduplicate_named_namespace() {
         r#"<doc xmlns="http://example.com"><a>Hello!</a></doc>"#
     );
 }
+
+#[test]
+fn test_replace_node() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc>Alpha</doc>"#).unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    let replaced = xot.first_child(doc_el).unwrap();
+
+    let name_p = xot.add_name("p");
+    let replacing = xot.new_element(name_p);
+
+    xot.replace(replaced, replacing).unwrap();
+
+    assert_eq!(xot.serialize_to_string(doc), r#"<doc><p/></doc>"#);
+}
+
+#[test]
+fn test_detach() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc><a><b/></a></doc>"#).unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    let detached = xot.first_child(doc_el).unwrap();
+
+    xot.detach(detached).unwrap();
+
+    assert_eq!(xot.serialize_to_string(doc), r#"<doc/>"#);
+    assert_eq!(xot.serialize_fragment_to_string(detached), r#"<a><b/></a>"#);
+}
+
+#[test]
+fn test_replace_node_reconciliate_text_before() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc>Alpha<x/></doc>"#).unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    let replaced = xot.children(doc_el).nth(1).unwrap();
+
+    let replacing = xot.new_text("X");
+
+    xot.replace(replaced, replacing).unwrap();
+
+    let found = xot.first_child(doc_el).unwrap();
+    assert_eq!(xot.text_str(found), Some("AlphaX"));
+
+    assert_eq!(xot.serialize_to_string(doc), r#"<doc>AlphaX</doc>"#);
+}
+
+#[test]
+fn test_replace_node_reconciliate_text_after() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc><x/>Alpha</doc>"#).unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    let replaced = xot.first_child(doc_el).unwrap();
+
+    let replacing = xot.new_text("X");
+
+    xot.replace(replaced, replacing).unwrap();
+
+    let found = xot.first_child(doc_el).unwrap();
+    assert_eq!(xot.text_str(found), Some("XAlpha"));
+
+    assert_eq!(xot.serialize_to_string(doc), r#"<doc>XAlpha</doc>"#);
+}
+
+#[test]
+fn test_replace_node_reconciliates_where_detached() {
+    let mut xot = Xot::new();
+    let doc_a = xot.parse(r#"<doc><x/></doc>"#).unwrap();
+    let doc_a_el = xot.document_element(doc_a).unwrap();
+    let replaced = xot.first_child(doc_a_el).unwrap();
+
+    let doc_b = xot.parse(r#"<doc>a<y/>b</doc>"#).unwrap();
+    let doc_b_el = xot.document_element(doc_b).unwrap();
+    let replacing = xot.children(doc_b_el).nth(1).unwrap();
+
+    xot.replace(replaced, replacing).unwrap();
+
+    let found = xot.first_child(doc_b_el).unwrap();
+    assert_eq!(xot.text_str(found), Some("ab"));
+
+    assert_eq!(xot.serialize_to_string(doc_a), r#"<doc><y/></doc>"#);
+    assert_eq!(xot.serialize_to_string(doc_b), r#"<doc>ab</doc>"#);
+}

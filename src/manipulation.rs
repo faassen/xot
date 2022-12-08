@@ -312,6 +312,38 @@ impl Xot {
         Ok(wrapper)
     }
 
+    /// Replace a node with another one in the tree.
+    ///
+    /// The replaced node is removed.
+    pub fn replace(&mut self, replaced_node: Node, replacing_node: Node) -> Result<(), Error> {
+        if self.is_root(replaced_node) {
+            return Err(Error::InvalidOperation(
+                "Cannot replace document root".to_string(),
+            ));
+        }
+        // we forbid replacing nodes under the root too. Theoretically
+        // it would be possible but it's tricky to check and very uncommon.
+        if self.is_under_root(replaced_node) {
+            return Err(Error::InvalidOperation(
+                "Cannot replace nodes under document root".to_string(),
+            ));
+        }
+        // there should always be a parent as we're not in document element level
+        let parent = self.parent(replaced_node).unwrap();
+        // record previous sibling
+        let previous_node = self.previous_sibling(replaced_node);
+        // remove the replaced node, use low-level remove_tree to avoid
+        // text node reconciliation
+        replaced_node.get().remove_subtree(self.arena_mut());
+        // now insert the replacing node
+        if let Some(previous_node) = previous_node {
+            self.insert_after(previous_node, replacing_node)?;
+        } else {
+            self.prepend(parent, replacing_node)?;
+        }
+        Ok(())
+    }
+
     fn add_structure_check(&self, parent: Option<Node>, child: Node) -> Result<(), Error> {
         let parent = parent.ok_or_else(|| {
             Error::InvalidOperation("Cannot create siblings for document root".into())
