@@ -187,9 +187,11 @@ impl Xot {
         to_namespace
     }
 
-    // deduplicate namespaces
-    // if a namespace is used by multiple prefixes, use the first one
-    // rename the names of the elements and attributes to use the first prefix
+    pub(crate) fn base_to_namespace(&self) -> ToNamespace {
+        let mut to_namespace = ToNamespace::new();
+        to_namespace.insert(self.xml_prefix_id, self.xml_namespace_id);
+        to_namespace
+    }
 }
 
 #[cfg(test)]

@@ -38,7 +38,7 @@ impl ElementBuilder {
             let name_id = document_builder.name_id_builder.attribute_name_id(
                 prefix,
                 name,
-                document_builder.data,
+                document_builder.xot,
             )?;
             attributes.insert(name_id, value);
         }
@@ -53,7 +53,7 @@ impl ElementBuilder {
         let name_id = document_builder.name_id_builder.element_name_id(
             self.prefix,
             self.name,
-            document_builder.data,
+            document_builder.xot,
         )?;
         Ok(Element {
             name_id,
@@ -64,7 +64,7 @@ impl ElementBuilder {
 }
 
 struct DocumentBuilder<'a> {
-    data: &'a mut Xot,
+    xot: &'a mut Xot,
     tree: NodeId,
     current_node_id: NodeId,
     name_id_builder: NameIdBuilder,
@@ -72,14 +72,14 @@ struct DocumentBuilder<'a> {
 }
 
 impl<'a> DocumentBuilder<'a> {
-    fn new(data: &'a mut Xot) -> Self {
-        let root = data.arena.new_node(Value::Root);
-        let mut name_id_builder = NameIdBuilder::new();
+    fn new(xot: &'a mut Xot) -> Self {
+        let root = xot.arena.new_node(Value::Root);
+        let mut name_id_builder = NameIdBuilder::new(xot.base_to_namespace());
         let mut base_to_namespace = ToNamespace::new();
-        base_to_namespace.insert(data.empty_prefix_id, data.no_namespace_id);
+        base_to_namespace.insert(xot.empty_prefix_id, xot.no_namespace_id);
         name_id_builder.push(&base_to_namespace);
         DocumentBuilder {
-            data,
+            xot,
             tree: root,
             current_node_id: root,
             name_id_builder,
@@ -93,11 +93,11 @@ impl<'a> DocumentBuilder<'a> {
 
     fn prefix(&mut self, prefix: &'a str, namespace_uri: &'a str) {
         let prefix_id = self
-            .data
+            .xot
             .prefix_lookup
             .get_id_mut(Prefix::new(prefix.into()));
         let namespace_id = self
-            .data
+            .xot
             .namespace_lookup
             .get_id_mut(Namespace::new(namespace_uri.into()));
         self.element_builder
@@ -125,8 +125,8 @@ impl<'a> DocumentBuilder<'a> {
     }
 
     fn add(&mut self, value: Value) -> NodeId {
-        let node_id = self.data.arena.new_node(value);
-        self.current_node_id.append(node_id, &mut self.data.arena);
+        let node_id = self.xot.arena.new_node(value);
+        self.current_node_id.append(node_id, &mut self.xot.arena);
         node_id
     }
 
@@ -145,7 +145,7 @@ impl<'a> DocumentBuilder<'a> {
     }
 
     fn close_element_immediate(&mut self) {
-        let current_node = self.data.arena.get(self.current_node_id).unwrap();
+        let current_node = self.xot.arena.get(self.current_node_id).unwrap();
         if let Value::Element(element) = current_node.get() {
             self.name_id_builder
                 .pop(&element.namespace_info.to_namespace);
@@ -154,12 +154,10 @@ impl<'a> DocumentBuilder<'a> {
     }
 
     fn close_element(&mut self, prefix: &str, name: &str) -> Result<(), Error> {
-        let name_id = self.name_id_builder.element_name_id(
-            prefix.to_string(),
-            name.to_string(),
-            self.data,
-        )?;
-        let current_node = self.data.arena.get(self.current_node_id).unwrap();
+        let name_id =
+            self.name_id_builder
+                .element_name_id(prefix.to_string(), name.to_string(), self.xot)?;
+        let current_node = self.xot.arena.get(self.current_node_id).unwrap();
         if let Value::Element(element) = current_node.get() {
             if element.name_id != name_id {
                 return Err(Error::InvalidCloseTag(prefix.to_string(), name.to_string()));
@@ -189,7 +187,7 @@ impl<'a> DocumentBuilder<'a> {
     }
 
     fn is_current_node_root(&self) -> bool {
-        matches!(self.data.arena[self.current_node_id].get(), Value::Root)
+        matches!(self.xot.arena[self.current_node_id].get(), Value::Root)
     }
 }
 
@@ -198,23 +196,18 @@ struct NameIdBuilder {
 }
 
 impl NameIdBuilder {
-    fn new() -> Self {
-        Self {
-            namespace_stack: Vec::new(),
-        }
+    fn new(to_namespace: ToNamespace) -> Self {
+        let namespace_stack = vec![to_namespace];
+        Self { namespace_stack }
     }
 
     fn push(&mut self, to_namespace: &ToNamespace) {
         if to_namespace.is_empty() {
             return;
         }
-        let entry = if self.namespace_stack.is_empty() {
-            to_namespace.clone()
-        } else {
-            let mut entry = self.top().clone();
-            entry.extend(to_namespace);
-            entry
-        };
+        // can always use top as there's a bottom entry
+        let mut entry = self.top().clone();
+        entry.extend(to_namespace);
         self.namespace_stack.push(entry);
     }
 
@@ -222,6 +215,7 @@ impl NameIdBuilder {
         if to_namespace.is_empty() {
             return;
         }
+        // should always be able to pop as there's a bottom entry
         self.namespace_stack.pop();
     }
 
@@ -234,11 +228,11 @@ impl NameIdBuilder {
         &mut self,
         prefix: String,
         name: String,
-        data: &mut Xot,
+        xot: &mut Xot,
     ) -> Result<NameId, Error> {
         let prefix_clone = prefix.clone();
-        let prefix_id = data.prefix_lookup.get_id_mut(Prefix::new(prefix));
-        if let Ok(name_id) = self.name_id_with_prefix_id(prefix_id, name, data) {
+        let prefix_id = xot.prefix_lookup.get_id_mut(Prefix::new(prefix));
+        if let Ok(name_id) = self.name_id_with_prefix_id(prefix_id, name, xot) {
             Ok(name_id)
         } else {
             Err(Error::UnknownPrefix(prefix_clone))
@@ -249,18 +243,18 @@ impl NameIdBuilder {
         &mut self,
         prefix: String,
         name: String,
-        data: &mut Xot,
+        xot: &mut Xot,
     ) -> Result<NameId, Error> {
         // an unprefixed attribute is in no namespace, not
         // in the default namespace
         // https://stackoverflow.com/questions/3312390/xml-default-namespaces-for-unqualified-attribute-names
         let prefix_clone = prefix.clone();
-        let prefix_id = data.prefix_lookup.get_id_mut(Prefix::new(prefix));
-        if prefix_id == data.empty_prefix_id {
-            let name = Name::new(name, data.no_namespace_id);
-            return Ok(data.name_lookup.get_id_mut(name));
+        let prefix_id = xot.prefix_lookup.get_id_mut(Prefix::new(prefix));
+        if prefix_id == xot.empty_prefix_id {
+            let name = Name::new(name, xot.no_namespace_id);
+            return Ok(xot.name_lookup.get_id_mut(name));
         }
-        if let Ok(name_id) = self.name_id_with_prefix_id(prefix_id, name, data) {
+        if let Ok(name_id) = self.name_id_with_prefix_id(prefix_id, name, xot) {
             Ok(name_id)
         } else {
             Err(Error::UnknownPrefix(prefix_clone))
@@ -271,7 +265,7 @@ impl NameIdBuilder {
         &mut self,
         prefix_id: PrefixId,
         name: String,
-        data: &mut Xot,
+        xot: &mut Xot,
     ) -> Result<NameId, ()> {
         let namespace_id = if !self.namespace_stack.is_empty() {
             self.top().get(&prefix_id)
@@ -280,7 +274,7 @@ impl NameIdBuilder {
         };
         let namespace_id = namespace_id.ok_or(())?;
         let name = Name::new(name, *namespace_id);
-        Ok(data.name_lookup.get_id_mut(name))
+        Ok(xot.name_lookup.get_id_mut(name))
     }
 }
 

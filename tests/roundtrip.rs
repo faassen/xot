@@ -47,6 +47,10 @@ fn roundtrip(#[values(
   (
     "processing instruction with data",
     r#"<root><?pi foo bar?></root>"#,
+  ),
+  (
+    "xml prefix supported",
+    r#"<root xml:id="3"/>"#,
   )
 )] value: RoundTripEntry) {
     let (name, xml) = value;

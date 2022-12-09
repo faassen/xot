@@ -37,6 +37,8 @@ pub struct Xot {
     pub(crate) name_lookup: NameLookup,
     pub(crate) no_namespace_id: NamespaceId,
     pub(crate) empty_prefix_id: PrefixId,
+    pub(crate) xml_namespace_id: NamespaceId,
+    pub(crate) xml_prefix_id: PrefixId,
 }
 
 impl Xot {
@@ -46,6 +48,10 @@ impl Xot {
         let no_namespace_id = namespace_lookup.get_id_mut(Namespace::new("".into()));
         let mut prefix_lookup = PrefixLookup::new();
         let empty_prefix_id = prefix_lookup.get_id_mut(Prefix::new("".into()));
+        let xml_namespace_id = namespace_lookup.get_id_mut(Namespace::new(
+            "http://www.w3.org/XML/1998/namespace".into(),
+        ));
+        let xml_prefix_id = prefix_lookup.get_id_mut(Prefix::new("xml".into()));
         Xot {
             arena: XmlArena::new(),
             namespace_lookup,
@@ -53,6 +59,8 @@ impl Xot {
             name_lookup: NameLookup::new(),
             no_namespace_id,
             empty_prefix_id,
+            xml_namespace_id,
+            xml_prefix_id,
         }
     }
 

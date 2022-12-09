@@ -193,7 +193,7 @@ impl Xot {
 }
 
 pub(crate) struct FullnameSerializer<'a> {
-    data: &'a Xot,
+    xot: &'a Xot,
     prefix_stack: Vec<ToPrefix>,
 }
 
@@ -203,17 +203,17 @@ pub(crate) enum Fullname {
 }
 
 impl<'a> FullnameSerializer<'a> {
-    pub(crate) fn new(data: &'a Xot) -> Self {
-        Self::with_to_namespace(ToNamespace::new(), data)
+    pub(crate) fn new(xot: &'a Xot) -> Self {
+        Self::with_to_namespace(ToNamespace::new(), xot)
     }
 
-    pub(crate) fn with_to_namespace(to_namespace: ToNamespace, data: &'a Xot) -> Self {
+    pub(crate) fn with_to_namespace(to_namespace: ToNamespace, xot: &'a Xot) -> Self {
         let to_prefix = to_namespace
             .iter()
             .map(|(prefix, namespace)| (*namespace, *prefix))
             .collect::<ToPrefix>();
         let prefix_stack = vec![to_prefix];
-        Self { data, prefix_stack }
+        Self { xot, prefix_stack }
     }
 
     pub(crate) fn push(&mut self, to_prefix: &ToPrefix) {
@@ -243,9 +243,11 @@ impl<'a> FullnameSerializer<'a> {
     }
 
     pub(crate) fn fullname(&self, name_id: NameId) -> Fullname {
-        let name = self.data.name_lookup.get_value(name_id);
-        if name.namespace_id == self.data.no_namespace_id {
+        let name = self.xot.name_lookup.get_value(name_id);
+        if name.namespace_id == self.xot.no_namespace_id {
             return Fullname::Name(name.name.to_string());
+        } else if name.namespace_id == self.xot.xml_namespace_id {
+            return Fullname::Name(format!("xml:{}", name.name));
         }
         let prefix_id = if !self.prefix_stack.is_empty() {
             self.top().get(&name.namespace_id)
@@ -253,10 +255,10 @@ impl<'a> FullnameSerializer<'a> {
             None
         };
         if let Some(prefix_id) = prefix_id {
-            if *prefix_id == self.data.empty_prefix_id {
+            if *prefix_id == self.xot.empty_prefix_id {
                 Fullname::Name(name.name.to_string())
             } else {
-                let prefix = self.data.prefix_lookup.get_value(*prefix_id);
+                let prefix = self.xot.prefix_lookup.get_value(*prefix_id);
                 Fullname::Name(format!("{}:{}", prefix, name.name))
             }
         } else {
