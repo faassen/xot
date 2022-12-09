@@ -115,12 +115,12 @@ impl Xot {
         Ok(())
     }
 
-    /// Unduplicate namespaces.
+    /// Deduplicate namespaces.
     ///
     /// Any namespace definition lower down that
     /// defines a prefix for a namespace that is already known in an ancestor
     /// is removed.
-    pub fn unduplicate_namespaces(&mut self, node: Node) {
+    pub fn deduplicate_namespaces(&mut self, node: Node) {
         let mut fullname_serializer = FullnameSerializer::new(self);
         let mut fixup_nodes = Vec::new();
         // determine nodes we need to fix up

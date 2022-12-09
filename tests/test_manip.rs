@@ -516,12 +516,12 @@ fn test_wrap_middle() {
 }
 
 #[test]
-fn test_unduplicate_namespace() {
+fn test_deduplicate_namespace() {
     let mut xot = Xot::new();
     let root = xot
         .parse(r#"<doc xmlns="http://example.com"><a xmlns="http://example.com">Hello!</a></doc>"#)
         .unwrap();
-    xot.unduplicate_namespaces(root);
+    xot.deduplicate_namespaces(root);
     assert_eq!(
         xot.serialize_to_string(root),
         r#"<doc xmlns="http://example.com"><a>Hello!</a></doc>"#
@@ -529,12 +529,12 @@ fn test_unduplicate_namespace() {
 }
 
 #[test]
-fn test_unduplicate_named_namespace() {
+fn test_deduplicate_named_namespace() {
     let mut xot = Xot::new();
     let root = xot
         .parse(r#"<doc xmlns="http://example.com"><foo:a xmlns:foo="http://example.com">Hello!</foo:a></doc>"#)
         .unwrap();
-    xot.unduplicate_namespaces(root);
+    xot.deduplicate_namespaces(root);
     assert_eq!(
         xot.serialize_to_string(root),
         r#"<doc xmlns="http://example.com"><a>Hello!</a></doc>"#
