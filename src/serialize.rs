@@ -20,11 +20,12 @@ impl Xot {
         self.serialize_or_missing_prefix(node, w).unwrap();
     }
 
-    /// Serialize a fragment to a writer.
+    /// Serialize a node to a writer.
     ///
-    /// This works with any node and produces an XML fragment.
-    /// Any prefixes needed for the fragment are added to the root element.
-    pub fn serialize_fragment(&mut self, node: Node, w: &mut impl Write) {
+    /// This works with any node and produces an XML fragment for this node. If
+    /// the node is an element, any prefixes needed for the fragment are added
+    /// to this element.
+    pub fn serialize_node(&mut self, node: Node, w: &mut impl Write) {
         let root_element = self.top_element(node);
         self.create_missing_prefixes(root_element).unwrap();
         // collect namespace prefixes for all ancestors of the fragment
@@ -38,7 +39,7 @@ impl Xot {
             ToNamespace::new()
         };
         // now serialize with those additional prefixes
-        self.serialize_node(node, w, to_namespace).unwrap();
+        self.serialize_node_helper(node, w, to_namespace).unwrap();
     }
 
     /// Serialize document.
@@ -50,10 +51,10 @@ impl Xot {
         if self.value_type(node) != ValueType::Root {
             panic!("Can only serialize root nodes");
         }
-        self.serialize_node(node, w, ToNamespace::new())
+        self.serialize_node_helper(node, w, ToNamespace::new())
     }
 
-    fn serialize_node(
+    fn serialize_node_helper(
         &self,
         node: Node,
         w: &mut impl Write,
@@ -91,12 +92,12 @@ impl Xot {
         String::from_utf8(buf).unwrap()
     }
 
-    /// Serialize a fragment to a string.
+    /// Serialize a node to a string.
     ///
     /// This works with any node and produces an XML fragment.
-    pub fn serialize_fragment_to_string(&mut self, node: Node) -> String {
+    pub fn serialize_node_to_string(&mut self, node: Node) -> String {
         let mut buf = Vec::new();
-        self.serialize_fragment(node, &mut buf);
+        self.serialize_node(node, &mut buf);
         String::from_utf8(buf).unwrap()
     }
 

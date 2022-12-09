@@ -6,8 +6,7 @@ tree which you can then manipulate, and serialize back out to XML.
 ## Support
 
 Xot has well-rounded XML support. Supported are namespaces for both elements
-and attributes. You can also get comments and processing instructions. Both
-documents as well as XML fragments are supported.
+and attributes. You can also get comments and processing instructions.
 
 Xot exposes the entire XML structure for access and programmatic manipulation.
 

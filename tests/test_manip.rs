@@ -318,10 +318,7 @@ fn test_clone() {
         r#"<doc><a>Goodbye!</a></doc>"#
     );
     assert!(!xot.is_removed(a_id_clone));
-    assert_eq!(
-        xot.serialize_fragment_to_string(a_id_clone),
-        r#"<a>Hello!</a>"#
-    );
+    assert_eq!(xot.serialize_node_to_string(a_id_clone), r#"<a>Hello!</a>"#);
 }
 
 #[test]
@@ -343,7 +340,7 @@ fn test_clone_with_namespaces() {
     );
     assert!(!xot.is_removed(a_id_clone));
     assert_eq!(
-        xot.serialize_fragment_to_string(a_id_clone),
+        xot.serialize_node_to_string(a_id_clone),
         r#"<n0:a xmlns:n0="http://example.com">Hello!</n0:a>"#
     );
 }
@@ -367,7 +364,7 @@ fn test_clone_with_prefixes() {
     );
     assert!(!xot.is_removed(a_id_clone));
     assert_eq!(
-        xot.serialize_fragment_to_string(a_id_clone),
+        xot.serialize_node_to_string(a_id_clone),
         r#"<a xmlns="http://example.com">Hello!</a>"#
     );
 }
@@ -569,7 +566,7 @@ fn test_detach() {
     xot.detach(detached).unwrap();
 
     assert_eq!(xot.serialize_to_string(doc), r#"<doc/>"#);
-    assert_eq!(xot.serialize_fragment_to_string(detached), r#"<a><b/></a>"#);
+    assert_eq!(xot.serialize_node_to_string(detached), r#"<a><b/></a>"#);
 }
 
 #[test]
