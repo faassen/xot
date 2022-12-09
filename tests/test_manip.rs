@@ -240,7 +240,7 @@ fn test_remove_text_consolidation() {
         .unwrap();
     // we found the a element
     let a = xot.name("a").unwrap();
-    assert_eq!(xot.element(el_id).unwrap().name_id(), a);
+    assert_eq!(xot.element(el_id).unwrap().name(), a);
     // now we remove it
     xot.remove(el_id).unwrap();
     // we should have a single text node
@@ -268,7 +268,7 @@ fn test_move_text_consolidation() {
         .unwrap();
     // we found the a element
     let a = xot.name("a").unwrap();
-    assert_eq!(xot.element(a_id).unwrap().name_id(), a);
+    assert_eq!(xot.element(a_id).unwrap().name(), a);
     // now we append it into doc_a
     let doc_a_root = xot.document_element(doc_a).unwrap();
     xot.append(doc_a_root, a_id).unwrap();
@@ -388,7 +388,7 @@ fn test_remove_unwrap() {
         .unwrap();
     // we found the a element
     let a = xot.name("a").unwrap();
-    assert_eq!(xot.element(el_id).unwrap().name_id(), a);
+    assert_eq!(xot.element(el_id).unwrap().name(), a);
     // now we unwrap it
     xot.element_unwrap(el_id).unwrap();
 
@@ -408,7 +408,7 @@ fn test_remove_unwrap_consolidation_single_element() {
         .unwrap();
     // we found the a element
     let a = xot.name("a").unwrap();
-    assert_eq!(xot.element(el_id).unwrap().name_id(), a);
+    assert_eq!(xot.element(el_id).unwrap().name(), a);
     // now we unwrap it
     xot.element_unwrap(el_id).unwrap();
     // we should have a single text node
@@ -427,7 +427,7 @@ fn test_remove_unwrap_consolidation_text_in_element() {
         .unwrap();
     // we found the a element
     let a = xot.name("a").unwrap();
-    assert_eq!(xot.element(el_id).unwrap().name_id(), a);
+    assert_eq!(xot.element(el_id).unwrap().name(), a);
     // now we unwrap it
     xot.element_unwrap(el_id).unwrap();
     // we should have a single text node
@@ -446,7 +446,7 @@ fn test_remove_unwrap_consolidation_text_in_element_at_beginning() {
         .unwrap();
     // we found the a element
     let a = xot.name("a").unwrap();
-    assert_eq!(xot.element(el_id).unwrap().name_id(), a);
+    assert_eq!(xot.element(el_id).unwrap().name(), a);
     // now we unwrap it
     xot.element_unwrap(el_id).unwrap();
     let text_el_id = xot.first_child(xot.document_element(doc).unwrap()).unwrap();
@@ -464,7 +464,7 @@ fn test_remove_unwrap_consolidation_text_in_element_at_end() {
         .unwrap();
     // we found the a element
     let a = xot.name("a").unwrap();
-    assert_eq!(xot.element(el_id).unwrap().name_id(), a);
+    assert_eq!(xot.element(el_id).unwrap().name(), a);
     // now we unwrap it
     xot.element_unwrap(el_id).unwrap();
 
@@ -483,7 +483,7 @@ fn test_remove_unwrap_consolidation_text_in_element_both_ends() {
         .unwrap();
     // we found the a element
     let a = xot.name("a").unwrap();
-    assert_eq!(xot.element(el_id).unwrap().name_id(), a);
+    assert_eq!(xot.element(el_id).unwrap().name(), a);
     // now we unwrap it
     xot.element_unwrap(el_id).unwrap();
 

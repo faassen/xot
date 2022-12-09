@@ -16,7 +16,7 @@ impl Xot {
     ///
     /// match xot.value(doc_el) {
     ///    Value::Element(element) => {
-    ///       assert_eq!(element.name_id(), doc_name);
+    ///       assert_eq!(element.name(), doc_name);
     ///   }
     ///   _ => { }
     /// }

@@ -118,7 +118,7 @@ impl Element {
     }
 
     /// The name of the element.
-    pub fn name_id(&self) -> NameId {
+    pub fn name(&self) -> NameId {
         self.name_id
     }
 
