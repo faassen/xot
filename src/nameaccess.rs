@@ -141,14 +141,18 @@ impl Xot {
                                 }
                             })
                             .collect::<Vec<_>>();
-                        fixup_nodes.push((node, to_remove.clone()));
-                        // need to adjust prefixes seen for this node with
-                        // ones we want to remove
-                        let mut to_prefix = element.namespace_info.to_prefix.clone();
-                        for namespace_id in to_remove {
-                            to_prefix.remove(&namespace_id);
+                        if !to_remove.is_empty() {
+                            fixup_nodes.push((node, to_remove.clone()));
+                            // need to adjust prefixes seen for this node with
+                            // ones we want to remove
+                            let mut to_prefix = element.namespace_info.to_prefix.clone();
+                            for namespace_id in to_remove {
+                                to_prefix.remove(&namespace_id);
+                            }
+                            fullname_serializer.push(&to_prefix);
+                        } else {
+                            fullname_serializer.push(&element.namespace_info.to_prefix);
                         }
-                        fullname_serializer.push(&to_prefix);
                     }
                 }
                 NodeEdge::End(node) => {
