@@ -250,6 +250,13 @@ fn test_remove_text_consolidation() {
 }
 
 #[test]
+fn test_remove_root() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc>Alpha<a/>Beta</doc>"#).unwrap();
+    xot.remove(doc).unwrap();
+}
+
+#[test]
 fn test_move_text_consolidation() {
     let mut xot = Xot::new();
     let doc_a = xot.parse(r#"<doc></doc>"#).unwrap();
