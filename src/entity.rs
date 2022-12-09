@@ -42,13 +42,30 @@ fn parse_content(content: Cow<str>, attribute: bool) -> Result<Cow<str>, Error> 
                 return Err(Error::UnclosedEntity(entity));
             }
             change = true;
-            match entity.as_str() {
-                "amp" => result.push('&'),
-                "apos" => result.push('\''),
-                "gt" => result.push('>'),
-                "lt" => result.push('<'),
-                "quot" => result.push('"'),
-                _ => return Err(Error::InvalidEntity(entity)),
+
+            if let Some(entity) = entity.strip_prefix('#') {
+                let first_char = entity
+                    .chars()
+                    .next()
+                    .ok_or_else(|| Error::InvalidEntity(entity.to_string()))?;
+                let code = if first_char == 'x' {
+                    u32::from_str_radix(&entity[1..], 16)
+                } else {
+                    entity.parse::<u32>()
+                };
+                let code = code.map_err(|_| Error::InvalidEntity(entity.to_string()))?;
+                let c = std::char::from_u32(code)
+                    .ok_or_else(|| Error::InvalidEntity(entity.to_string()))?;
+                result.push(c);
+            } else {
+                match entity.as_str() {
+                    "amp" => result.push('&'),
+                    "apos" => result.push('\''),
+                    "gt" => result.push('>'),
+                    "lt" => result.push('<'),
+                    "quot" => result.push('"'),
+                    _ => return Err(Error::InvalidEntity(entity)),
+                }
             }
         } else if attribute && (c == '\t' || c == '\n') {
             // https://www.w3.org/TR/xml/#AVNormalize
@@ -215,5 +232,35 @@ mod tests {
         let result = serialize_text(text.into());
         // this is the same slice
         assert!(std::ptr::eq(text, result.as_ref()));
+    }
+
+    #[test]
+    fn test_parse_character_hex_entity() {
+        let text = "A &#x26; B";
+        assert_eq!(parse_text(text.into()).unwrap(), "A & B");
+    }
+
+    #[test]
+    fn test_parse_character_decimal_entity() {
+        let text = "A &#38; B";
+        assert_eq!(parse_text(text.into()).unwrap(), "A & B");
+    }
+
+    #[test]
+    fn test_parse_character_empty_entity() {
+        let text = "A &#; B";
+        assert!(parse_text(text.into()).is_err());
+    }
+
+    #[test]
+    fn test_parse_character_empty_hex_entity() {
+        let text = "A &x#; B";
+        assert!(parse_text(text.into()).is_err());
+    }
+
+    #[test]
+    fn test_parse_character_broken_hex_entity() {
+        let text = "A &xflub#; B";
+        assert!(parse_text(text.into()).is_err());
     }
 }
