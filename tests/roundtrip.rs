@@ -51,6 +51,18 @@ fn roundtrip(#[values(
   (
     "xml prefix supported",
     r#"<root xml:id="3"/>"#,
+  ),
+  (
+    "attribute stability",
+    r#"<root xmlns:foo="http://example.com" a="A" foo:a="A2" b="B" foo:b="B2"/>"#,
+  ),
+  (
+    "attribute stability given xml namespace",
+    r#"<root xmlns:foo="http://example.com" a="A" foo:a="A2" xml:lang="en" b="B" foo:b="B2"/>"#,
+  ),
+  (
+    "prefix stability",
+    r#"<root xmlns:foo="http://example.com" xmlns:bar="http://example.com/bar"/>"#,
   )
 )] value: RoundTripEntry) {
     let (name, xml) = value;

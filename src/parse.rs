@@ -1,4 +1,3 @@
-use ahash::HashMap;
 use indextree::NodeId;
 use xmlparser::{ElementEnd, Token, Tokenizer};
 
@@ -16,7 +15,7 @@ struct ElementBuilder {
     prefix: String,
     name: String,
     namespace_info: NamespaceInfo,
-    attributes: HashMap<(String, String), String>,
+    attributes: Vec<((String, String), String)>,
 }
 
 impl ElementBuilder {
@@ -25,7 +24,7 @@ impl ElementBuilder {
             prefix,
             name,
             namespace_info: NamespaceInfo::new(),
-            attributes: HashMap::default(),
+            attributes: Vec::new(),
         }
     }
 
@@ -34,7 +33,7 @@ impl ElementBuilder {
         document_builder: &mut DocumentBuilder,
     ) -> Result<Attributes, Error> {
         let mut attributes = Attributes::new();
-        for ((prefix, name), value) in self.attributes.drain() {
+        for ((prefix, name), value) in self.attributes.drain(..) {
             let name_id = document_builder.name_id_builder.attribute_name_id(
                 prefix,
                 name,
@@ -109,7 +108,10 @@ impl<'a> DocumentBuilder<'a> {
 
     fn attribute(&mut self, prefix: &'a str, name: &'a str, value: &'a str) -> Result<(), Error> {
         let attributes = &mut self.element_builder.as_mut().unwrap().attributes;
-        if attributes.contains_key(&(prefix.into(), name.into())) {
+        let is_duplicate = attributes
+            .iter()
+            .any(|((p, n), _)| p == prefix && n == name);
+        if is_duplicate {
             let attr_name = if prefix.is_empty() {
                 name.to_string()
             } else {
@@ -117,10 +119,10 @@ impl<'a> DocumentBuilder<'a> {
             };
             return Err(Error::DuplicateAttribute(attr_name));
         }
-        attributes.insert(
+        attributes.push((
             (prefix.into(), name.into()),
             parse_attribute(value.into())?.to_string(),
-        );
+        ));
         Ok(())
     }
 
