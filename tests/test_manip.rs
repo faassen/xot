@@ -549,6 +549,33 @@ fn test_deduplicate_named_namespace() {
 }
 
 #[test]
+fn test_deduplicate_named_namespace_again() {
+    let mut xot = Xot::new();
+    let root = xot
+        .parse(r#"<section xmlns="http://docbook.org/ns/docbook" xmlns:diff="http://paligo.net/nxd" version="5.0">
+  <title>Title</title>
+  <para diff:delete="">Para first old </para><para xmlns="http://docbook.org/ns/docbook" diff:insert="">Before emphasis <emphasis>emphasis</emphasis> After emphasis</para>
+  <para diff:delete="">Para second old</para><warning xmlns="http://docbook.org/ns/docbook" diff:insert="">
+    <title>I am new</title>
+    <para>Warning here</para>
+  </warning>
+</section>"#)
+        .unwrap();
+    xot.deduplicate_namespaces(root);
+    assert_eq!(
+        xot.serialize_to_string(root),
+        r#"<section xmlns="http://docbook.org/ns/docbook" xmlns:diff="http://paligo.net/nxd" version="5.0">
+  <title>Title</title>
+  <para diff:delete="">Para first old </para><para diff:insert="">Before emphasis <emphasis>emphasis</emphasis> After emphasis</para>
+  <para diff:delete="">Para second old</para><warning diff:insert="">
+    <title>I am new</title>
+    <para>Warning here</para>
+  </warning>
+</section>"#
+    );
+}
+
+#[test]
 fn test_replace_node() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<doc>Alpha</doc>"#).unwrap();
