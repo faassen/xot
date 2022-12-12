@@ -6,6 +6,8 @@
 Xot is an XML library for Rust. With Xot you can load XML data into an object
 tree which you can then manipulate, and serialize back out to XML.
 
+[API Documentation](https://docs.rs/xot)
+
 ## Support
 
 Xot has well-rounded XML support. Supported are namespaces for both elements
