@@ -1,5 +1,8 @@
 # Xot - XML Object Tree
 
+[![Crates.io](https://img.shields.io/crates/v/xot.svg)](https://crates.io/crates/xot)
+[![Documentation](https://docs.rs/xot/badge.svg)](https://docs.rs/xot)
+
 Xot is an XML library for Rust. With Xot you can load XML data into an object
 tree which you can then manipulate, and serialize back out to XML.
 
