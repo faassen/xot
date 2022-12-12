@@ -2,6 +2,13 @@
 name = "xot"
 version = "0.2.0"
 edition = "2021"
+license = "MIT"
+description = "XML tree library for Rust"
+homepage = "https://github.com/faassen/xot"
+documentation = "https://docs.rs/xot"
+repository = "https://github.com/faassen/xot"
+readme = "README.md"
+keywords = ["xml", "tree", "dom"]
 
 [dependencies]
 ahash = "0.8.2"
