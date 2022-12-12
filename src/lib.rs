@@ -23,8 +23,8 @@
 //! manipulate all your XML data. Multiple XML trees can exist in an [`Xot`]
 //! struct at the same time, and you're free to move nodes between these trees.
 //!
-//! To access and manipulate XML tree structure through [`Node`]. This is a
-//! lightweight handle to a node in the XML tree. To navigate the tree use
+//! [`Node`] is a lightweight handle to a node in the XML tree that you use
+//! with Xot for both access and manipulation. To navigate the tree use
 //! accessors such as [`Xot::first_child`] or iterators such a
 //! [`Xot::children`]. You then use operations such as [`Xot::append`] to
 //! manipulate the tree.
