@@ -2,6 +2,7 @@ use std::fmt::{Display, Formatter};
 
 use crate::idmap::{IdIndex, IdMap};
 
+/// Id uniquely identifying a prefix
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct PrefixId(u16);
 
@@ -21,6 +22,10 @@ pub(crate) struct Prefix(String);
 impl Prefix {
     pub(crate) fn new(prefix: String) -> Self {
         Self(prefix)
+    }
+
+    pub(crate) fn get(&self) -> &str {
+        &self.0
     }
 }
 

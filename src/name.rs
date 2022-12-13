@@ -1,6 +1,7 @@
 use crate::idmap::{IdIndex, IdMap};
 use crate::namespace::NamespaceId;
 
+/// Id uniquely identifying a name and namespace.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct NameId(u16);
 

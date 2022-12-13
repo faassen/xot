@@ -17,6 +17,7 @@ impl Xot {
     }
 
     /// Add name without a namespace.
+    ///
     /// If the name already exists, return its id.
     pub fn add_name(&mut self, name: &str) -> NameId {
         self.add_name_ns(name, self.no_namespace_id)
@@ -29,6 +30,7 @@ impl Xot {
     }
 
     /// Add name with a namespace.
+    ///
     /// If the name already exists, return its id.
     pub fn add_name_ns(&mut self, name: &str, namespace_id: NamespaceId) -> NameId {
         self.name_lookup
@@ -42,6 +44,7 @@ impl Xot {
     }
 
     /// Add namespace.
+    ///
     /// If the namespace already exists, return its id.
     pub fn add_namespace(&mut self, namespace: &str) -> NamespaceId {
         self.namespace_lookup
@@ -54,10 +57,37 @@ impl Xot {
     }
 
     /// Add prefix.
+    ///
     /// If the prefix already exists, return its id.
     pub fn add_prefix(&mut self, prefix: &str) -> PrefixId {
         self.prefix_lookup
             .get_id_mut(Prefix::new(prefix.to_string()))
+    }
+
+    /// Look up localname, namespace uri for name id
+    ///
+    /// If this name id is not in a namespace, the namespace uri is the
+    /// empty string.
+    pub fn name_ns_str(&self, name: NameId) -> (&str, &str) {
+        let name = self.name_lookup.get_value(name);
+        let namespace = self.namespace_lookup.get_value(name.namespace_id);
+        (name.name.as_str(), namespace.get())
+    }
+
+    /// Look up namespace uri for namespace id
+    ///
+    /// An empty string slice indicates the no namespace.
+    pub fn namespace_str(&self, namespace: NamespaceId) -> &str {
+        let namespace = self.namespace_lookup.get_value(namespace);
+        namespace.get()
+    }
+
+    /// Look up string slice for prefix id
+    ///
+    /// If the prefix id is the empty prefix, the string slice is the empty string.
+    pub fn prefix_str(&self, prefix: PrefixId) -> &str {
+        let prefix = self.prefix_lookup.get_value(prefix);
+        prefix.get()
     }
 
     /// Creating missing prefixes.

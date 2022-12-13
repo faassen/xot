@@ -58,5 +58,8 @@ mod xotdata;
 
 pub use access::NodeEdge;
 pub use error::Error;
+pub use name::NameId;
+pub use namespace::NamespaceId;
+pub use prefix::PrefixId;
 pub use xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value, ValueType};
 pub use xotdata::{Node, Xot};

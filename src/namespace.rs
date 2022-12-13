@@ -2,6 +2,7 @@ use std::fmt::{Display, Formatter};
 
 use crate::idmap::{IdIndex, IdMap};
 
+/// Id uniquely identifying namespace.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct NamespaceId(u16);
 
@@ -21,6 +22,10 @@ pub struct Namespace(String);
 impl Namespace {
     pub(crate) fn new(namespace_uri: String) -> Self {
         Self(namespace_uri)
+    }
+
+    pub(crate) fn get(&self) -> &str {
+        &self.0
     }
 }
 
