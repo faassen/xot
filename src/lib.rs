@@ -41,6 +41,10 @@
 //! access a name, use [`Xot::name`]. To create a new name if necessary, use
 //! [`Xot::add_name`].
 
+//! - Xot [tutorial][_tutorial]
+
+#[cfg(feature = "doc")]
+pub mod _tutorial;
 mod access;
 mod creation;
 mod entity;

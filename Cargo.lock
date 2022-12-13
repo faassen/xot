@@ -448,6 +448,7 @@ dependencies = [
  "rstest",
  "vector-map",
  "xmlparser",
+ "xot",
 ]
 
 [[package]]

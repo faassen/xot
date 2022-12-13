@@ -11,6 +11,16 @@ repository = "https://github.com/faassen/xot"
 readme = "README.md"
 keywords = ["xml", "tree", "dom"]
 
+[features]
+# extra documentation like the tutorial which is in a separate module
+# we don't normally want to build
+doc = []
+
+[package.metadata.docs.rs]
+features = ["doc"]
+rustdoc-args = ["--cfg", "docsrs"]
+# cargo-args = ["-Zunstable-options", "-Zrustdoc-scrape-examples"]
+
 [dependencies]
 ahash = "0.8.2"
 indextree = "4.5.0"
@@ -20,3 +30,5 @@ xmlparser = "0.13.5"
 [dev-dependencies]
 insta = { version = "1.21.2" }
 rstest = "0.16.0"
+# ensure we run any examples in the tutorial
+xot = { path = ".", features = ["doc"]}
