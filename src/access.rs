@@ -9,7 +9,15 @@ use crate::xotdata::{Node, Xot};
 /// Used by [`Xot::traverse`] and [`Xot::reverse_traverse`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NodeEdge {
+    /// The start edge of a node. In case of an element
+    /// this is the start tag. In case of root
+    /// the start of the document.
     Start(Node),
+    /// The end edge of a node. In case of an element
+    /// this is the end tag. In case of root the end
+    /// of the document. For any other values, the
+    /// end edge occurs immediately after the start
+    /// edge.  
     End(Node),
 }
 

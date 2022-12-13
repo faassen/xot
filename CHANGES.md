@@ -1,3 +1,7 @@
+## unreleased
+
+- Add documentation for `NodeEdge` variants.
+
 ## 0.3.2 (2022-12-13)
 
 ### Fixed

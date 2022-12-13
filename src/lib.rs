@@ -1,4 +1,5 @@
 #![forbid(unsafe_code)]
+#![warn(missing_docs)]
 
 //! Xot is an XML library that lets you access manipulate XML documents as a
 //! tree in memory.
