@@ -11,6 +11,8 @@ repository = "https://github.com/faassen/xot"
 readme = "README.md"
 keywords = ["xml", "tree", "dom"]
 
+# XXX we also want to include the examples
+
 [features]
 # extra documentation like the tutorial which is in a separate module
 # we don't normally want to build

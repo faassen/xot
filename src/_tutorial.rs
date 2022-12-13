@@ -6,18 +6,11 @@
 //!
 //! ## Accessing XML data
 //!
-//! We have some XML and we want to access it:
+//! We have some XML and we want to access a text node in it:
 //!
 //! ```rust
-//! use xot::Xot;
-//!
-//! let mut xot = Xot::new();
-//!
-//! let doc = xot.parse("<p>Example</p>").unwrap();
-//! let doc_el = xot.document_element(doc).unwrap();
-//! let txt_node = xot.first_child(doc_el).unwrap();
-//! let txt_value = xot.text(txt_node).unwrap();
-//! assert_eq!(txt_value.get(), "Example");
+#![doc = include_str!("../examples/accessing_xml_data.rs")]
 //! ```
 //!
+#![doc = include_str!("../examples/accessing_xml_data.md")]
 //!
