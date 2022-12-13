@@ -246,12 +246,12 @@ impl ProcessingInstruction {
     }
 
     /// Get processing instruction target.
-    pub fn get_target(&self) -> &str {
+    pub fn target(&self) -> &str {
         &self.target
     }
 
     /// Get processing instruction data.
-    pub fn get_data(&self) -> Option<&str> {
+    pub fn data(&self) -> Option<&str> {
         self.data.as_deref()
     }
 

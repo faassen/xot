@@ -144,10 +144,10 @@ impl Xot {
                 write!(w, "<!--{}-->", comment.get())?;
             }
             Value::ProcessingInstruction(pi) => {
-                if let Some(data) = pi.get_data() {
-                    write!(w, "<?{} {}?>", pi.get_target(), data)?;
+                if let Some(data) = pi.data() {
+                    write!(w, "<?{} {}?>", pi.target(), data)?;
                 } else {
-                    write!(w, "<?{}?>", pi.get_target())?;
+                    write!(w, "<?{}?>", pi.target())?;
                 }
             }
         }
