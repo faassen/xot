@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use crate::idmap::{IdIndex, IdMap};
 
 /// Id uniquely identifying namespace.
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Ord, PartialOrd)]
 pub struct NamespaceId(u16);
 
 impl IdIndex<NamespaceId> for NamespaceId {

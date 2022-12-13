@@ -2,7 +2,7 @@ use crate::idmap::{IdIndex, IdMap};
 use crate::namespace::NamespaceId;
 
 /// Id uniquely identifying a name and namespace.
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Ord, PartialOrd)]
 pub struct NameId(u16);
 
 impl IdIndex<NameId> for NameId {

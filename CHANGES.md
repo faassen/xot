@@ -1,3 +1,7 @@
+## 0.3.1 (2022-12-13)
+
+- Make `NameId`, `PrefixId` and `NamespaceId` have `Ord`.
+
 ## 0.3.0 (2022-12-13)
 
 - Add new `name_ns_str`, `namespace_str` and `prefix_str` methods to access

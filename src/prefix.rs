@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use crate::idmap::{IdIndex, IdMap};
 
 /// Id uniquely identifying a prefix
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Ord, PartialOrd)]
 pub struct PrefixId(u16);
 
 impl IdIndex<PrefixId> for PrefixId {
