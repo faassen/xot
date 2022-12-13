@@ -63,11 +63,11 @@ impl Xot {
         let mut fullname_serializer = FullnameSerializer::with_to_namespace(to_namespace, self);
         for edge in self.traverse(node) {
             match edge {
-                NodeEdge::Start(node) => {
-                    self.handle_edge_start(node, w, &mut fullname_serializer)?;
+                NodeEdge::Start(current_node) => {
+                    self.handle_edge_start(node, current_node, w, &mut fullname_serializer)?;
                 }
-                NodeEdge::End(node) => {
-                    self.handle_edge_end(node, w, &mut fullname_serializer)?;
+                NodeEdge::End(current_node) => {
+                    self.handle_edge_end(current_node, w, &mut fullname_serializer)?;
                 }
             }
         }
@@ -103,6 +103,7 @@ impl Xot {
 
     fn handle_edge_start(
         &self,
+        top_node: Node,
         node: Node,
         w: &mut impl Write,
         fullname_serializer: &mut FullnameSerializer,
@@ -117,10 +118,12 @@ impl Xot {
 
                 write!(w, "<{}", fullname)?;
                 // serialize any extra prefixes if this is the top element of
-                // a fragment
-                if fullname_serializer.is_at_bottom() {
+                // a fragment and they aren't declared already
+                if node == top_node {
                     for (namespace_id, prefix_id) in fullname_serializer.top().iter() {
-                        self.write_namespace_declaration(*prefix_id, *namespace_id, w)?;
+                        if !element.namespace_info.to_namespace.contains_key(prefix_id) {
+                            self.write_namespace_declaration(*prefix_id, *namespace_id, w)?;
+                        }
                     }
                 }
                 for (prefix_id, namespace_id) in element.namespace_info.to_namespace.iter() {
@@ -236,10 +239,6 @@ impl<'a> FullnameSerializer<'a> {
     #[inline]
     pub(crate) fn top(&self) -> &ToPrefix {
         &self.prefix_stack[self.prefix_stack.len() - 1]
-    }
-
-    pub(crate) fn is_at_bottom(&self) -> bool {
-        self.prefix_stack.len() == 1
     }
 
     pub(crate) fn fullname(&self, name_id: NameId) -> Fullname {

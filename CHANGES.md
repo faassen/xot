@@ -1,3 +1,9 @@
+## 0.3.2 (2022-12-13)
+
+### Fixed
+
+- `serialize_node_to_string` generated duplicate namespace declarations.
+
 ## 0.3.1 (2022-12-13)
 
 - Make `NameId`, `PrefixId` and `NamespaceId` have `Ord`.
