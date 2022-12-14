@@ -1,4 +1,6 @@
-## unreleased
+<!-- next-header -->
+
+## [Unreleased] - ReleaseDate
 
 ### Added
 
@@ -6,17 +8,17 @@
 
 - Add documentation for `NodeEdge` variants.
 
-## 0.3.2 (2022-12-13)
+## [0.3.2] - 2022-12-13
 
 ### Fixed
 
 - `serialize_node_to_string` generated duplicate namespace declarations.
 
-## 0.3.1 (2022-12-13)
+## [0.3.1] - 2022-12-13
 
 - Make `NameId`, `PrefixId` and `NamespaceId` have `Ord`.
 
-## 0.3.0 (2022-12-13)
+## [0.3.0] - 2022-12-13
 
 - Add new `name_ns_str`, `namespace_str` and `prefix_str` methods to access
   name information.
@@ -30,6 +32,8 @@
 
 - Tweak `Cargo.toml`
 
-## 0.2.0 (2022-12-12)
+## [0.2.0] - 2022-12-12
 
 Initial public release.
+
+<!-- next-url -->
