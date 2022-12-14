@@ -62,5 +62,7 @@ pub use error::Error;
 pub use name::NameId;
 pub use namespace::NamespaceId;
 pub use prefix::PrefixId;
-pub use xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value, ValueType};
+pub use xmlvalue::{
+    Attributes, Comment, Element, ProcessingInstruction, Text, ToNamespace, Value, ValueType,
+};
 pub use xotdata::{Node, Xot};

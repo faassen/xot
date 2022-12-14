@@ -1,5 +1,9 @@
 ## unreleased
 
+### Added
+
+- Export `ToNamespace` and `Attribute` types.
+
 - Add documentation for `NodeEdge` variants.
 
 ## 0.3.2 (2022-12-13)

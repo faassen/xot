@@ -62,8 +62,10 @@ impl Value {
     }
 }
 
-pub(crate) type Attributes = VecMap<NameId, String>;
-pub(crate) type ToNamespace = VecMap<PrefixId, NamespaceId>;
+/// A map of NameId to String for attributes
+pub type Attributes = VecMap<NameId, String>;
+/// A map of PrefixId to NamespaceId for namespace declarations.
+pub type ToNamespace = VecMap<PrefixId, NamespaceId>;
 pub(crate) type ToPrefix = VecMap<NamespaceId, PrefixId>;
 
 #[derive(Debug, Clone)]
