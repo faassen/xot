@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.4.0] - 2022-12-14
+
 ### Added
 
 - Export `ToNamespace` and `Attribute` types.
@@ -37,3 +39,4 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.4.0...HEAD
