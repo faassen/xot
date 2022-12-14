@@ -1,6 +1,5 @@
 pre-release-replacements = [
   {file="CHANGES.md", search="Unreleased", replace="{{version}}"},
-  {file="CHANGES.md", search="\\.\\.\\.HEAD", replace="...{{tag_name}}", exactly=1},
   {file="CHANGES.md", search="ReleaseDate", replace="{{date}}"},
   {file="CHANGES.md", search="<!-- next-header -->", replace="<!-- next-header -->\n\n## [Unreleased] - ReleaseDate", exactly=1},
   {file="CHANGES.md", search="<!-- next-url -->", replace="<!-- next-url -->\n[Unreleased]: https://github.com/faassen/xot/compare/{{tag_name}}...HEAD", exactly=1},
