@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use crate::access::NodeEdge;
-use crate::entity::serialize_text;
+use crate::entity::{serialize_attribute, serialize_text};
 use crate::error::Error;
 use crate::name::NameId;
 use crate::namespace::NamespaceId;
@@ -131,7 +131,7 @@ impl Xot {
                 }
                 for (name_id, value) in element.attributes.iter() {
                     let fullname = fullname_serializer.fullname_or_err(*name_id)?;
-                    write!(w, " {}=\"{}\"", fullname, serialize_text(value.into()))?;
+                    write!(w, " {}=\"{}\"", fullname, serialize_attribute(value.into()))?;
                 }
 
                 if self.first_child(node).is_none() {

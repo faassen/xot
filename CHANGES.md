@@ -2,6 +2,11 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- Made built in escaping rules less aggressive for serialization; text values
+  now only escape `<` and `&`, and attributes escape those and `'` and '"`.
+
 ## [0.4.0] - 2022-12-14
 
 ### Added
@@ -39,4 +44,5 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.4.0...HEAD
+
+[unreleased]: https://github.com/faassen/xot/compare/v0.4.0...HEAD

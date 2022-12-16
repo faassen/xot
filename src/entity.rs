@@ -93,17 +93,38 @@ pub(crate) fn serialize_text(content: Cow<str>) -> Cow<str> {
                 change = true;
                 result.push_str("&amp;")
             }
-            '\'' => {
+
+            '<' => {
                 change = true;
-                result.push_str("&apos;")
+                result.push_str("&lt;")
             }
-            '>' => {
+            _ => result.push(c),
+        }
+    }
+
+    if !change {
+        content
+    } else {
+        result.into()
+    }
+}
+
+pub(crate) fn serialize_attribute(content: Cow<str>) -> Cow<str> {
+    let mut result = String::new();
+    let mut change = false;
+    for c in content.chars() {
+        match c {
+            '&' => {
                 change = true;
-                result.push_str("&gt;")
+                result.push_str("&amp;")
             }
             '<' => {
                 change = true;
                 result.push_str("&lt;")
+            }
+            '\'' => {
+                change = true;
+                result.push_str("&apos;")
             }
             '"' => {
                 change = true;
@@ -215,21 +236,47 @@ mod tests {
     }
 
     #[test]
-    fn test_serialize() {
+    fn test_serialize_text() {
         let text = "A & B";
         assert_eq!(serialize_text(text.into()), "A &amp; B");
     }
 
     #[test]
-    fn test_serialize_multiple() {
-        let text = "&'><\"";
-        assert_eq!(serialize_text(text.into()), "&amp;&apos;&gt;&lt;&quot;");
+    fn test_serialize_text_multiple() {
+        let text = "&<'\">";
+        assert_eq!(serialize_text(text.into()), "&amp;&lt;'\">");
     }
 
     #[test]
-    fn test_serialize_no_entities() {
+    fn test_serialize_text_no_entities() {
         let text = "hello";
         let result = serialize_text(text.into());
+        // this is the same slice
+        assert!(std::ptr::eq(text, result.as_ref()));
+    }
+
+    #[test]
+    fn test_serialize_attribute() {
+        let text = "A & B";
+        assert_eq!(serialize_attribute(text.into()), "A &amp; B");
+    }
+
+    #[test]
+    fn test_serialize_attribute_multiple_single() {
+        let text = "&<'";
+        assert_eq!(serialize_attribute(text.into()), "&amp;&lt;&apos;");
+    }
+
+    #[test]
+    fn test_serialize_attribute_multiple_double() {
+        let text = "&<\"";
+        assert_eq!(serialize_attribute(text.into()), "&amp;&lt;&quot;");
+    }
+
+    #[test]
+    fn test_serialize_attribute_no_entities() {
+        let text = "hello";
+        let result = serialize_attribute(text.into());
         // this is the same slice
         assert!(std::ptr::eq(text, result.as_ref()));
     }

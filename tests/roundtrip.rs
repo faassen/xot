@@ -34,8 +34,12 @@ fn roundtrip(#[values(
   ),
   (
       "escape character in text",
-      r#"<root>&lt;a/&gt;</root>"#,
+      r#"<root>&lt;a/&amp;</root>"#,
   ),
+  (
+    "not escaped in text",
+    r#"<root>>'"</root>"#,
+),
   (
     "comment",
     r#"<root><!-- comment --></root>"#,
