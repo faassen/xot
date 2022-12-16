@@ -1,4 +1,4 @@
-use xot::{Value, Xot};
+use xot::{Error, Value, Xot};
 
 #[test]
 fn test_manipulate_text() {
@@ -655,4 +655,14 @@ fn test_replace_node_reconciliates_where_detached() {
 
     assert_eq!(xot.serialize_to_string(doc_a), r#"<doc><y/></doc>"#);
     assert_eq!(xot.serialize_to_string(doc_b), r#"<doc>ab</doc>"#);
+}
+
+#[test]
+fn test_new_root() -> Result<(), Error> {
+    let mut xot = Xot::new();
+    let root = xot.new_root();
+    let name = xot.add_name("doc");
+    xot.append_element(root, name)?;
+    assert_eq!(xot.serialize_to_string(root), r#"<doc/>"#);
+    Ok(())
 }

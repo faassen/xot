@@ -365,9 +365,13 @@ impl<'a> Xot<'a> {
                     return Err(Error::InvalidOperation("Cannot move root element".into()));
                 }
                 if self.is_root(parent) {
-                    return Err(Error::InvalidOperation(
-                        "Cannot move extra element under document root".into(),
-                    ));
+                    for child in self.children(parent) {
+                        if self.is_element(child) {
+                            return Err(Error::InvalidOperation(
+                                "Cannot move extra element under document root".into(),
+                            ));
+                        }
+                    }
                 }
             }
             ValueType::Text => {

@@ -7,6 +7,9 @@
 - Made built in escaping rules less aggressive for serialization; text values
   now only escape `<` and `&`, and attributes escape those and `'` and '"`.
 
+- `xot.new_root()` which allows you to create a new document from scratch
+  without parsing.
+
 ### Performance
 
 - More efficient handling of lookup of name, prefix ids and namespace ids.
