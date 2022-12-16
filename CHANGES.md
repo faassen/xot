@@ -2,6 +2,10 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+- Fixed a bug where we couldn't clone a document root.
+
 ## [0.5.0] - 2022-12-16
 
 ### Added
@@ -58,6 +62,6 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.5.0...HEAD
 
+[unreleased]: https://github.com/faassen/xot/compare/v0.5.0...HEAD
 [unreleased]: https://github.com/faassen/xot/compare/v0.4.0...v0.5.0

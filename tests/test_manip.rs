@@ -329,6 +329,17 @@ fn test_clone() {
 }
 
 #[test]
+fn test_clone_root() {
+    let mut xot = Xot::new();
+    let root = xot.parse(r#"<doc><a>Hello!</a></doc>"#).unwrap();
+    let root_clone = xot.clone(root);
+    assert_eq!(
+        xot.serialize_node_to_string(root_clone),
+        r#"<doc><a>Hello!</a></doc>"#
+    );
+}
+
+#[test]
 fn test_clone_with_namespaces() {
     let mut xot = Xot::new();
     let root = xot

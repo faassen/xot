@@ -172,46 +172,49 @@ impl<'a> Xot<'a> {
 
     /// Clone a node and its descendants into a new fragment
     ///
-    /// The cloned nodes are not attached to the tree.
+    /// The cloned nodes are not attached to anything.
+    /// If you clone a root, you clone the whole document.
     pub fn clone(&mut self, node: Node) -> Node {
-        let mut to_create = Vec::new();
-        enum OpenClose {
-            Open(Value),
-            Close,
-        }
-        for edge in self.traverse(node) {
-            match edge {
-                NodeEdge::Start(node) => {
-                    let value = self.value(node).clone();
-                    to_create.push(OpenClose::Open(value));
-                }
-                NodeEdge::End(_) => {
-                    to_create.push(OpenClose::Close);
-                }
-            }
-        }
+        let edges = self.traverse(node).collect::<Vec<_>>();
 
-        // temporary top node
-        let top_name = self.add_name("top_name");
-        let top = self.new_element(top_name);
+        // we need to create a top node
+        let top = if self.is_root(node) {
+            // if we clone a root, we need to create a new root
+            self.new_root()
+        } else {
+            // for anything but the root we create a temporary new element
+            let top_name = self.add_name("temporary_root");
+            self.new_element(top_name)
+        };
 
         let mut current = top;
-        for open_close in to_create {
+        for open_close in edges {
             match open_close {
-                OpenClose::Open(value) => {
-                    let new_node = self.new_node(value);
+                NodeEdge::Start(node) => {
+                    let value = self.value(node);
+                    if value.value_type() == ValueType::Root {
+                        continue;
+                    }
+                    let new_node = self.new_node(value.clone());
                     self.append(current, new_node).unwrap();
                     current = new_node;
                 }
-                OpenClose::Close => {
+                NodeEdge::End(node) => {
+                    if self.value_type(node) == ValueType::Root {
+                        continue;
+                    }
                     current = self.parent(current).unwrap();
                 }
             }
         }
-        let node = self.first_child(top).unwrap();
-        // remove top node again
-        top.get().remove(self.arena_mut());
-        node
+        if self.is_root(node) {
+            top
+        } else {
+            // remove the temporary element unless we cloned the root
+            let cloned_node = self.first_child(top).unwrap();
+            top.get().remove(self.arena_mut());
+            cloned_node
+        }
     }
 
     /// Clone a node and its descendants into a new fragment
