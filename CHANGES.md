@@ -7,6 +7,10 @@
 - Made built in escaping rules less aggressive for serialization; text values
   now only escape `<` and `&`, and attributes escape those and `'` and '"`.
 
+### Performance
+
+- More efficient handling of lookup of prefix ids and namespace ids.
+
 ## [0.4.0] - 2022-12-14
 
 ### Added
