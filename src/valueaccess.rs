@@ -225,4 +225,63 @@ impl<'a> Xot<'a> {
             None
         }
     }
+
+    /// Compare two nodes for semantic equality.
+    ///
+    /// This is a deep comparison of the nodes and their children.
+    /// The trees have to have the same structure.
+    ///
+    /// A name is considered to be semantically equal to another name if
+    /// they have the same namespace and local name. Prefixes are ignored.
+    ///
+    /// Two elements are the same if their name and attributes are the same. Namespace
+    /// declarations are ignored.
+    ///
+    /// Text nodes, comments and processing instructions are considered to be the
+    /// same if their values are the same.
+    pub fn compare(&self, a: Node, b: Node) -> bool {
+        let mut descendants_a = self.descendants(a);
+        let mut descendants_b = self.descendants(b);
+        for (a, b) in descendants_a.by_ref().zip(descendants_b.by_ref()) {
+            if !self.compare_value(a, b) {
+                return false;
+            }
+        }
+        // if we have leftover elements in the iterators, the trees are not equal
+        if descendants_a.next().is_some() || descendants_b.next().is_some() {
+            return false;
+        }
+        true
+    }
+
+    pub(crate) fn compare_value(&self, a: Node, b: Node) -> bool {
+        let a_value = self.value(a);
+        let b_value = self.value(b);
+        match (a_value, b_value) {
+            (Value::Root, Value::Root) => true,
+            (Value::Element(a), Value::Element(b)) => {
+                if a.name() != b.name() {
+                    return false;
+                }
+                if a.attributes().len() != b.attributes().len() {
+                    return false;
+                }
+                // if we can't find a value for a key in a in b, then we
+                // know they aren't the same, given we already compared the length
+                for (key, value_a) in a.attributes() {
+                    let value_b = b.attributes().get(key);
+                    if Some(value_a) != value_b {
+                        return false;
+                    }
+                }
+                true
+            }
+            (Value::Text(a), Value::Text(b)) => a.get() == b.get(),
+            (Value::Comment(a), Value::Comment(b)) => a.get() == b.get(),
+            (Value::ProcessingInstruction(a), Value::ProcessingInstruction(b)) => {
+                a.target() == b.target() && a.data() == b.data()
+            }
+            _ => false,
+        }
+    }
 }

@@ -13,6 +13,8 @@
 - `xot.text_content`, `xot.text_content_mut` and `xot.text_content_str` for
   convenience access to the text content of an element.
 
+- `xot.compare` which allows you to compare two nodes for semantic equality.
+
 ### Performance
 
 - More efficient handling of lookup of name, prefix ids and namespace ids.
