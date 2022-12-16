@@ -4,8 +4,7 @@ use xmlparser::{ElementEnd, Token, Tokenizer};
 use crate::entity::{parse_attribute, parse_text};
 use crate::error::Error;
 use crate::name::{Name, NameId};
-use crate::namespace::Namespace;
-use crate::prefix::{Prefix, PrefixId};
+use crate::prefix::PrefixId;
 use crate::xmlvalue::{
     Attributes, Comment, Element, NamespaceInfo, ProcessingInstruction, Text, ToNamespace, Value,
 };
@@ -35,8 +34,8 @@ impl ElementBuilder {
         let mut attributes = Attributes::new();
         for ((prefix, name), value) in self.attributes.drain(..) {
             let name_id = document_builder.name_id_builder.attribute_name_id(
-                prefix,
-                name,
+                &prefix,
+                &name,
                 document_builder.xot,
             )?;
             attributes.insert(name_id, value);
@@ -50,8 +49,8 @@ impl ElementBuilder {
             .push(&self.namespace_info.to_namespace);
         let attributes = self.build_attributes(document_builder)?;
         let name_id = document_builder.name_id_builder.element_name_id(
-            self.prefix,
-            self.name,
+            &self.prefix,
+            &self.name,
             document_builder.xot,
         )?;
         Ok(Element {
@@ -91,14 +90,8 @@ impl<'a> DocumentBuilder<'a> {
     }
 
     fn prefix(&mut self, prefix: &'a str, namespace_uri: &'a str) {
-        let prefix_id = self
-            .xot
-            .prefix_lookup
-            .get_id_mut(Prefix::new(prefix.into()));
-        let namespace_id = self
-            .xot
-            .namespace_lookup
-            .get_id_mut(Namespace::new(namespace_uri.into()));
+        let prefix_id = self.xot.prefix_lookup.get_id_mut(prefix);
+        let namespace_id = self.xot.namespace_lookup.get_id_mut(namespace_uri);
         self.element_builder
             .as_mut()
             .unwrap()
@@ -156,9 +149,9 @@ impl<'a> DocumentBuilder<'a> {
     }
 
     fn close_element(&mut self, prefix: &str, name: &str) -> Result<(), Error> {
-        let name_id =
-            self.name_id_builder
-                .element_name_id(prefix.to_string(), name.to_string(), self.xot)?;
+        let name_id = self
+            .name_id_builder
+            .element_name_id(prefix, name, self.xot)?;
         let current_node = self.xot.arena.get(self.current_node_id).unwrap();
         if let Value::Element(element) = current_node.get() {
             if element.name_id != name_id {
@@ -228,45 +221,43 @@ impl NameIdBuilder {
 
     fn element_name_id(
         &mut self,
-        prefix: String,
-        name: String,
+        prefix: &str,
+        name: &str,
         xot: &mut Xot,
     ) -> Result<NameId, Error> {
-        let prefix_clone = prefix.clone();
-        let prefix_id = xot.prefix_lookup.get_id_mut(Prefix::new(prefix));
+        let prefix_id = xot.prefix_lookup.get_id_mut(prefix);
         if let Ok(name_id) = self.name_id_with_prefix_id(prefix_id, name, xot) {
             Ok(name_id)
         } else {
-            Err(Error::UnknownPrefix(prefix_clone))
+            Err(Error::UnknownPrefix(prefix.to_string()))
         }
     }
 
     fn attribute_name_id(
         &mut self,
-        prefix: String,
-        name: String,
+        prefix: &str,
+        name: &str,
         xot: &mut Xot,
     ) -> Result<NameId, Error> {
         // an unprefixed attribute is in no namespace, not
         // in the default namespace
         // https://stackoverflow.com/questions/3312390/xml-default-namespaces-for-unqualified-attribute-names
-        let prefix_clone = prefix.clone();
-        let prefix_id = xot.prefix_lookup.get_id_mut(Prefix::new(prefix));
+        let prefix_id = xot.prefix_lookup.get_id_mut(prefix);
         if prefix_id == xot.empty_prefix_id {
-            let name = Name::new(name, xot.no_namespace_id);
-            return Ok(xot.name_lookup.get_id_mut(name));
+            let name = Name::new(name.to_string(), xot.no_namespace_id);
+            return Ok(xot.name_lookup.get_id_mut(&name));
         }
         if let Ok(name_id) = self.name_id_with_prefix_id(prefix_id, name, xot) {
             Ok(name_id)
         } else {
-            Err(Error::UnknownPrefix(prefix_clone))
+            Err(Error::UnknownPrefix(prefix.to_string()))
         }
     }
 
     fn name_id_with_prefix_id(
         &mut self,
         prefix_id: PrefixId,
-        name: String,
+        name: &str,
         xot: &mut Xot,
     ) -> Result<NameId, ()> {
         let namespace_id = if !self.namespace_stack.is_empty() {
@@ -275,8 +266,8 @@ impl NameIdBuilder {
             None
         };
         let namespace_id = namespace_id.ok_or(())?;
-        let name = Name::new(name, *namespace_id);
-        Ok(xot.name_lookup.get_id_mut(name))
+        let name = Name::new(name.to_string(), *namespace_id);
+        Ok(xot.name_lookup.get_id_mut(&name))
     }
 }
 

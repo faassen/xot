@@ -1,8 +1,8 @@
 use indextree::{Arena, NodeId};
 
 use crate::name::NameLookup;
-use crate::namespace::{Namespace, NamespaceId, NamespaceLookup};
-use crate::prefix::{Prefix, PrefixId, PrefixLookup};
+use crate::namespace::{NamespaceId, NamespaceLookup};
+use crate::prefix::{PrefixId, PrefixLookup};
 use crate::xmlvalue::Value;
 
 pub(crate) type XmlArena = Arena<Value>;
@@ -45,13 +45,12 @@ impl Xot {
     /// Create a new `Xot` instance.
     pub fn new() -> Self {
         let mut namespace_lookup = NamespaceLookup::new();
-        let no_namespace_id = namespace_lookup.get_id_mut(Namespace::new("".into()));
+        let no_namespace_id = namespace_lookup.get_id_mut("");
         let mut prefix_lookup = PrefixLookup::new();
-        let empty_prefix_id = prefix_lookup.get_id_mut(Prefix::new("".into()));
-        let xml_namespace_id = namespace_lookup.get_id_mut(Namespace::new(
-            "http://www.w3.org/XML/1998/namespace".into(),
-        ));
-        let xml_prefix_id = prefix_lookup.get_id_mut(Prefix::new("xml".into()));
+        let empty_prefix_id = prefix_lookup.get_id_mut("");
+        let xml_namespace_id =
+            namespace_lookup.get_id_mut("http://www.w3.org/XML/1998/namespace".into());
+        let xml_prefix_id = prefix_lookup.get_id_mut("xml");
         Xot {
             arena: XmlArena::new(),
             namespace_lookup,

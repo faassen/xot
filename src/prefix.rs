@@ -1,5 +1,3 @@
-use std::fmt::{Display, Formatter};
-
 use crate::idmap::{IdIndex, IdMap};
 
 /// Id uniquely identifying a prefix
@@ -16,23 +14,4 @@ impl IdIndex<PrefixId> for PrefixId {
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub(crate) struct Prefix(String);
-
-impl Prefix {
-    pub(crate) fn new(prefix: String) -> Self {
-        Self(prefix)
-    }
-
-    pub(crate) fn get(&self) -> &str {
-        &self.0
-    }
-}
-
-impl Display for Prefix {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-pub(crate) type PrefixLookup = IdMap<PrefixId, Prefix>;
+pub(crate) type PrefixLookup = IdMap<PrefixId, String>;

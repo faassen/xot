@@ -3,8 +3,8 @@ use ahash::{HashMap, HashSet};
 use crate::access::NodeEdge;
 use crate::error::Error;
 use crate::name::{Name, NameId};
-use crate::namespace::{Namespace, NamespaceId};
-use crate::prefix::{Prefix, PrefixId};
+use crate::namespace::NamespaceId;
+use crate::prefix::PrefixId;
 use crate::serialize::{Fullname, FullnameSerializer};
 use crate::xmlvalue::ToNamespace;
 use crate::xotdata::{Node, Xot};
@@ -26,7 +26,7 @@ impl Xot {
     /// Look up name with a namespace.
     pub fn name_ns(&self, name: &str, namespace_id: NamespaceId) -> Option<NameId> {
         self.name_lookup
-            .get_id(Name::new(name.to_string(), namespace_id))
+            .get_id(&Name::new(name.to_string(), namespace_id))
     }
 
     /// Add name with a namespace.
@@ -34,34 +34,31 @@ impl Xot {
     /// If the name already exists, return its id.
     pub fn add_name_ns(&mut self, name: &str, namespace_id: NamespaceId) -> NameId {
         self.name_lookup
-            .get_id_mut(Name::new(name.to_string(), namespace_id))
+            .get_id_mut(&Name::new(name.to_string(), namespace_id))
     }
 
     /// Look up namespace.
     pub fn namespace(&self, namespace: &str) -> Option<NamespaceId> {
-        self.namespace_lookup
-            .get_id(Namespace::new(namespace.to_string()))
+        self.namespace_lookup.get_id(namespace)
     }
 
     /// Add namespace.
     ///
     /// If the namespace already exists, return its id.
     pub fn add_namespace(&mut self, namespace: &str) -> NamespaceId {
-        self.namespace_lookup
-            .get_id_mut(Namespace::new(namespace.to_string()))
+        self.namespace_lookup.get_id_mut(namespace)
     }
 
     /// Look up prefix.
     pub fn prefix(&self, prefix: &str) -> Option<PrefixId> {
-        self.prefix_lookup.get_id(Prefix::new(prefix.to_string()))
+        self.prefix_lookup.get_id(prefix)
     }
 
     /// Add prefix.
     ///
     /// If the prefix already exists, return its id.
     pub fn add_prefix(&mut self, prefix: &str) -> PrefixId {
-        self.prefix_lookup
-            .get_id_mut(Prefix::new(prefix.to_string()))
+        self.prefix_lookup.get_id_mut(prefix)
     }
 
     /// Look up localname, namespace uri for name id
@@ -71,7 +68,7 @@ impl Xot {
     pub fn name_ns_str(&self, name: NameId) -> (&str, &str) {
         let name = self.name_lookup.get_value(name);
         let namespace = self.namespace_lookup.get_value(name.namespace_id);
-        (name.name.as_str(), namespace.get())
+        (name.name.as_str(), namespace)
     }
 
     /// Look up namespace uri for namespace id
@@ -79,7 +76,7 @@ impl Xot {
     /// An empty string slice indicates the no namespace.
     pub fn namespace_str(&self, namespace: NamespaceId) -> &str {
         let namespace = self.namespace_lookup.get_value(namespace);
-        namespace.get()
+        namespace
     }
 
     /// Look up string slice for prefix id
@@ -87,7 +84,7 @@ impl Xot {
     /// If the prefix id is the empty prefix, the string slice is the empty string.
     pub fn prefix_str(&self, prefix: PrefixId) -> &str {
         let prefix = self.prefix_lookup.get_value(prefix);
-        prefix.get()
+        prefix
     }
 
     /// Creating missing prefixes.
