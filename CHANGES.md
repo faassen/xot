@@ -10,6 +10,9 @@
 - `xot.new_root()` which allows you to create a new document from scratch
   without parsing.
 
+- `xot.text_content`, `xot.text_content_mut` and `xot.text_content_str` for
+  convenience access to the text content of an element.
+
 ### Performance
 
 - More efficient handling of lookup of name, prefix ids and namespace ids.

@@ -144,6 +144,43 @@ impl<'a> Xot<'a> {
         }
     }
 
+    /// If this element has only a single text child, return a reference to it.
+    ///
+    /// If the element has no children or more than one child, return `None`.
+    pub fn text_content(&self, node: Node) -> Option<&Text> {
+        if let Some(child) = self.first_child(node) {
+            if self.next_sibling(child).is_some() {
+                return None;
+            }
+            if let Some(text) = self.text(child) {
+                return Some(text);
+            }
+        }
+        None
+    }
+
+    /// If this element has only a single text child, return a mutable reference to it.
+    ///
+    /// If the element has no children or more than one child, return `None`.
+    pub fn text_content_mut(&mut self, node: Node) -> Option<&mut Text> {
+        if let Some(child) = self.first_child(node) {
+            if self.next_sibling(child).is_some() {
+                return None;
+            }
+            if let Some(text) = self.text_mut(child) {
+                return Some(text);
+            }
+        }
+        None
+    }
+
+    /// If this element only has a single text child, return str reference to it.
+    ///
+    /// If the element has no children or more than one child, return `None`.
+    pub fn text_content_str(&self, node: Node) -> Option<&str> {
+        self.text_content(node).map(|n| n.get())
+    }
+
     /// If this node's value is a comment, return a reference to it.
     pub fn comment(&self, node: Node) -> Option<&Comment> {
         let xml_node = self.value(node);
