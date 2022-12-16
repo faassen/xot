@@ -53,3 +53,22 @@ fn test_unknown_prefix() {
         unreachable!();
     }
 }
+
+#[test]
+fn test_parse_non_static() -> Result<(), Error> {
+    let mut xot = Xot::new();
+    let mut xml = String::new();
+    xml.push('<');
+    xml.push('a');
+    xml.push('>');
+    xml.push('<');
+    xml.push('/');
+    xml.push('a');
+    xml.push('>');
+    let doc = xot.parse(&xml)?;
+    drop(xml);
+    let doc_el = xot.document_element(doc).unwrap();
+    let el = xot.element(doc_el).unwrap();
+    assert_eq!(xot.name_ns_str(el.name()), ("a", ""));
+    Ok(())
+}

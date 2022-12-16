@@ -23,7 +23,7 @@ use crate::xmlvalue::{ToNamespace, Value, ValueType};
 /// Note that you can use these manipulation methods to move nodes between
 /// trees -- if you append a node that's in another tree, that node is first
 /// detached from the other tree before it's inserted into the new location.
-impl Xot {
+impl<'a> Xot<'a> {
     /// Append a child to the end of the children of the given parent.
     ///
     /// It is now the new last node of the parent.

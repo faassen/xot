@@ -30,18 +30,18 @@ impl Node {
 ///
 /// Xot is implemented in several sections focusing on different aspects
 /// of accessing and manipulating XML data.
-pub struct Xot {
+pub struct Xot<'a> {
     pub(crate) arena: XmlArena,
     pub(crate) namespace_lookup: NamespaceLookup,
     pub(crate) prefix_lookup: PrefixLookup,
-    pub(crate) name_lookup: NameLookup,
+    pub(crate) name_lookup: NameLookup<'a>,
     pub(crate) no_namespace_id: NamespaceId,
     pub(crate) empty_prefix_id: PrefixId,
     pub(crate) xml_namespace_id: NamespaceId,
     pub(crate) xml_prefix_id: PrefixId,
 }
 
-impl Xot {
+impl<'a> Xot<'a> {
     /// Create a new `Xot` instance.
     pub fn new() -> Self {
         let mut namespace_lookup = NamespaceLookup::new();
@@ -74,7 +74,7 @@ impl Xot {
     }
 }
 
-impl Default for Xot {
+impl<'a> Default for Xot<'a> {
     fn default() -> Self {
         Self::new()
     }

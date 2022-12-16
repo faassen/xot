@@ -10,7 +10,7 @@ use crate::xmlvalue::{ToNamespace, ToPrefix, Value, ValueType};
 use crate::xotdata::{Node, Xot};
 
 /// ## Serialization
-impl Xot {
+impl<'a> Xot<'a> {
     /// Serialize document to a writer.
     ///
     /// This only works with a root node.
@@ -196,7 +196,7 @@ impl Xot {
 }
 
 pub(crate) struct FullnameSerializer<'a> {
-    xot: &'a Xot,
+    xot: &'a Xot<'a>,
     prefix_stack: Vec<ToPrefix>,
 }
 

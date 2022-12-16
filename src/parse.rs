@@ -30,29 +30,31 @@ impl ElementBuilder {
     fn build_attributes(
         &mut self,
         document_builder: &mut DocumentBuilder,
+        xot: &mut Xot,
     ) -> Result<Attributes, Error> {
         let mut attributes = Attributes::new();
         for ((prefix, name), value) in self.attributes.drain(..) {
-            let name_id = document_builder.name_id_builder.attribute_name_id(
-                &prefix,
-                &name,
-                document_builder.xot,
-            )?;
+            let name_id = document_builder
+                .name_id_builder
+                .attribute_name_id(&prefix, &name, xot)?;
             attributes.insert(name_id, value);
         }
         Ok(attributes)
     }
 
-    fn into_element(mut self, document_builder: &mut DocumentBuilder) -> Result<Element, Error> {
+    fn into_element(
+        mut self,
+        document_builder: &mut DocumentBuilder,
+        xot: &mut Xot,
+    ) -> Result<Element, Error> {
         document_builder
             .name_id_builder
             .push(&self.namespace_info.to_namespace);
-        let attributes = self.build_attributes(document_builder)?;
-        let name_id = document_builder.name_id_builder.element_name_id(
-            &self.prefix,
-            &self.name,
-            document_builder.xot,
-        )?;
+        let attributes = self.build_attributes(document_builder, xot)?;
+        let name_id =
+            document_builder
+                .name_id_builder
+                .element_name_id(&self.prefix, &self.name, xot)?;
         Ok(Element {
             name_id,
             namespace_info: self.namespace_info,
@@ -61,23 +63,21 @@ impl ElementBuilder {
     }
 }
 
-struct DocumentBuilder<'a> {
-    xot: &'a mut Xot,
+struct DocumentBuilder {
     tree: NodeId,
     current_node_id: NodeId,
     name_id_builder: NameIdBuilder,
     element_builder: Option<ElementBuilder>,
 }
 
-impl<'a> DocumentBuilder<'a> {
-    fn new(xot: &'a mut Xot) -> Self {
+impl DocumentBuilder {
+    fn new(xot: &mut Xot) -> Self {
         let root = xot.arena.new_node(Value::Root);
         let mut name_id_builder = NameIdBuilder::new(xot.base_to_namespace());
         let mut base_to_namespace = ToNamespace::new();
         base_to_namespace.insert(xot.empty_prefix_id, xot.no_namespace_id);
         name_id_builder.push(&base_to_namespace);
         DocumentBuilder {
-            xot,
             tree: root,
             current_node_id: root,
             name_id_builder,
@@ -89,9 +89,9 @@ impl<'a> DocumentBuilder<'a> {
         self.element_builder = Some(ElementBuilder::new(prefix.to_string(), name.to_string()));
     }
 
-    fn prefix(&mut self, prefix: &'a str, namespace_uri: &'a str) {
-        let prefix_id = self.xot.prefix_lookup.get_id_mut(prefix);
-        let namespace_id = self.xot.namespace_lookup.get_id_mut(namespace_uri);
+    fn prefix(&mut self, prefix: &str, namespace_uri: &str, xot: &mut Xot) {
+        let prefix_id = xot.prefix_lookup.get_id_mut(prefix);
+        let namespace_id = xot.namespace_lookup.get_id_mut(namespace_uri);
         self.element_builder
             .as_mut()
             .unwrap()
@@ -99,7 +99,7 @@ impl<'a> DocumentBuilder<'a> {
             .add(prefix_id, namespace_id);
     }
 
-    fn attribute(&mut self, prefix: &'a str, name: &'a str, value: &'a str) -> Result<(), Error> {
+    fn attribute(&mut self, prefix: &str, name: &str, value: &str) -> Result<(), Error> {
         let attributes = &mut self.element_builder.as_mut().unwrap().attributes;
         let is_duplicate = attributes
             .iter()
@@ -119,28 +119,28 @@ impl<'a> DocumentBuilder<'a> {
         Ok(())
     }
 
-    fn add(&mut self, value: Value) -> NodeId {
-        let node_id = self.xot.arena.new_node(value);
-        self.current_node_id.append(node_id, &mut self.xot.arena);
+    fn add(&mut self, value: Value, xot: &mut Xot) -> NodeId {
+        let node_id = xot.arena.new_node(value);
+        self.current_node_id.append(node_id, &mut xot.arena);
         node_id
     }
 
-    fn open_element(&mut self) -> Result<(), Error> {
+    fn open_element(&mut self, xot: &mut Xot) -> Result<(), Error> {
         let element_builder = self.element_builder.take().unwrap();
-        let element = Value::Element(element_builder.into_element(self)?);
-        let node_id = self.add(element);
+        let element = Value::Element(element_builder.into_element(self, xot)?);
+        let node_id = self.add(element, xot);
         self.current_node_id = node_id;
         Ok(())
     }
 
-    fn text(&mut self, content: &str) -> Result<(), Error> {
+    fn text(&mut self, content: &str, xot: &mut Xot) -> Result<(), Error> {
         let content = parse_text(content.into())?;
-        self.add(Value::Text(Text::new(content.to_string())));
+        self.add(Value::Text(Text::new(content.to_string())), xot);
         Ok(())
     }
 
-    fn close_element_immediate(&mut self) {
-        let current_node = self.xot.arena.get(self.current_node_id).unwrap();
+    fn close_element_immediate(&mut self, xot: &mut Xot) {
+        let current_node = xot.arena.get(self.current_node_id).unwrap();
         if let Value::Element(element) = current_node.get() {
             self.name_id_builder
                 .pop(&element.namespace_info.to_namespace);
@@ -148,11 +148,9 @@ impl<'a> DocumentBuilder<'a> {
         self.current_node_id = current_node.parent().expect("Cannot close root node");
     }
 
-    fn close_element(&mut self, prefix: &str, name: &str) -> Result<(), Error> {
-        let name_id = self
-            .name_id_builder
-            .element_name_id(prefix, name, self.xot)?;
-        let current_node = self.xot.arena.get(self.current_node_id).unwrap();
+    fn close_element(&mut self, prefix: &str, name: &str, xot: &mut Xot) -> Result<(), Error> {
+        let name_id = self.name_id_builder.element_name_id(prefix, name, xot)?;
+        let current_node = xot.arena.get(self.current_node_id).unwrap();
         if let Value::Element(element) = current_node.get() {
             if element.name_id != name_id {
                 return Err(Error::InvalidCloseTag(prefix.to_string(), name.to_string()));
@@ -164,25 +162,33 @@ impl<'a> DocumentBuilder<'a> {
         Ok(())
     }
 
-    fn comment(&mut self, content: &str) -> Result<(), Error> {
+    fn comment(&mut self, content: &str, xot: &mut Xot) -> Result<(), Error> {
         // XXX are there illegal comments, like those with -- inside? or
         // won't they pass the parser?
-        self.add(Value::Comment(Comment::new(content.to_string())));
+        self.add(Value::Comment(Comment::new(content.to_string())), xot);
         Ok(())
     }
 
-    fn processing_instruction(&mut self, target: &str, content: Option<&str>) -> Result<(), Error> {
+    fn processing_instruction(
+        &mut self,
+        target: &str,
+        content: Option<&str>,
+        xot: &mut Xot,
+    ) -> Result<(), Error> {
         // XXX are there illegal processing instructions, like those with
         // ?> inside? or won't they pass the parser?
-        self.add(Value::ProcessingInstruction(ProcessingInstruction::new(
-            target.to_string(),
-            content.map(|s| s.to_string()),
-        )));
+        self.add(
+            Value::ProcessingInstruction(ProcessingInstruction::new(
+                target.to_string(),
+                content.map(|s| s.to_string()),
+            )),
+            xot,
+        );
         Ok(())
     }
 
-    fn is_current_node_root(&self) -> bool {
-        matches!(self.xot.arena[self.current_node_id].get(), Value::Root)
+    fn is_current_node_root(&self, xot: &Xot) -> bool {
+        matches!(xot.arena[self.current_node_id].get(), Value::Root)
     }
 }
 
@@ -272,7 +278,7 @@ impl NameIdBuilder {
 }
 
 /// ## Parsing
-impl Xot {
+impl<'a> Xot<'a> {
     /// Parse a string containing XML into a node.
     ///
     /// The returned node is the root node of the
@@ -298,15 +304,15 @@ impl Xot {
                     span: _,
                 } => {
                     if prefix.as_str() == "xmlns" {
-                        builder.prefix(local.as_str(), value.as_str());
+                        builder.prefix(local.as_str(), value.as_str(), self);
                     } else if local.as_str() == "xmlns" {
-                        builder.prefix("", value.as_str());
+                        builder.prefix("", value.as_str(), self);
                     } else {
                         builder.attribute(prefix.as_str(), local.as_str(), value.as_str())?;
                     }
                 }
                 Text { text } => {
-                    builder.text(text.as_str())?;
+                    builder.text(text.as_str(), self)?;
                 }
                 ElementStart {
                     prefix,
@@ -320,27 +326,29 @@ impl Xot {
 
                     match end {
                         Open => {
-                            builder.open_element()?;
+                            builder.open_element(self)?;
                         }
                         Close(prefix, local) => {
-                            builder.close_element(prefix.as_str(), local.as_str())?;
+                            builder.close_element(prefix.as_str(), local.as_str(), self)?;
                         }
                         Empty => {
-                            builder.open_element()?;
-                            builder.close_element_immediate();
+                            builder.open_element(self)?;
+                            builder.close_element_immediate(self);
                         }
                     }
                 }
                 Comment { text, span: _ } => {
-                    builder.comment(text.as_str())?;
+                    builder.comment(text.as_str(), self)?;
                 }
                 ProcessingInstruction {
                     target,
                     content,
                     span: _,
-                } => {
-                    builder.processing_instruction(target.as_str(), content.map(|s| s.as_str()))?
-                }
+                } => builder.processing_instruction(
+                    target.as_str(),
+                    content.map(|s| s.as_str()),
+                    self,
+                )?,
                 Declaration {
                     version,
                     encoding,
@@ -362,7 +370,7 @@ impl Xot {
                     }
                 }
                 Cdata { text, span: _ } => {
-                    builder.text(text.as_str())?;
+                    builder.text(text.as_str(), self)?;
                 }
                 DtdStart { .. } => {
                     return Err(Error::DtdUnsupported);
@@ -379,7 +387,7 @@ impl Xot {
             }
         }
 
-        if builder.is_current_node_root() {
+        if builder.is_current_node_root(self) {
             Ok(Node::new(builder.tree))
         } else {
             Err(Error::UnclosedTag)

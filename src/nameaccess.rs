@@ -10,7 +10,7 @@ use crate::xmlvalue::ToNamespace;
 use crate::xotdata::{Node, Xot};
 
 /// ## Names, namespaces and prefixes.
-impl Xot {
+impl<'a> Xot<'a> {
     /// Look up name without a namespace.
     pub fn name(&self, name: &str) -> Option<NameId> {
         self.name_ns(name, self.no_namespace_id)
@@ -19,22 +19,20 @@ impl Xot {
     /// Add name without a namespace.
     ///
     /// If the name already exists, return its id.
-    pub fn add_name(&mut self, name: &str) -> NameId {
+    pub fn add_name(&mut self, name: &'a str) -> NameId {
         self.add_name_ns(name, self.no_namespace_id)
     }
 
     /// Look up name with a namespace.
     pub fn name_ns(&self, name: &str, namespace_id: NamespaceId) -> Option<NameId> {
-        self.name_lookup
-            .get_id(&Name::new(name.to_string(), namespace_id))
+        self.name_lookup.get_id(&Name::new(name, namespace_id))
     }
 
     /// Add name with a namespace.
     ///
     /// If the name already exists, return its id.
-    pub fn add_name_ns(&mut self, name: &str, namespace_id: NamespaceId) -> NameId {
-        self.name_lookup
-            .get_id_mut(&Name::new(name.to_string(), namespace_id))
+    pub fn add_name_ns(&mut self, name: &'a str, namespace_id: NamespaceId) -> NameId {
+        self.name_lookup.get_id_mut(&Name::new(name, namespace_id))
     }
 
     /// Look up namespace.
@@ -68,7 +66,7 @@ impl Xot {
     pub fn name_ns_str(&self, name: NameId) -> (&str, &str) {
         let name = self.name_lookup.get_value(name);
         let namespace = self.namespace_lookup.get_value(name.namespace_id);
-        (name.name.as_str(), namespace)
+        (name.name.as_ref(), namespace)
     }
 
     /// Look up namespace uri for namespace id

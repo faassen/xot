@@ -9,7 +9,7 @@
 
 ### Performance
 
-- More efficient handling of lookup of prefix ids and namespace ids.
+- More efficient handling of lookup of name, prefix ids and namespace ids.
 
 ## [0.4.0] - 2022-12-14
 
