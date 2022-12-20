@@ -10,20 +10,106 @@ use crate::xmlvalue::ToNamespace;
 use crate::xotdata::{Node, Xot};
 
 /// ## Names, namespaces and prefixes.
+///
+/// Xot does not let you use names, prefixes and URIs directly. Instead you use
+/// the types [`xot::NameId`], [`xot::NamespaceId`] and [`xot::PrefixId`] to
+/// refer to these.
+///
+/// This has some advantages:
+///
+/// * It's faster to compare and hash names, namespaces and prefixes.
+///
+/// * It takes less memory to store a tree.
+///
+/// * You get type-checks and can't mix up names, namespaces and prefixes.
+///
+/// Names, namespaces and prefixes are shared in a single Xot, so are the same
+/// in multiple trees. This makes it safe to copy and move nodes between trees.
+/// If you care about the readability of the serialized XML you do need to
+/// ensure that each tree uses `xmlns` attributes to declare the namespaces it
+/// uses; otherwise prefixes are generated during serialization.
+///
+/// The minor drawback is that you need to use multiple steps to create a name,
+/// prefix or namespace for use, or to access the string value of a name,
+/// prefix or namepace. This drawback may be an advantage at times, as typical
+/// code needs to use a single name, namespace or prefix multiple times, so
+/// assigning to a variable is more convenient than repeating strings.
 impl<'a> Xot<'a> {
     /// Look up name without a namespace.
+    ///
+    /// This is the immutable version of [`Xot::add_name`]; it returns
+    /// `None` if the name doesn't exist.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// assert!(xot.name("a").is_none());
+    ///
+    /// let name = xot.add_name("a");
+    /// assert_eq!(xot.name("a"), Some(name));
+    /// ```
     pub fn name(&self, name: &str) -> Option<NameId> {
         self.name_ns(name, self.no_namespace_id)
     }
 
     /// Add name without a namespace.
     ///
-    /// If the name already exists, return its id.
+    /// If the name already exists, return its id, otherwise creates it.
+    ///
+    /// ```rust
+    ///
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    ///
+    /// let name = xot.add_name("a");
+    /// // the namespace is "" for no namespace
+    /// assert_eq!(xot.name_ns_str(name), ("a", ""));
+    ///
+    /// let root = xot.parse(r#"<doc/>"#)?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// // add an element, using the name
+    /// let node = xot.append_element(doc_el, name)?;
+    ///
+    /// assert_eq!(xot.serialize_to_string(root), "<doc><a/></doc>");
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn add_name(&mut self, name: &'a str) -> NameId {
         self.add_name_ns(name, self.no_namespace_id)
     }
 
     /// Look up name with a namespace.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    ///
+    /// let ns = xot.add_namespace("http://example.com");
+    /// let name = xot.add_name_ns("a", ns);
+    /// assert_eq!(xot.name_ns_str(name), ("a", "http://example.com"));
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    ///
+    /// Look up name of an element:
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<doc xmlns="http://example.com"><a/></doc>"#)?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    ///
+    /// let doc_value = xot.element(doc_el).unwrap();
+    ///
+    /// // get the name of the element
+    /// let name = xot.name_ns_str(doc_value.name());
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn name_ns(&self, name: &str, namespace_id: NamespaceId) -> Option<NameId> {
         self.name_lookup.get_id(&Name::new(name, namespace_id))
     }
@@ -31,11 +117,36 @@ impl<'a> Xot<'a> {
     /// Add name with a namespace.
     ///
     /// If the name already exists, return its id.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    ///
+    /// let ns = xot.add_namespace("http://example.com");
+    /// let name_a = xot.add_name_ns("a", ns);
+    ///
+    /// let root = xot.parse(r#"<doc xmlns="http://example.com"><a/></doc>"#)?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let a_el = xot.first_child(doc_el).unwrap();
+    ///
+    /// let doc_value = xot.element(doc_el).unwrap();
+    /// let a_value = xot.element(a_el).unwrap();
+    ///
+    /// // we know a is the right name, but doc is not
+    /// assert_eq!(a_value.name(), name_a);
+    /// assert_ne!(doc_value.name(), name_a);
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn add_name_ns(&mut self, name: &'a str, namespace_id: NamespaceId) -> NameId {
         self.name_lookup.get_id_mut(&Name::new(name, namespace_id))
     }
 
     /// Look up namespace.
+    ///
+    /// This is the immutable version of [`Xot::add_namespace`]; it returns
+    /// `None` if the namespace doesn't exist.
     pub fn namespace(&self, namespace: &str) -> Option<NamespaceId> {
         self.namespace_lookup.get_id(namespace)
     }
@@ -48,6 +159,9 @@ impl<'a> Xot<'a> {
     }
 
     /// Look up prefix.
+    ///
+    /// This is the immutable version of [`Xot::add_prefix`]; it returns
+    /// `None` if the prefix doesn't exist.
     pub fn prefix(&self, prefix: &str) -> Option<PrefixId> {
         self.prefix_lookup.get_id(prefix)
     }
@@ -63,6 +177,42 @@ impl<'a> Xot<'a> {
     ///
     /// If this name id is not in a namespace, the namespace uri is the
     /// empty string.
+    ///
+    /// No namespace:
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<doc><a/></doc>"#)?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let a_el = xot.first_child(doc_el).unwrap();
+    ///
+    /// let a_value = xot.element(a_el).unwrap();
+    ///
+    /// let (localname, namespace) = xot.name_ns_str(a_value.name());
+    /// assert_eq!(localname, "a");
+    /// assert_eq!(namespace, "");
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    ///
+    /// With namespace:
+    /// ```rust
+    ///
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<doc xmlns="http://example.com"><a/></doc>"#)?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let a_el = xot.first_child(doc_el).unwrap();
+    ///
+    /// let a_value = xot.element(a_el).unwrap();
+    ///
+    /// let (localname, namespace) = xot.name_ns_str(a_value.name());
+    /// assert_eq!(localname, "a");
+    /// assert_eq!(namespace, "http://example.com");
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn name_ns_str(&self, name: NameId) -> (&str, &str) {
         let name = self.name_lookup.get_value(name);
         let namespace = self.namespace_lookup.get_value(name.namespace_id);
@@ -87,14 +237,21 @@ impl<'a> Xot<'a> {
 
     /// Creating missing prefixes.
     ///
-    /// Due to creation or moving subtrees
-    /// you can end up with XML elements or attributes
-    /// that have names in a namespace without a prefix
-    /// to define the namespace in its ancestors.
+    /// Due to creation or moving subtrees you can end up with XML elements or
+    /// attributes that have names in a namespace without a prefix to define
+    /// the namespace in its ancestors.
     ///
-    /// This function creates the missing prefixes
-    /// on the given node. The prefixes are named
-    /// "n0", "n1", "n2", etc.
+    /// This function creates the missing prefixes on the given node. The
+    /// prefixes are named "n0", "n1", "n2", etc.
+    ///
+    /// You probably do not need to call this manually: [`Xot::serialize`],
+    /// [`Xot::serialize_to_string`] and [`Xot::serialize_node_to_string`] all
+    /// call this function before serializing.
+    ///
+    /// You can also serialize without calling this by using
+    /// [`Xot::serialize_or_missing_prefix`],
+    /// [`Xot::serialize_or_missing_prefix_to_string`] which error if any
+    /// prefix is not defined instead.
     pub fn create_missing_prefixes(&mut self, node: Node) -> Result<(), Error> {
         if !self.is_element(node) {
             return Err(Error::NotElement(node));
@@ -145,6 +302,48 @@ impl<'a> Xot<'a> {
     /// Any namespace definition lower down that
     /// defines a prefix for a namespace that is already known in an ancestor
     /// is removed.
+    ///
+    /// With default namespaces:
+    ///
+    /// ```rust
+    ///
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<doc xmlns="http://example.com"><a xmlns="http://example.com"/></doc>"#)?;
+    /// xot.deduplicate_namespaces(root);
+    ///
+    /// assert_eq!(xot.serialize_to_string(root), r#"<doc xmlns="http://example.com"><a/></doc>"#);
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    ///
+    /// With explicit prefixes:
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<ns:doc xmlns:ns="http://example.com"><ns:a xmlns:ns="http://example.com"/></ns:doc>"#)?;
+    ///
+    /// xot.deduplicate_namespaces(root);
+    ///
+    /// assert_eq!(xot.serialize_to_string(root), r#"<ns:doc xmlns:ns="http://example.com"><ns:a/></ns:doc>"#);
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    ///
+    /// This also works if you use different prefixes for the same namespace URI:
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<ns:doc xmlns:ns="http://example.com"><other:a xmlns:other="http://example.com"/></ns:doc>"#)?;
+    ///
+    /// xot.deduplicate_namespaces(root);
+    ///
+    /// assert_eq!(xot.serialize_to_string(root), r#"<ns:doc xmlns:ns="http://example.com"><ns:a/></ns:doc>"#);
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn deduplicate_namespaces(&mut self, node: Node) {
         let mut fullname_serializer = FullnameSerializer::new(self);
         let mut fixup_nodes = Vec::new();
