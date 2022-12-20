@@ -10,6 +10,9 @@
 - It's allowed to use `replace` on the document element as well, if it
   doesn't break the rule and the document element remains.
 
+- Added new `is_document_element` accessor to check whether a node
+  is the document element.
+
 ## [0.5.1] - 2022-12-16
 
 ### Fixed
