@@ -2,6 +2,16 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- It's not possible to apply `element_unwrap` to the document element,
+  if and only if it has a single child node that's an element.
+
+- It's allowed to use `replace` on the document element as well, if it
+  doesn't break the rule and the document element remains.
+
+## [0.5.1] - 2022-12-16
+
 ### Fixed
 
 - Fixed a bug where we couldn't clone a document root.
