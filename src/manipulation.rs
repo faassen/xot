@@ -242,14 +242,39 @@ impl<'a> Xot<'a> {
     }
 
     /// Unwrap an element; its children are moved to its parent.
-    /// The node itself is removed.
+    ///
+    /// The unwrapped element itself is removed.
+    ///
+    /// You can unwrap the document element, but only if that document
+    /// has exactly 1 child that is an element.
     pub fn element_unwrap(&mut self, node: Node) -> Result<(), Error> {
         if !self.is_element(node) {
             return Err(Error::InvalidOperation(
                 "Cannot unwrap non-element nodes".to_string(),
             ));
         }
-        self.remove_structure_check(node)?;
+        // special case for document element
+        if self.is_document_element(node) {
+            // this is possible if the document element contains exactly one child
+            // that is an element
+            if self.children(node).count() != 1 {
+                return Err(Error::InvalidOperation(
+                    "Cannot only unwrap document element if it has exactly 1 element child node"
+                        .to_string(),
+                ));
+            }
+            // we now know there is 1 child
+            if !self.is_element(self.first_child(node).unwrap()) {
+                return Err(Error::InvalidOperation(
+                    "Cannot only unwrap document element if it has exactly 1 element child node"
+                        .to_string(),
+                ));
+            }
+        }
+        // remove_structure_check is not needed; we already know we don't
+        // unwrap the root or non-element child, and document element is
+        // taken care of.
+
         let first_child = self.first_child(node);
         // without children this is like a remove
         if first_child.is_none() {
@@ -395,7 +420,9 @@ impl<'a> Xot<'a> {
             }
             ValueType::Element => {
                 if self.is_under_root(node) {
-                    return Err(Error::InvalidOperation("Cannot remove root element".into()));
+                    return Err(Error::InvalidOperation(
+                        "Cannot remove document element".into(),
+                    ));
                 }
             }
             ValueType::Text | ValueType::ProcessingInstruction | ValueType::Comment => {

@@ -388,7 +388,7 @@ fn test_clone_with_prefixes() {
 }
 
 #[test]
-fn test_remove_unwrap() {
+fn test_element_unwrap() {
     let mut xot = Xot::new();
     let doc = xot
         .parse(r#"<doc><first/><a><one/><two/></a><second/></doc>"#)
@@ -410,7 +410,7 @@ fn test_remove_unwrap() {
 }
 
 #[test]
-fn test_remove_unwrap_consolidation_single_element() {
+fn test_element_unwrap_consolidation_single_element() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<doc>Alpha<a/>Beta</doc>"#).unwrap();
     let el_id = xot
@@ -429,7 +429,7 @@ fn test_remove_unwrap_consolidation_single_element() {
 }
 
 #[test]
-fn test_remove_unwrap_consolidation_text_in_element() {
+fn test_element_unwrap_consolidation_text_in_element() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<doc>Alpha<a>!</a>Beta</doc>"#).unwrap();
     let el_id = xot
@@ -448,7 +448,7 @@ fn test_remove_unwrap_consolidation_text_in_element() {
 }
 
 #[test]
-fn test_remove_unwrap_consolidation_text_in_element_at_beginning() {
+fn test_element_unwrap_consolidation_text_in_element_at_beginning() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<doc>Alpha<a>!<b/></a>Beta</doc>"#).unwrap();
     let el_id = xot
@@ -466,7 +466,7 @@ fn test_remove_unwrap_consolidation_text_in_element_at_beginning() {
 }
 
 #[test]
-fn test_remove_unwrap_consolidation_text_in_element_at_end() {
+fn test_element_unwrap_consolidation_text_in_element_at_end() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<doc>Alpha<a><b/>!</a>Beta</doc>"#).unwrap();
     let el_id = xot
@@ -485,7 +485,7 @@ fn test_remove_unwrap_consolidation_text_in_element_at_end() {
 }
 
 #[test]
-fn test_remove_unwrap_consolidation_text_in_element_both_ends() {
+fn test_element_unwrap_consolidation_text_in_element_both_ends() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<doc>Alpha<a>?<b/>!</a>Beta</doc>"#).unwrap();
     let el_id = xot
@@ -509,7 +509,36 @@ fn test_remove_unwrap_consolidation_text_in_element_both_ends() {
 }
 
 #[test]
-fn test_wrap() {
+fn test_element_unwrap_document_element() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc><p>Hello</p></doc>"#).unwrap();
+    let document_element = xot.document_element(doc).unwrap();
+
+    xot.element_unwrap(document_element).unwrap();
+
+    assert_eq!(xot.serialize_to_string(doc), r#"<p>Hello</p>"#);
+}
+
+#[test]
+fn test_element_unwrap_document_element_not_allowed_multiple_children() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc><a/><b/></doc>"#).unwrap();
+    let document_element = xot.document_element(doc).unwrap();
+
+    assert!(xot.element_unwrap(document_element).is_err());
+}
+
+#[test]
+fn test_element_unwrap_document_element_not_allowed_non_element_child() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc>Text</doc>"#).unwrap();
+    let document_element = xot.document_element(doc).unwrap();
+
+    assert!(xot.element_unwrap(document_element).is_err());
+}
+
+#[test]
+fn test_element_wrap() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<doc>Alpha</doc>"#).unwrap();
     let doc_el = xot.document_element(doc).unwrap();
@@ -520,7 +549,7 @@ fn test_wrap() {
 }
 
 #[test]
-fn test_wrap_middle() {
+fn test_element_wrap_middle() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<doc><first/>Alpha<second/></doc>"#).unwrap();
     let doc_el = xot.document_element(doc).unwrap();
