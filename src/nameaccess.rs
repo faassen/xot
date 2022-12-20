@@ -12,7 +12,7 @@ use crate::xotdata::{Node, Xot};
 /// ## Names, namespaces and prefixes.
 ///
 /// Xot does not let you use names, prefixes and URIs directly. Instead you use
-/// the types [`xot::NameId`], [`xot::NamespaceId`] and [`xot::PrefixId`] to
+/// the types [`NameId`], [`NamespaceId`] and [`PrefixId`] to
 /// refer to these.
 ///
 /// This has some advantages:
