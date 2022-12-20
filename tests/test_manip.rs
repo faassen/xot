@@ -563,6 +563,25 @@ fn test_element_wrap_middle() {
 }
 
 #[test]
+fn test_element_wrap_document_element() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc>Alpha</doc>"#).unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    let name_p = xot.add_name("p");
+    xot.element_wrap(doc_el, name_p).unwrap();
+    assert_eq!(xot.serialize_to_string(doc), r#"<p><doc>Alpha</doc></p>"#);
+}
+
+#[test]
+fn test_element_wrap_element_under_root_not_document_element() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<!-- hello --><doc>Alpha</doc>"#).unwrap();
+    let comment_el = xot.first_child(doc).unwrap();
+    let name_p = xot.add_name("p");
+    assert!(xot.element_wrap(comment_el, name_p).is_err());
+}
+
+#[test]
 fn test_deduplicate_namespace() {
     let mut xot = Xot::new();
     let root = xot

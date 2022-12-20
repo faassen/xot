@@ -253,9 +253,9 @@ impl<'a> Xot<'a> {
                 "Cannot unwrap non-element nodes".to_string(),
             ));
         }
-        // special case for document element
+
         if self.is_document_element(node) {
-            // this is possible if the document element contains exactly one child
+            // unwrapping is possible if the document element contains exactly one child
             // that is an element
             if self.children(node).count() != 1 {
                 return Err(Error::InvalidOperation(
@@ -305,22 +305,27 @@ impl<'a> Xot<'a> {
     }
 
     /// Wrap a node in a new element
-    /// It's not allowed to wrap the root node or nodes immediately under
-    /// the root node, including the document element.
+    ///
+    /// Returns the node for the new wrapping element.
+    ///
+    /// It's not allowed to wrap the root node. It's allowed to wrap the
+    /// document element but not any comment or processing instruction nodes
+    /// directly under the root.
     pub fn element_wrap(&mut self, node: Node, name_id: NameId) -> Result<Node, Error> {
         if self.is_root(node) {
             return Err(Error::InvalidOperation(
                 "Cannot wrap document root".to_string(),
             ));
         }
-        // we forbid wrapping nodes under the root too. Theoretically
-        // it would be possible but it's tricky to check and very uncommon.
-        if self.is_under_root(node) {
+        // we forbid wrapping nodes under the root too unless it's the
+        // document element
+        if self.is_under_root(node) && !self.is_document_element(node) {
             return Err(Error::InvalidOperation(
-                "Cannot wrap nodes under document root".to_string(),
+                "Cannot wrap nodes under document root except document element".to_string(),
             ));
         }
-        // there should always be a parent as we're not in document element level
+
+        // there should always be a parent as we're not the root
         let parent = self.parent(node).unwrap();
         // record previous sibling
         let previous_node = self.previous_sibling(node);
