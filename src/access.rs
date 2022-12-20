@@ -26,6 +26,18 @@ impl<'a> Xot<'a> {
     /// Obtain the root element from the document root.
     /// Returns [`Error::NotRoot`](`crate::error::Error::NotRoot`) error if
     /// this is not the document root.
+    ///
+    /// ```rust
+    /// let mut xot = xot::Xot::new();
+    ///
+    /// let root = xot.parse("<p>Example</p>").unwrap();
+    ///
+    /// let doc_el = xot.document_element(root).unwrap();
+    ///
+    /// // Check that we indeed have the `p` element
+    /// let p_name = xot.name("p").unwrap();
+    /// assert_eq!(xot.element(doc_el).unwrap().name(), p_name);
+    /// ```
     pub fn document_element(&self, node: Node) -> Result<Node, Error> {
         if self.value_type(node) != ValueType::Root {
             return Err(Error::NotRoot(node));
