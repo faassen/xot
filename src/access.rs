@@ -50,8 +50,7 @@ impl<'a> Xot<'a> {
         unreachable!("Document should always have a single root node")
     }
 
-    /// Obtain top element,
-    /// given anywhere in a tree.
+    /// Obtain top element, given node anywhere in a tree.
     ///
     /// In an XML document this is the document element.
     /// In an XML fragment it's the top node of the
@@ -71,41 +70,119 @@ impl<'a> Xot<'a> {
     }
 
     /// Check whether a node has been removed.
+    ///
+    /// This can happen because you removed it explicitly, or because you held
+    /// on to a reference and the node was replaced using [`Xot::replace`]. or
+    /// unwrapped using [`Xot::element_unwrap`].
+    ///
+    /// ```rust
+    /// let mut xot = xot::Xot::new();
+    ///
+    /// let root = xot.parse("<p>Example</p>").unwrap();
+    /// let p = xot.document_element(root).unwrap();
+    /// let text = xot.first_child(p).unwrap();
+    /// xot.remove(text);
+    /// assert_eq!(xot.serialize_to_string(root), "<p/>");
+    /// assert!(xot.is_removed(text));
+    /// ```
     pub fn is_removed(&self, node: Node) -> bool {
         self.arena()[node.get()].is_removed()
     }
 
     /// Get parent node.
+    ///
+    /// Returns [`None`] if this is the root node.
+    ///
+    /// ```rust
+    ///
+    /// let mut xot = xot::Xot::new();
+    /// let root = xot.parse("<p>Example</p>").unwrap();
+    /// let p = xot.document_element(root).unwrap();
+    /// let text = xot.first_child(p).unwrap();
+    /// assert_eq!(xot.parent(text), Some(p));
+    /// assert_eq!(xot.parent(p), Some(root));
+    /// assert_eq!(xot.parent(root), None);
+    /// ```
     pub fn parent(&self, node: Node) -> Option<Node> {
         self.arena()[node.get()].parent().map(Node::new)
     }
 
     /// Get first child.
+    ///
+    /// Returns [`None`] if there are no children.
+    ///
+    /// ```rust
+    /// let mut xot = xot::Xot::new();
+    /// let root = xot.parse("<p>Example</p>").unwrap();
+    /// let p = xot.document_element(root).unwrap();
+    /// let text = xot.first_child(p).unwrap();
+    /// assert_eq!(xot.first_child(root), Some(p));
+    /// assert_eq!(xot.first_child(p), Some(text));
+    /// assert_eq!(xot.first_child(text), None);
+    /// ```
     pub fn first_child(&self, node: Node) -> Option<Node> {
         self.arena()[node.get()].first_child().map(Node::new)
     }
 
     /// Get last child.
+    ///
+    /// Returns [`None`] if there are no children.
     pub fn last_child(&self, node: Node) -> Option<Node> {
         self.arena()[node.get()].last_child().map(Node::new)
     }
 
     /// Get next sibling.
+    ///
+    /// Returns [`None`] if there is no next sibling.
+    ///
+    /// ```rust
+    /// let mut xot = xot::Xot::new();
+    /// let root = xot.parse("<p><a/><b/></p>").unwrap();
+    /// let p = xot.document_element(root).unwrap();
+    /// let a = xot.first_child(p).unwrap();
+    /// let b = xot.next_sibling(a).unwrap();
+    /// assert_eq!(xot.next_sibling(b), None);
+    /// ```
     pub fn next_sibling(&self, node: Node) -> Option<Node> {
         self.arena()[node.get()].next_sibling().map(Node::new)
     }
 
     /// Get previous sibling.
+    ///
+    /// Returns [`None`] if there is no previous sibling.
     pub fn previous_sibling(&self, node: Node) -> Option<Node> {
         self.arena()[node.get()].previous_sibling().map(Node::new)
     }
 
     /// Iterator over ancestor nodes, including this one.
+    ///
+    /// ```rust
+    /// let mut xot = xot::Xot::new();
+    ///
+    /// let root = xot.parse("<a><b><c/></b></a>").unwrap();
+    /// let a = xot.document_element(root).unwrap();
+    /// let b = xot.first_child(a).unwrap();
+    /// let c = xot.first_child(b).unwrap();
+    ///
+    /// let ancestors = xot.ancestors(c).collect::<Vec<_>>();
+    /// assert_eq!(ancestors, vec![c, b, a, root]);
+    /// ```
     pub fn ancestors(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
         node.get().ancestors(self.arena()).map(Node::new)
     }
 
     /// Iterator over the child nodes of this node.
+    ///
+    /// ```rust
+    /// let mut xot = xot::Xot::new();
+    /// let root = xot.parse("<p><a/><b/></p>").unwrap();
+    /// let p = xot.document_element(root).unwrap();
+    /// let a = xot.first_child(p).unwrap();
+    /// let b = xot.next_sibling(a).unwrap();
+    /// let children = xot.children(p).collect::<Vec<_>>();
+    ///
+    /// assert_eq!(children, vec![a, b]);
+    /// ```
     pub fn children(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
         node.get().children(self.arena()).map(Node::new)
     }
@@ -117,11 +194,35 @@ impl<'a> Xot<'a> {
 
     /// Iterator over of the descendants of this node,
     /// including this one. In document order (pre-order depth-first).
+    ///
+    /// ```rust
+    /// let mut xot = xot::Xot::new();
+    /// let root = xot.parse("<a><b><c/></b></a>").unwrap();
+    /// let a = xot.document_element(root).unwrap();
+    /// let b = xot.first_child(a).unwrap();
+    /// let c = xot.first_child(b).unwrap();
+    ///
+    /// let descendants = xot.descendants(a).collect::<Vec<_>>();
+    /// assert_eq!(descendants, vec![a, b, c]);
+    /// ```
     pub fn descendants(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
         node.get().descendants(self.arena()).map(Node::new)
     }
 
-    /// Iterator over the following siblings of this node.
+    /// Iterator over the following siblings of this node, including this one.
+    ///
+    /// ```rust
+    /// let mut xot = xot::Xot::new();
+    /// let root = xot.parse("<p><a/><b/><c/></p>").unwrap();
+    /// let p = xot.document_element(root).unwrap();
+    /// let a = xot.first_child(p).unwrap();
+    /// let b = xot.next_sibling(a).unwrap();
+    /// let c = xot.next_sibling(b).unwrap();
+    /// let siblings = xot.following_siblings(a).collect::<Vec<_>>();
+    /// assert_eq!(siblings, vec![a, b, c]);
+    /// let siblings = xot.following_siblings(b).collect::<Vec<_>>();
+    /// assert_eq!(siblings, vec![b, c]);
+    /// ```
     pub fn following_siblings(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
         node.get().following_siblings(self.arena()).map(Node::new)
     }
@@ -145,6 +246,23 @@ impl<'a> Xot<'a> {
     /// For value types other than element or root,
     /// the start and end always come as pairs without
     /// any intervening edges.
+    ///
+    /// ```rust
+    /// let mut xot = xot::Xot::new();
+    /// let root = xot.parse("<a><b>Text</b></a>").unwrap();
+    /// let a = xot.document_element(root).unwrap();
+    /// let b = xot.first_child(a).unwrap();
+    /// let text = xot.first_child(b).unwrap();
+    /// let edges = xot.traverse(a).collect::<Vec<_>>();
+    /// assert_eq!(edges, vec![
+    ///  xot::NodeEdge::Start(a),
+    ///  xot::NodeEdge::Start(b),
+    ///  xot::NodeEdge::Start(text),
+    ///  xot::NodeEdge::End(text),
+    ///  xot::NodeEdge::End(b),
+    ///  xot::NodeEdge::End(a),
+    /// ]);
+    /// ```
     pub fn traverse(&self, node: Node) -> impl Iterator<Item = NodeEdge> + '_ {
         node.get().traverse(self.arena()).map(|edge| match edge {
             IndexTreeNodeEdge::Start(node_id) => NodeEdge::Start(Node::new(node_id)),
