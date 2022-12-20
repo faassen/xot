@@ -602,6 +602,33 @@ fn test_replace_node() {
 }
 
 #[test]
+fn test_replace_document_element() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc>Alpha</doc>"#).unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+
+    let name_p = xot.add_name("p");
+    let replacing = xot.new_element(name_p);
+
+    xot.replace(doc_el, replacing).unwrap();
+
+    assert_eq!(xot.serialize_to_string(doc), r#"<p/>"#);
+}
+
+#[test]
+fn test_replace_document_element_illegal() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc>Alpha</doc>"#).unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+
+    let replacing = xot.new_text("Sneaky");
+
+    // you shouldn't be allowed to replace the document element with a text node, only
+    // with an element node
+    assert!(xot.replace(doc_el, replacing).is_err());
+}
+
+#[test]
 fn test_detach() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<doc><a><b/></a></doc>"#).unwrap();

@@ -74,6 +74,16 @@ impl<'a> Xot<'a> {
         }
     }
 
+    /// Return true if the node is the document element.
+    pub fn is_document_element(&self, node: Node) -> bool {
+        if let Some(parent_id) = self.parent(node) {
+            self.value_type(parent_id) == ValueType::Root
+                && self.value_type(node) == ValueType::Element
+        } else {
+            false
+        }
+    }
+
     /// Return true if node is the document root.
     pub fn is_root(&self, node: Node) -> bool {
         self.value_type(node) == ValueType::Root
