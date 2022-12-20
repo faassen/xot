@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.6.1] - 2022-12-20
+
 ### Added
 
 - It's now possible to call `element_wrap` on the document element as well.
@@ -81,7 +83,8 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.6.1...HEAD
 
-[unreleased]: https://github.com/faassen/xot/compare/v0.6.0...HEAD
+[unreleased]: https://github.com/faassen/xot/compare/v0.6.0...v0.6.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.5.0...v0.6.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.4.0...v0.5.0
