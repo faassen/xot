@@ -120,38 +120,137 @@ impl Element {
     }
 
     /// The name of the element.
+    /// 
+    /// ```rust
+    /// use xot::Xot;
+    /// 
+    /// let mut xot = Xot::new();
+    /// let name_doc = xot.add_name("doc");
+    /// 
+    /// let root = xot.parse("<doc/>")?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let element = xot.element(doc_el).unwrap();
+    /// assert_eq!(element.name(), name_doc);
+    /// 
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn name(&self) -> NameId {
         self.name_id
     }
 
     /// The attributes of the element.
+    /// 
+    /// ```rust
+    /// use xot::{Xot, Attributes};
+    /// 
+    /// let mut xot = Xot::new();
+    /// let name_a = xot.add_name("a");
+    /// let name_b = xot.add_name("b");
+    /// 
+    /// let root = xot.parse(r#"<doc a="A" b="B" />"#)?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let element = xot.element(doc_el).unwrap();
+    /// 
+    /// let mut expected = Attributes::new();
+    /// expected.insert(name_a, "A".to_string());
+    /// expected.insert(name_b, "B".to_string());
+    /// 
+    /// assert_eq!(element.attributes(), &expected);
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn attributes(&self) -> &Attributes {
         &self.attributes
     }
 
     /// Get an attribute by name.
+    /// 
+    /// ```rust
+    /// use xot::Xot;
+    /// 
+    /// let mut xot = Xot::new();
+    /// let name_a = xot.add_name("a");
+    /// 
+    /// let root = xot.parse(r#"<doc a="A" />"#)?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let element = xot.element(doc_el).unwrap();
+    /// 
+    /// assert_eq!(element.get_attribute(name_a), Some("A"));
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn get_attribute(&self, name_id: NameId) -> Option<&str> {
         self.attributes.get(&name_id).map(|s| s.as_str())
     }
 
     /// Set an attribute value.
+    /// 
+    /// ```rust
+    /// use xot::Xot;
+    /// 
+    /// let mut xot = Xot::new();
+    /// let name_a = xot.add_name("a");
+    /// 
+    /// let root = xot.parse(r#"<doc/>"#)?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let element = xot.element_mut(doc_el).unwrap();
+    /// 
+    /// element.set_attribute(name_a, "A");
+    /// 
+    /// assert_eq!(element.get_attribute(name_a), Some("A"));
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn set_attribute<S: Into<String>>(&mut self, name_id: NameId, value: S) {
         self.attributes.insert(name_id, value.into());
     }
 
     /// Remove an attribute.
+    /// 
+    /// ```rust
+    /// use xot::Xot;
+    /// 
+    /// let mut xot = Xot::new();
+    /// let name_a = xot.add_name("a");
+    /// 
+    /// let root = xot.parse(r#"<doc a="A" />"#)?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let element = xot.element_mut(doc_el).unwrap();
+    /// 
+    /// element.remove_attribute(name_a);
+    /// 
+    /// assert_eq!(element.get_attribute(name_a), None);
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn remove_attribute(&mut self, name_id: NameId) {
         self.attributes.remove(&name_id);
     }
 
     /// Add a prefix to namespace mapping.
+    /// 
+    /// ```rust
+    /// use xot::Xot;
+    /// 
+    /// let mut xot = Xot::new();
+    /// let prefix_x = xot.add_prefix("x");
+    /// let namespace_x = xot.add_namespace("http://example.com/x");
+    /// 
+    /// let root = xot.parse(r#"<doc/>"#)?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let element = xot.element_mut(doc_el).unwrap();
+    /// 
+    /// element.set_prefix(prefix_x, namespace_x);
+    /// 
+    /// assert_eq!(element.get_prefix(namespace_x), Some(prefix_x));
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn set_prefix(&mut self, prefix_id: PrefixId, namespace_id: NamespaceId) {
         self.namespace_info.add(prefix_id, namespace_id);
     }
 
     /// Remove namespace prefix and associated namespace.
     ///
-    /// This may result in documents with missing prefixes.
+    /// This may result in documents with missing prefixes. This can be safely
+    /// serialized as missing namespace prefixes are automatically generated,
+    /// unless you use [`Xot::serialize_or_missing_prefix`] which will result
+    /// in an error.
     pub fn remove_prefix(&mut self, prefix_id: PrefixId) {
         self.namespace_info.remove_by_prefix_id(prefix_id);
     }
@@ -193,11 +292,29 @@ impl Text {
     }
 
     /// Get the text value.
-    pub fn get(&self) -> &str {
+    /// 
+    /// See [`Xot::text_str`] and [`Xot::content_str`] for
+    /// more convenient ways to get text values.
+     pub fn get(&self) -> &str {
         &self.text
     }
 
     /// Set the text value.
+    /// 
+    /// ```rust
+    /// use xot::Xot;
+    /// 
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<doc>Example</doc>"#)?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let text_node = xot.first_child(doc_el).unwrap();
+    /// 
+    /// let text = xot.text_mut(text_node).unwrap();
+    /// text.set("New text");
+    /// 
+    /// assert_eq!(xot.serialize_to_string(root), r#"<doc>New text</doc>"#);
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn set<S: Into<String>>(&mut self, text: S) {
         self.text = text.into();
     }
@@ -221,8 +338,9 @@ impl Comment {
         &self.text
     }
 
-    /// Set the comment text. Rejects
-    /// comments that contain `--` as illegal.
+    /// Set the comment text. 
+    /// 
+    /// Rejects comments that contain `--` as illegal.
     pub fn set<S: Into<String>>(&mut self, text: S) -> Result<(), Error> {
         let text = text.into();
         if text.contains("--") {
@@ -257,8 +375,10 @@ impl ProcessingInstruction {
         self.data.as_deref()
     }
 
-    /// Set target. Rejects any target that is
-    /// the string `"xml"` (or case variations) as it's reserved for XML.
+    /// Set target. 
+    /// 
+    /// Rejects any target that is the string `"xml"` (or case variations) as
+    /// it's reserved for XML.
     pub fn set_target<S: Into<String>>(&mut self, target: S) -> Result<(), Error> {
         let target = target.into();
         if target.to_lowercase() == "xml" {

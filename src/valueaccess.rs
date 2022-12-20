@@ -10,7 +10,7 @@ impl<'a> Xot<'a> {
     ///
     /// let mut xot = Xot::new();
     ///
-    /// let root = xot.parse("<doc>Example</doc>").unwrap();
+    /// let root = xot.parse("<doc>Example</doc>")?;
     /// let doc_el = xot.document_element(root).unwrap();
     /// let doc_name = xot.name("doc").unwrap();
     ///
@@ -20,6 +20,7 @@ impl<'a> Xot<'a> {
     ///   }
     ///   _ => { }
     /// }
+    /// # Ok::<(), xot::Error>(())
     /// ```
     ///
     /// Note that if you already know the type of a node value or are
@@ -37,7 +38,7 @@ impl<'a> Xot<'a> {
     ///
     /// let mut xot = Xot::new();
     ///
-    /// let root = xot.parse("<doc>Example</doc>").unwrap();
+    /// let root = xot.parse("<doc>Example</doc>")?;
     /// let doc_el = xot.document_element(root).unwrap();
     ///
     /// let attr_name = xot.add_name("foo");
@@ -49,7 +50,9 @@ impl<'a> Xot<'a> {
     ///   _ => { }
     /// }
     ///
+    /// # Ok::<(), xot::Error>(())
     /// ```
+    ///
     /// Note that if you already know the type of a node value or are
     /// only interested in a single type, you can use the convenience
     /// methods like [`Xot::element_mut`]
@@ -66,6 +69,20 @@ impl<'a> Xot<'a> {
     /// Return true if node is directly under the document root.
     /// This means it's either the document element or a comment or
     /// processing instruction.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse("<doc>Example</doc>")?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let text_node = xot.first_child(doc_el).unwrap();
+    ///
+    /// assert!(xot.is_under_root(doc_el));
+    /// assert!(!xot.is_under_root(text_node));
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn is_under_root(&self, node: Node) -> bool {
         if let Some(parent_id) = self.parent(node) {
             self.value_type(parent_id) == ValueType::Root
@@ -75,6 +92,19 @@ impl<'a> Xot<'a> {
     }
 
     /// Return true if the node is the document element.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse("<doc>Example</doc>")?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let text_node = xot.first_child(doc_el).unwrap();
+    ///
+    /// assert!(xot.is_document_element(doc_el));
+    /// assert!(!xot.is_document_element(text_node));
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn is_document_element(&self, node: Node) -> bool {
         if let Some(parent_id) = self.parent(node) {
             self.value_type(parent_id) == ValueType::Root
@@ -85,16 +115,55 @@ impl<'a> Xot<'a> {
     }
 
     /// Return true if node is the document root.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse("<doc>Example</doc>")?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    ///
+    /// assert!(xot.is_root(root));
+    /// assert!(!xot.is_root(doc_el));
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn is_root(&self, node: Node) -> bool {
         self.value_type(node) == ValueType::Root
     }
 
     /// Return true if node is an element.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse("<doc>Example</doc>")?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let text_node = xot.first_child(doc_el).unwrap();
+    ///
+    /// assert!(xot.is_element(doc_el));
+    /// assert!(!xot.is_element(text_node));
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn is_element(&self, node: Node) -> bool {
         self.value_type(node) == ValueType::Element
     }
 
     /// Return true if node is text.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse("<doc>Example</doc>")?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let text_node = xot.first_child(doc_el).unwrap();
+    ///
+    /// assert!(xot.is_text(text_node));
+    /// assert!(!xot.is_text(doc_el));
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn is_text(&self, node: Node) -> bool {
         self.value_type(node) == ValueType::Text
     }
@@ -110,6 +179,26 @@ impl<'a> Xot<'a> {
     }
 
     /// If this node's value is text, return a reference to it.
+    ///
+    /// Note that [`Xot::text_str()`] is a more convenient way to
+    /// get the text value as a string slice.
+    ///
+    /// See also [`Xot::text_mut()`] if you want to manipulate
+    /// a text value.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse("<doc>Example</doc>")?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let text_node = xot.first_child(doc_el).unwrap();
+    ///
+    /// assert_eq!(xot.text(text_node).unwrap().get(), "Example");
+    /// assert!(xot.text(doc_el).is_none());
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn text(&self, node: Node) -> Option<&Text> {
         let xml_node = self.value(node);
         if let Value::Text(text) = xml_node {
@@ -119,12 +208,48 @@ impl<'a> Xot<'a> {
         }
     }
 
-    /// If this node's value is text, return a reference to the string.    
+    /// If this node's value is text, return a reference to the string.
+    ///
+    /// ```rust
+    ///
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse("<doc>Example</doc>")?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let text_node = xot.first_child(doc_el).unwrap();
+    ///
+    /// assert_eq!(xot.text_str(text_node).unwrap(), "Example");
+    /// assert!(xot.text_str(doc_el).is_none());
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn text_str(&self, node: Node) -> Option<&str> {
         self.text(node).map(|n| n.get())
     }
 
     /// If this node's value is a text, return a mutable reference to it.
+    ///
+    /// This can be used to manipulate the text content of a
+    /// document.
+    ///
+    /// ```rust
+    ///
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse("<doc>Example</doc>")?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let text_node = xot.first_child(doc_el).unwrap();
+    ///
+    /// let text = xot.text_mut(text_node).unwrap();
+    ///
+    /// text.set("New text");
+    ///
+    /// assert_eq!(xot.text_str(text_node).unwrap(), "New text");
+    /// assert_eq!(xot.serialize_to_string(root), "<doc>New text</doc>");
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn text_mut(&mut self, node: Node) -> Option<&mut Text> {
         let xml_node = self.value_mut(node);
         if let Value::Text(text) = xml_node {
@@ -135,6 +260,29 @@ impl<'a> Xot<'a> {
     }
 
     /// If this node's value is an element, return a reference to it.
+    ///
+    /// See also [`Xot::element_mut()`] if you want to manipulate
+    /// an element.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<doc><child a="A"/></doc>"#)?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let child_el = xot.first_child(doc_el).unwrap();
+    ///    
+    /// let element = xot.element(child_el).unwrap();
+    ///
+    /// let child_name = xot.name("child").unwrap();
+    /// assert_eq!(element.name(), child_name);
+    ///
+    /// let a_name = xot.name("a").unwrap();
+    /// let attribute_value = element.get_attribute(a_name).unwrap();
+    /// assert_eq!(attribute_value, "A");
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn element(&self, node: Node) -> Option<&Element> {
         let xml_node = self.value(node);
         if let Value::Element(element) = xml_node {
@@ -145,6 +293,35 @@ impl<'a> Xot<'a> {
     }
 
     /// If this node's value is an element, return a mutable reference to it.
+    ///
+    /// You can use this to add or remove attributes as well as
+    /// namespace declarations.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    /// 
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<doc><child a="A"/></doc>"#)?;
+    /// let doc_el = xot.document_element(root).unwrap(); 
+    /// let child_el = xot.first_child(doc_el).unwrap();
+    /// 
+    /// let prefix = xot.add_prefix("ns");
+    /// let ns = xot.add_namespace("http://example.com");
+    /// let b_name = xot.add_name("b");
+    /// 
+    /// let element = xot.element_mut(child_el).unwrap();
+    /// 
+    /// element.set_attribute(b_name, "B");
+    /// 
+    /// assert_eq!(xot.serialize_to_string(root), r#"<doc><child a="A" b="B"/></doc>"#);
+    /// 
+    /// let element = xot.element_mut(child_el).unwrap();
+    ///
+    /// element.set_prefix(prefix, ns);
+    /// 
+    /// assert_eq!(xot.serialize_to_string(root), r#"<doc><child xmlns:ns="http://example.com" a="A" b="B"/></doc>"#);
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn element_mut(&mut self, node: Node) -> Option<&mut Element> {
         let xml_node = self.value_mut(node);
         if let Value::Element(element) = xml_node {
@@ -157,6 +334,27 @@ impl<'a> Xot<'a> {
     /// If this element has only a single text child, return a reference to it.
     ///
     /// If the element has no children or more than one child, return `None`.
+    /// 
+    /// Note that [`Xot::text_content_str()`] is a more convenient way to get
+    /// the text value as a string slice.
+    ///
+    /// See also [`Xot::text_content_mut()`] if you want to manipulate a text value.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    /// 
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse("<doc><a>Example</a><b/></doc>")?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let a_el = xot.first_child(doc_el).unwrap();
+    /// let b_el = xot.next_sibling(a_el).unwrap();
+    /// 
+    /// let text = xot.text_content(a_el).unwrap();
+    /// 
+    /// assert_eq!(text.get(), "Example");
+    /// assert!(xot.text_content(b_el).is_none());
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn text_content(&self, node: Node) -> Option<&Text> {
         if let Some(child) = self.first_child(node) {
             if self.next_sibling(child).is_some() {
@@ -172,6 +370,24 @@ impl<'a> Xot<'a> {
     /// If this element has only a single text child, return a mutable reference to it.
     ///
     /// If the element has no children or more than one child, return `None`.
+    /// 
+    /// ```rust
+    /// use xot::Xot;
+    /// 
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse("<doc><a>Example</a><b/></doc>")?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let a_el = xot.first_child(doc_el).unwrap();
+    /// let b_el = xot.next_sibling(a_el).unwrap();
+    /// 
+    /// let text = xot.text_content_mut(a_el).unwrap();
+    /// text.set("New value");
+    /// 
+    /// assert_eq!(xot.serialize_to_string(root), "<doc><a>New value</a><b/></doc>");
+    /// assert!(xot.text_content_mut(b_el).is_none());
+    /// 
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn text_content_mut(&mut self, node: Node) -> Option<&mut Text> {
         if let Some(child) = self.first_child(node) {
             if self.next_sibling(child).is_some() {
@@ -187,6 +403,22 @@ impl<'a> Xot<'a> {
     /// If this element only has a single text child, return str reference to it.
     ///
     /// If the element has no children or more than one child, return `None`.
+    /// 
+    /// ```rust
+    /// use xot::Xot;
+    /// 
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse("<doc><a>Example</a><b/></doc>")?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let a_el = xot.first_child(doc_el).unwrap();
+    /// let b_el = xot.next_sibling(a_el).unwrap();
+    /// 
+    /// let text = xot.text_content_str(a_el).unwrap();
+    /// assert_eq!(text, "Example");
+    /// assert!(xot.text_content_str(b_el).is_none());
+    /// 
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn text_content_str(&self, node: Node) -> Option<&str> {
         self.text_content(node).map(|n| n.get())
     }
@@ -249,6 +481,65 @@ impl<'a> Xot<'a> {
     ///
     /// Text nodes, comments and processing instructions are considered to be the
     /// same if their values are the same.
+    /// 
+    /// Compare two documents:
+    /// 
+    /// ```rust
+    /// use xot::Xot;
+    /// 
+    /// let mut xot = Xot::new();
+    /// let root0 = xot.parse("<doc><a>Example</a><b/></doc>")?;
+    /// let root1 = xot.parse("<doc><a>Example</a><b/></doc>")?;
+    /// 
+    /// assert!(xot.compare(root0, root1));
+    /// 
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    /// 
+    /// Different prefixes are ignored; the namespace URI is
+    /// what is compared:
+    /// 
+    /// ```rust
+    /// use xot::Xot;
+    /// 
+    /// let mut xot = Xot::new();
+    /// let root0 = xot.parse("<doc xmlns:foo='http://example.com'><foo:a/></doc>")?;
+    /// let root1 = xot.parse("<doc xmlns:bar='http://example.com'><bar:a/></doc>")?;
+    /// 
+    /// assert!(xot.compare(root0, root1));
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    /// 
+    /// But different text is a real difference:
+    /// 
+    /// ```rust
+    /// use xot::Xot;
+    /// 
+    /// let mut xot = Xot::new();
+    /// let root0 = xot.parse("<doc>Example</doc>")?;
+    /// let root1 = xot.parse("<doc>Changed</doc>")?;
+    /// 
+    /// assert!(!xot.compare(root0, root1));
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    /// 
+    /// You can compare any nodes, not just documents:
+    /// 
+    /// ```rust
+    /// use xot::Xot;
+    /// 
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<doc><a f="F"/><b/><a f="F"/></doc>"#)?;
+    /// let doc_el = xot.first_child(root).unwrap();
+    /// let a_el = xot.first_child(doc_el).unwrap();
+    /// let b_el = xot.next_sibling(a_el).unwrap();
+    /// let a2_el = xot.next_sibling(b_el).unwrap();
+    /// 
+    /// assert!(xot.compare(a_el, a2_el));
+    /// assert!(!xot.compare(a_el, b_el));
+    /// 
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn compare(&self, a: Node, b: Node) -> bool {
         let mut descendants_a = self.descendants(a);
         let mut descendants_b = self.descendants(b);
