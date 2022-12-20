@@ -23,10 +23,62 @@ use crate::xmlvalue::{ToNamespace, Value, ValueType};
 /// Note that you can use these manipulation methods to move nodes between
 /// trees -- if you append a node that's in another tree, that node is first
 /// detached from the other tree before it's inserted into the new location.
+///
+/// Text node consolidation example:
+/// ```rust
+///
+/// use xot::Xot;
+///
+/// let mut xot = Xot::new();
+/// let root = xot.parse(r#"<doc>First<s/>Second</doc>"#)?;
+///
+/// let doc_el = xot.document_element(root).unwrap();
+/// let children = xot.children(doc_el).collect::<Vec<_>>();
+/// let first = children[0];
+/// let s = children[1];
+/// let second = children[2];
+///
+/// // Now we remove s from the document
+/// xot.remove(s)?;
+///
+/// // The text nodes are now adjacent, so the second text node is removed
+/// // and merged with the first text node.
+///
+/// let children = xot.children(doc_el).collect::<Vec<_>>();
+/// assert_eq!(children.len(), 1);
+/// assert_eq!(xot.text_str(children[0]).unwrap(), "FirstSecond");
+///
+/// # Ok::<(), xot::Error>(())
+/// ```
 impl<'a> Xot<'a> {
     /// Append a child to the end of the children of the given parent.
     ///
     /// It is now the new last node of the parent.
+    ///
+    /// Append returns an error if you place a node in a location that is not
+    /// allowed, such appending a node to a text node, or appending a new
+    /// element to the root (there can be only one document element).
+    ///
+    /// See also the convenience methods [`Xot::append_element`],
+    /// [`Xot::append_text`], [`Xot::append_comment`] and
+    /// [`Xot::append_processing_instruction`].
+    ///
+    /// ```rust
+    ///
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    ///
+    /// let root = xot.parse(r#"<doc><p>Example</p></doc>"#)?;
+    /// let doc_el = xot.document_element(root)?;
+    ///
+    /// let p_name = xot.add_name("p");
+    /// let p_el = xot.new_element(p_name);
+    /// xot.append(doc_el, p_el)?;
+    ///
+    /// assert_eq!(xot.serialize_to_string(root), r#"<doc><p>Example</p><p/></doc>"#);
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn append(&mut self, parent: Node, child: Node) -> Result<(), Error> {
         self.add_structure_check(Some(parent), child)?;
         self.remove_consolidate_text_nodes(self.previous_sibling(child), self.next_sibling(child));
@@ -38,6 +90,20 @@ impl<'a> Xot<'a> {
     }
 
     /// Append a text node to a parent node given text.
+    ///
+    /// ```rust
+    ///
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<doc><p>Example</p></doc>"#)?;
+    /// let doc_el = xot.document_element(root)?;
+    ///
+    /// xot.append_text(doc_el, "Hello")?;
+    ///
+    /// assert_eq!(xot.serialize_to_string(root), r#"<doc><p>Example</p>Hello</doc>"#);
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn append_text(&mut self, parent: Node, text: &str) -> Result<(), Error> {
         let text_node_id = self.new_text(text);
         self.append(parent, text_node_id)?;
@@ -55,13 +121,15 @@ impl<'a> Xot<'a> {
     ///
     /// let mut xot = Xot::new();
     ///
-    /// let root = xot.parse(r#"<doc></doc>"#).unwrap();
+    /// let root = xot.parse(r#"<doc></doc>"#)?;
     /// let doc_el = xot.document_element(root).unwrap();
     ///
     /// let name_id = xot.add_name("foo");
-    /// xot.append_element(doc_el, name_id).unwrap();
+    /// xot.append_element(doc_el, name_id)?;
     ///
     /// assert_eq!(xot.serialize_to_string(root), "<doc><foo/></doc>");
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn append_element(&mut self, parent: Node, name_id: NameId) -> Result<(), Error> {
         let element_node_id = self.new_element(name_id);
         self.append(parent, element_node_id)?;
@@ -103,6 +171,25 @@ impl<'a> Xot<'a> {
     }
 
     /// Insert a new sibling after a reference node.
+    ///
+    /// ```rust
+    ///
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<doc><a/><c/></doc>"#)?;
+    ///
+    /// let doc_el = xot.document_element(root)?;
+    /// let a_el = xot.first_child(doc_el).unwrap();
+    ///
+    /// let b_name = xot.add_name("b");
+    /// let b_el = xot.new_element(b_name);
+    ///
+    /// xot.insert_after(a_el, b_el)?;
+    ///
+    /// assert_eq!(xot.serialize_to_string(root), r#"<doc><a/><b/><c/></doc>"#);
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn insert_after(&mut self, reference_node: Node, new_sibling: Node) -> Result<(), Error> {
         self.add_structure_check(self.parent(reference_node), new_sibling)?;
         self.remove_consolidate_text_nodes(
@@ -145,6 +232,25 @@ impl<'a> Xot<'a> {
     /// Detach a node (and its descendants) from the tree.
     ///
     /// It now becomes a new xml fragment.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<doc><a><b><c/></b></a></doc>"#)?;
+    /// let doc_el = xot.document_element(root)?;
+    /// let a_el = xot.first_child(doc_el).unwrap();
+    ///
+    /// xot.detach(a_el)?;
+    ///
+    /// assert_eq!(xot.serialize_to_string(root), r#"<doc/>"#);
+    /// assert_eq!(xot.serialize_node_to_string(a_el), r#"<a><b><c/></b></a>"#);
+    ///
+    /// // a_al still exist; it's not removed like with [`Xot::remove`].
+    /// assert!(!xot.is_removed(a_el));
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn detach(&mut self, node: Node) -> Result<(), Error> {
         self.remove_structure_check(node)?;
         let prev_node = self.previous_sibling(node);
@@ -156,7 +262,27 @@ impl<'a> Xot<'a> {
 
     /// Remove a node (and its descendants) from the tree
     ///
-    /// This removes the nodes from the XmlData.
+    /// This removes the nodes from Xot. Trying to access or
+    /// manipulate a removed node results in a panic. You can verify
+    /// that a node is removed by using [`Xot::is_removed`].
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<doc><a><b><c/></b></a></doc>"#)?;
+    /// let doc_el = xot.document_element(root)?;
+    /// let a_el = xot.first_child(doc_el).unwrap();
+    ///
+    /// xot.remove(a_el)?;
+    ///
+    /// assert_eq!(xot.serialize_to_string(root), r#"<doc/>"#);
+    ///
+    /// // a_al is removed; it's not detached like with [`Xot::detach`].
+    /// assert!(xot.is_removed(a_el));
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn remove(&mut self, node: Node) -> Result<(), Error> {
         // we don't do a remove structure check, as we should be able to
         // remove an entire root if we do it explicitly.
@@ -172,8 +298,34 @@ impl<'a> Xot<'a> {
 
     /// Clone a node and its descendants into a new fragment
     ///
-    /// The cloned nodes are not attached to anything.
-    /// If you clone a root, you clone the whole document.
+    /// The cloned nodes are not attached to anything. If you clone a root, you
+    /// clone the whole document.
+    ///
+    /// This does not include any namespace prefix information defined in any
+    /// ancestors of the cloned node. If you want to preserve such prefix
+    /// information, see [`Xot::clone_with_prefixes`].
+    ///
+    /// ```rust
+    ///
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<doc><a><b><c/></b></a></doc>"#)?;
+    /// let doc_el = xot.document_element(root)?;
+    /// let a_el = xot.first_child(doc_el).unwrap();
+    ///
+    /// let cloned = xot.clone(a_el);
+    ///
+    /// assert_eq!(xot.serialize_to_string(root), r#"<doc><a><b><c/></b></a></doc>"#);
+    ///
+    /// // cloned is not attached to anything
+    /// assert!(xot.parent(cloned).is_none());
+    ///
+    /// // cloned is a new fragment
+    /// assert_eq!(xot.serialize_node_to_string(cloned), r#"<a><b><c/></b></a>"#);
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn clone(&mut self, node: Node) -> Node {
         let edges = self.traverse(node).collect::<Vec<_>>();
 
@@ -221,6 +373,26 @@ impl<'a> Xot<'a> {
     ///
     /// If the cloned node is an element, required namespace prefixes that are
     /// in scope are added to the cloned node.
+    ///
+    /// ```rust
+    ///
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<doc xmlns:foo="http://example.com"><foo:a><foo:b><foo:c/></foo:b></foo:a></doc>"#)?;
+    /// let doc_el = xot.document_element(root)?;
+    /// let a_el = xot.first_child(doc_el).unwrap();
+    ///
+    /// let cloned = xot.clone_with_prefixes(a_el);
+    /// assert_eq!(xot.serialize_node_to_string(cloned), r#"<foo:a xmlns:foo="http://example.com"><foo:b><foo:c/></foo:b></foo:a>"#);
+    ///
+    /// // if you do a normal clone, prefixes aren't preserved and are generated instead
+    ///
+    /// let cloned = xot.clone(a_el);
+    /// assert_eq!(xot.serialize_node_to_string(cloned), r#"<n0:a xmlns:n0="http://example.com"><n0:b><n0:c/></n0:b></n0:a>"#);
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn clone_with_prefixes(&mut self, node: Node) -> Node {
         // get all prefixes defined in scope
         let to_namespace = if let Some(node) = self.parent(node) {
@@ -247,6 +419,23 @@ impl<'a> Xot<'a> {
     ///
     /// You can unwrap the document element, but only if that document
     /// has exactly 1 child that is an element.
+    ///
+    /// ```rust
+    ///
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    ///
+    /// let root = xot.parse(r#"<doc><a><b><c/></b></a></doc>"#)?;
+    /// let doc_el = xot.document_element(root)?;
+    /// let a_el = xot.first_child(doc_el).unwrap();
+    ///
+    /// xot.element_unwrap(a_el)?;
+    ///
+    /// assert_eq!(xot.serialize_to_string(root), r#"<doc><b><c/></b></doc>"#);
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn element_unwrap(&mut self, node: Node) -> Result<(), Error> {
         if !self.is_element(node) {
             return Err(Error::InvalidOperation(
@@ -311,6 +500,23 @@ impl<'a> Xot<'a> {
     /// It's not allowed to wrap the root node. It's allowed to wrap the
     /// document element but not any comment or processing instruction nodes
     /// directly under the root.
+    ///
+    /// ```rust
+    ///
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<doc><b><c/></b></doc>"#)?;
+    /// let doc_el = xot.document_element(root)?;
+    /// let b_el = xot.first_child(doc_el).unwrap();
+    ///
+    /// let a_name = xot.add_name("a");
+    /// let wrapper = xot.element_wrap(b_el, a_name)?;
+    ///
+    /// assert_eq!(xot.serialize_to_string(root), r#"<doc><a><b><c/></b></a></doc>"#);
+    /// assert_eq!(xot.serialize_node_to_string(wrapper), r#"<a><b><c/></b></a>"#);
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn element_wrap(&mut self, node: Node, name_id: NameId) -> Result<Node, Error> {
         if self.is_root(node) {
             return Err(Error::InvalidOperation(
@@ -350,6 +556,24 @@ impl<'a> Xot<'a> {
     /// The replaced node and all its descendants are removed.
     ///
     /// This works for any node, except the document root itself.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    ///
+    /// let root = xot.parse(r#"<doc><a><b/></a><c/></doc>"#)?;
+    /// let doc_el = xot.document_element(root)?;
+    /// let a_el = xot.first_child(doc_el).unwrap();
+    ///
+    /// let d_name = xot.add_name("d");
+    /// let d_el = xot.new_element(d_name);
+    ///
+    /// xot.replace(a_el, d_el)?;
+    ///
+    /// assert_eq!(xot.serialize_to_string(root), r#"<doc><d/><c/></doc>"#);
+    /// # Ok::<(), xot::Error>(())
+    /// ```
     pub fn replace(&mut self, replaced_node: Node, replacing_node: Node) -> Result<(), Error> {
         if self.is_root(replaced_node) {
             return Err(Error::InvalidOperation(
