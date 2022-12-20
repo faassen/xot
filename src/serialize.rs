@@ -99,11 +99,10 @@ impl<'a> Xot<'a> {
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();
-    /// let root = xot.new_root();
     /// let ns = xot.add_namespace("http://example.com");
     /// let doc_name = xot.add_name_ns("doc", ns);
     /// let doc_el = xot.new_element(doc_name);
-    /// xot.append(root, doc_el);
+    /// let root = xot.new_root(doc_el)?;
     ///
     /// // we never define a prefix
     ///

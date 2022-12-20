@@ -2,6 +2,16 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- Lots of examples in the API docs.
+
+### Breaking
+
+- `new_root` has changed and requires you to pass in an element. This is
+  because otherwise you could inadvertently create XML documents that are
+  not allowed - a document element is required.
+
 ## [0.6.1] - 2022-12-20
 
 ### Added
@@ -83,8 +93,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.6.1...HEAD
 
+[unreleased]: https://github.com/faassen/xot/compare/v0.6.1...HEAD
 [unreleased]: https://github.com/faassen/xot/compare/v0.6.0...v0.6.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.5.0...v0.6.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.4.0...v0.5.0

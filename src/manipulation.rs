@@ -332,7 +332,8 @@ impl<'a> Xot<'a> {
         // we need to create a top node
         let top = if self.is_root(node) {
             // if we clone a root, we need to create a new root
-            self.new_root()
+            let value = Value::Root;
+            self.new_node(value)
         } else {
             // for anything but the root we create a temporary new element
             let top_name = self.add_name("temporary_root");

@@ -746,9 +746,11 @@ fn test_replace_node_reconciliates_where_detached() {
 #[test]
 fn test_new_root() -> Result<(), Error> {
     let mut xot = Xot::new();
-    let root = xot.new_root();
     let name = xot.add_name("doc");
-    xot.append_element(root, name)?;
+    let doc_el = xot.new_element(name);
+
+    let root = xot.new_root(doc_el)?;
+
     assert_eq!(xot.serialize_to_string(root), r#"<doc/>"#);
     Ok(())
 }

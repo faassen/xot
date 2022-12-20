@@ -1,3 +1,4 @@
+use crate::error::Error;
 use crate::name::NameId;
 use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value};
 use crate::xotdata::{Node, Xot};
@@ -13,23 +14,34 @@ impl<'a> Xot<'a> {
     /// Create a new, unattached root node.
     ///
     /// You can use this to create a new document from scratch.
+    /// You have to supply a document element, as a root without
+    /// a document element is not allowed in XML.
     ///
     /// ```rust
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();
-    /// let root = xot.new_root();
     /// let doc_name = xot.add_name("doc");
     /// let doc_el = xot.new_element(doc_name);
-    /// xot.append(root, doc_el)?;
     /// let txt = xot.new_text("Hello, world!");
     /// xot.append(doc_el, txt)?;
+    ///
+    /// /// now create the root
+    /// let root = xot.new_root(doc_el)?;
+    ///
     /// assert_eq!(xot.serialize_to_string(root), "<doc>Hello, world!</doc>");
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn new_root(&mut self) -> Node {
+    pub fn new_root(&mut self, node: Node) -> Result<Node, Error> {
+        if !self.is_element(node) {
+            return Err(Error::InvalidOperation(
+                "You must supply an element node".to_string(),
+            ));
+        }
         let root = Value::Root;
-        self.new_node(root)
+        let root_node = self.new_node(root);
+        self.append(root_node, node)?;
+        Ok(root_node)
     }
 
     /// Create a new, unattached element node given element name.
@@ -48,10 +60,10 @@ impl<'a> Xot<'a> {
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();
-    /// let root = xot.new_root();
     /// let doc_name = xot.add_name("doc");
     /// let doc_el = xot.new_element(doc_name);
-    /// xot.append(root, doc_el)?;
+    ///
+    /// let root = xot.new_root(doc_el)?;
     /// assert_eq!(xot.serialize_to_string(root), "<doc/>");
     /// # Ok::<(), xot::Error>(())
     /// ```
@@ -64,16 +76,16 @@ impl<'a> Xot<'a> {
     /// let mut xot = Xot::new();
     /// let ns = xot.add_namespace("http://example.com");
     /// let ex = xot.add_prefix("ex");
-    /// let root = xot.new_root();
     ///
     /// // create name in namespace
     /// let doc_name = xot.add_name_ns("doc", ns);
     /// let doc_el = xot.new_element(doc_name);
-    /// xot.append(root, doc_el)?;
     /// let element = xot.element_mut(doc_el).unwrap();
     ///
     /// // set up namepace prefix in element so it serializes to XML nicely
     /// element.set_prefix(ex, ns);
+    ///
+    /// let root = xot.new_root(doc_el)?;
     ///
     /// assert_eq!(xot.serialize_to_string(root), r#"<ex:doc xmlns:ex="http://example.com"/>"#);
     /// # Ok::<(), xot::Error>(())
