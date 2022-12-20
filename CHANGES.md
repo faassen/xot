@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.6.0] - 2022-12-20
+
 ### Added
 
 - It's not possible to apply `element_unwrap` to the document element,
@@ -75,6 +77,7 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.6.0...HEAD
 
-[unreleased]: https://github.com/faassen/xot/compare/v0.5.0...HEAD
+[unreleased]: https://github.com/faassen/xot/compare/v0.5.0...v0.6.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.4.0...v0.5.0
