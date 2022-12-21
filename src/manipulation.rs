@@ -26,7 +26,6 @@ use crate::xmlvalue::{ToNamespace, Value, ValueType};
 ///
 /// Text node consolidation example:
 /// ```rust
-///
 /// use xot::Xot;
 ///
 /// let mut xot = Xot::new();
@@ -173,7 +172,6 @@ impl<'a> Xot<'a> {
     /// Insert a new sibling after a reference node.
     ///
     /// ```rust
-    ///
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();
@@ -306,7 +304,6 @@ impl<'a> Xot<'a> {
     /// information, see [`Xot::clone_with_prefixes`].
     ///
     /// ```rust
-    ///
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();
@@ -376,7 +373,6 @@ impl<'a> Xot<'a> {
     /// in scope are added to the cloned node.
     ///
     /// ```rust
-    ///
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();
@@ -422,7 +418,6 @@ impl<'a> Xot<'a> {
     /// has exactly 1 child that is an element.
     ///
     /// ```rust
-    ///
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();
@@ -503,7 +498,6 @@ impl<'a> Xot<'a> {
     /// directly under the root.
     ///
     /// ```rust
-    ///
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();

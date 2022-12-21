@@ -58,7 +58,6 @@ impl<'a> Xot<'a> {
     /// If the name already exists, return its id, otherwise creates it.
     ///
     /// ```rust
-    ///
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();
@@ -198,7 +197,6 @@ impl<'a> Xot<'a> {
     ///
     /// With namespace:
     /// ```rust
-    ///
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();
@@ -306,7 +304,6 @@ impl<'a> Xot<'a> {
     /// With default namespaces:
     ///
     /// ```rust
-    ///
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();

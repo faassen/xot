@@ -94,7 +94,6 @@ impl<'a> Xot<'a> {
     /// Returns [`None`] if this is the root node.
     ///
     /// ```rust
-    ///
     /// let mut xot = xot::Xot::new();
     /// let root = xot.parse("<p>Example</p>").unwrap();
     /// let p = xot.document_element(root).unwrap();

@@ -58,7 +58,6 @@ impl<'a> Xot<'a> {
     /// Prefixes defined higher up are automatically serialized:
     ///
     /// ```rust
-    ///
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();
