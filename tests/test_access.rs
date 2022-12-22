@@ -90,3 +90,12 @@ fn test_compare_different_attributes_extra() {
 
     assert!(!xot.compare(doc1, doc2));
 }
+
+#[test]
+fn test_compare_value_the_same_structure_different() {
+    let mut xot = Xot::new();
+    let doc1 = xot.parse(r#"<article><body><sec id="1"><sec id="2"><title>T1</title><p>P1</p><p>P2</p></sec></sec><sec id="3"><title>T2</title><p>P3</p></sec></body></article>"#
+    ).unwrap();
+    let doc2 = xot.parse(r#"<article><body><sec id="1"><sec id="2"><title>T1</title><p>P1</p><p>P2</p></sec><sec id="3"><title>T2</title><p>P3</p></sec></sec></body></article>"#).unwrap();
+    assert!(!xot.compare(doc1, doc2));
+}
