@@ -19,4 +19,5 @@ xmlparser = "0.13.5"
 
 [dev-dependencies]
 insta = { version = "1.21.2" }
+proptest = "1.0.0"
 rstest = "0.16.0"

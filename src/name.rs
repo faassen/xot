@@ -5,7 +5,7 @@ use crate::namespace::NamespaceId;
 
 /// Id uniquely identifying a name and namespace.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Ord, PartialOrd)]
-pub struct NameId(u16);
+pub struct NameId(pub(crate) u16);
 
 impl IdIndex<NameId> for NameId {
     fn to_id(index: usize) -> NameId {
