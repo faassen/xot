@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.8.0] - 2023-01-02
+
 ## Added
 
 - `text_content_mut` and `text_content_str` now work with elements without
@@ -112,8 +114,9 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.8.0...HEAD
 
-[unreleased]: https://github.com/faassen/xot/compare/v0.7.1...HEAD
+[unreleased]: https://github.com/faassen/xot/compare/v0.7.1...v0.8.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.7.0...v0.7.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.6.1...v0.7.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.6.0...v0.6.1
