@@ -526,24 +526,29 @@ impl<'a> Xot<'a> {
             ));
         }
 
-        // there should always be a parent as we're not the root
-        let parent = self.parent(node).unwrap();
-        // record previous sibling
-        let previous_node = self.previous_sibling(node);
-        // create new element
-        let wrapper = self.new_element(name_id);
-        // detach the node, use low-level detach as we don't want to consolidate
-        // text nodes
-        node.get().detach(self.arena_mut());
-        // append the node to the wrapper
-        self.append(wrapper, node)?;
-        // now insert the wrapper element
-        if let Some(previous_node) = previous_node {
-            self.insert_after(previous_node, wrapper)?;
+        if let Some(parent) = self.parent(node) {
+            // record previous sibling
+            let previous_node = self.previous_sibling(node);
+            // create new element
+            let wrapper = self.new_element(name_id);
+            // detach the node, use low-level detach as we don't want to consolidate
+            // text nodes
+            node.get().detach(self.arena_mut());
+            // append the node to the wrapper
+            self.append(wrapper, node)?;
+            // now insert the wrapper element
+            if let Some(previous_node) = previous_node {
+                self.insert_after(previous_node, wrapper)?;
+            } else {
+                self.prepend(parent, wrapper)?;
+            }
+            Ok(wrapper)
         } else {
-            self.prepend(parent, wrapper)?;
+            // we have no parent, standalone node
+            let wrapper = self.new_element(name_id);
+            self.append(wrapper, node)?;
+            Ok(wrapper)
         }
-        Ok(wrapper)
     }
 
     /// Replace a node with another one in the tree.

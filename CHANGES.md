@@ -2,6 +2,16 @@
 
 ## [Unreleased] - ReleaseDate
 
+## Added
+
+- `text_content_mut` and `text_content_str` now work with elements without
+  any content too.
+
+## Fixed
+
+- Previously we couldn't wrap standalone elements with `element_wrap`, now we
+  can.
+
 ## [0.7.1] - 2022-12-22
 
 ### Fixed
@@ -102,8 +112,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.7.1...HEAD
 
+[unreleased]: https://github.com/faassen/xot/compare/v0.7.1...HEAD
 [unreleased]: https://github.com/faassen/xot/compare/v0.7.0...v0.7.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.6.1...v0.7.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.6.0...v0.6.1

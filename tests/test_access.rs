@@ -13,7 +13,7 @@ fn test_text_content_str_no_text() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<a/>"#).unwrap();
     let doc_el = xot.document_element(doc).unwrap();
-    assert_eq!(xot.text_content_str(doc_el), None);
+    assert_eq!(xot.text_content_str(doc_el), Some(""));
 }
 
 #[test]
