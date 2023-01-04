@@ -1,23 +1,21 @@
-// a static tree generation system
-// this is useful for generating trees for proptest purposes
+// A static representation of a tree of nodes
+// Xot is a dynamic system, but for the purposes of proptests it's
+// useful to have a static representation of a tree of nodes.
 use crate::error::Error;
-use crate::name::NameId;
 use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text};
 use crate::xotdata::{Node, Xot};
-
-// The plan:
-// Proptest trees of nodes
-// Turn into Xot
-// Serialize to string
-// Parse again with Xot
-// See whether we get the same
 
 enum Fixed {
     Text(Text),
     Comment(Comment),
     ProcessingInstruction(ProcessingInstruction),
-    Root(Box<Fixed>),
+    Root(Vec<RootContent>, Box<Fixed>, Vec<RootContent>),
     Element(Element, Vec<Fixed>),
+}
+
+enum RootContent {
+    Comment(Comment),
+    ProcessingInstruction(ProcessingInstruction),
 }
 
 impl Fixed {
@@ -28,9 +26,18 @@ impl Fixed {
             Fixed::ProcessingInstruction(pi) => {
                 xot.new_processing_instruction(pi.target(), pi.data())
             }
-            Fixed::Root(child) => {
+            Fixed::Root(before, child, after) => {
                 let child = child.xotify(xot)?;
-                xot.new_root(child)?
+                let root = xot.new_root(child)?;
+                for content in before {
+                    let node = create_root_content_node(xot, content);
+                    xot.insert_before(root, node)?;
+                }
+                for content in after {
+                    let node = create_root_content_node(xot, content);
+                    xot.append(root, node)?;
+                }
+                root
             }
             Fixed::Element(element, children) => {
                 let children = children
@@ -47,6 +54,15 @@ impl Fixed {
     }
 }
 
+fn create_root_content_node(xot: &mut Xot, content: &RootContent) -> Node {
+    match content {
+        RootContent::Comment(comment) => xot.new_comment(comment.get()),
+        RootContent::ProcessingInstruction(pi) => {
+            xot.new_processing_instruction(pi.target(), pi.data())
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -55,10 +71,14 @@ mod tests {
     fn test_xotify() {
         let mut xot = Xot::new();
         let name_id = xot.add_name("foo");
-        let root = Fixed::Root(Box::new(Fixed::Element(
-            Element::new(name_id),
-            vec![Fixed::Text(Text::new("Example".to_string()))],
-        )));
+        let root = Fixed::Root(
+            vec![],
+            Box::new(Fixed::Element(
+                Element::new(name_id),
+                vec![Fixed::Text(Text::new("Example".to_string()))],
+            )),
+            vec![],
+        );
         let root = root.xotify(&mut xot).unwrap();
         assert_eq!(xot.serialize_to_string(root), "<foo>Example</foo>");
     }

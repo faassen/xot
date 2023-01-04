@@ -42,10 +42,10 @@
 //! [`Xot::add_name`].
 
 mod access;
-mod alt;
 mod creation;
 mod entity;
 mod error;
+mod fixed;
 mod idmap;
 mod manipulation;
 mod name;
