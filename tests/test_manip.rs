@@ -582,6 +582,19 @@ fn test_element_wrap_element_under_root_not_document_element() {
 }
 
 #[test]
+fn test_element_wrap_standalone_element() {
+    let mut xot = Xot::new();
+    let element_name = xot.add_name("element");
+    let element = xot.new_element(element_name);
+    let name_p = xot.add_name("p");
+    let wrapper = xot.element_wrap(element, name_p).unwrap();
+    assert_eq!(
+        xot.serialize_node_to_string(wrapper),
+        r#"<p><element/></p>"#
+    );
+}
+
+#[test]
 fn test_deduplicate_namespace() {
     let mut xot = Xot::new();
     let root = xot

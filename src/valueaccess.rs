@@ -370,7 +370,10 @@ impl<'a> Xot<'a> {
 
     /// If this element has only a single text child, return a mutable reference to it.
     ///
-    /// If the element has no children or more than one child, return `None`.
+    /// If the element has no children, create a text child and return multiple reference
+    /// to its value.
+    ///
+    /// If the element more than one child, return `None`.
     ///
     /// ```rust
     /// use xot::Xot;
@@ -385,7 +388,13 @@ impl<'a> Xot<'a> {
     /// text.set("New value");
     ///
     /// assert_eq!(xot.serialize_to_string(root), "<doc><a>New value</a><b/></doc>");
-    /// assert!(xot.text_content_mut(b_el).is_none());
+    ///
+    ///
+    /// let text = xot.text_content_mut(b_el).unwrap();
+    /// text.set("New value 2");
+    ///
+    /// assert_eq!(xot.serialize_to_string(root), "<doc><a>New value</a><b>New value 2</b></doc>");
+    ///  
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
@@ -397,30 +406,42 @@ impl<'a> Xot<'a> {
             if let Some(text) = self.text_mut(child) {
                 return Some(text);
             }
+        } else if self.value_type(node) == ValueType::Element {
+            self.append_text(node, "").unwrap();
+            let child = self.first_child(node).unwrap();
+            return self.text_mut(child);
         }
         None
     }
 
     /// If this element only has a single text child, return str reference to it.
     ///
-    /// If the element has no children or more than one child, return `None`.
+    /// If the element has no content, return `Some("")`.
+    ///
+    /// If the element has more than one child, return `None`.
     ///
     /// ```rust
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();
-    /// let root = xot.parse("<doc><a>Example</a><b/></doc>")?;
+    /// let root = xot.parse("<doc><a>Example</a><b/><c><x/></c></doc>")?;
     /// let doc_el = xot.document_element(root).unwrap();
     /// let a_el = xot.first_child(doc_el).unwrap();
     /// let b_el = xot.next_sibling(a_el).unwrap();
+    /// let c_el = xot.next_sibling(b_el).unwrap();
     ///
     /// let text = xot.text_content_str(a_el).unwrap();
     /// assert_eq!(text, "Example");
-    /// assert!(xot.text_content_str(b_el).is_none());
+    /// let text = xot.text_content_str(b_el).unwrap();
+    /// assert_eq!(text, "");
+    /// assert!(xot.text_content_str(c_el).is_none());
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn text_content_str(&self, node: Node) -> Option<&str> {
+        if self.first_child(node).is_none() {
+            return Some("");
+        }
         self.text_content(node).map(|n| n.get())
     }
 
