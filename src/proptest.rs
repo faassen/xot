@@ -14,14 +14,35 @@
 //! See the [`proptest`](https://docs.rs/proptest/latest/proptest/)
 //! documentation for more information.
 
+use ahash::HashSet;
 use proptest::prelude::*;
 
 use crate::fixed::{FixedContent, FixedElement, FixedRoot, FixedRootContent};
 
+const NAMESPACES: &[&str] = &["", "http://example.com/x", "http://example.com/y"];
+const PREFIXES: &[&str] = &["", "x", "y"];
 const ELEMENT_NAMES: &[&str] = &["a", "b", "c", "d", "e"];
+const ATTRIBUTE_NAMES: &[&str] = &["q", "r", "s"];
 const PI_NAMES: &[&str] = &["pi1", "pi2", "pi3", "pi4", "pi5"];
 const XML_STRING: &str = "[\u{000a}\u{0009}\u{000D}][\u{0020}-\u{D7FF}][\u{E000}-\u{FFFD}]*";
 const XML_STRING_WITHOUT_WHITESPACE: &str = "[\u{0020}-\u{D7FF}][\u{E000}-\u{FFFD}]*";
+
+fn arb_attribute() -> impl Strategy<Value = ((String, String), String)> {
+    (
+        prop::sample::select(ATTRIBUTE_NAMES),
+        prop::sample::select(NAMESPACES),
+        XML_STRING_WITHOUT_WHITESPACE,
+    )
+        .prop_map(|(name, namespace, value)| ((name.to_string(), namespace.to_string()), value))
+}
+
+fn arb_prefix() -> impl Strategy<Value = (String, String)> {
+    (
+        prop::sample::select(PREFIXES),
+        prop::sample::select(NAMESPACES),
+    )
+        .prop_map(|(prefix, namespace)| (prefix.to_string(), namespace.to_string()))
+}
 
 fn arb_fixed_content() -> impl Strategy<Value = FixedContent> {
     let pi_data = XML_STRING_WITHOUT_WHITESPACE.prop_filter("non-empty string", |s| !s.is_empty());
@@ -41,14 +62,17 @@ fn arb_fixed_content() -> impl Strategy<Value = FixedContent> {
         |inner| {
             (
                 prop::sample::select(ELEMENT_NAMES),
+                prop::sample::select(NAMESPACES),
                 prop::collection::vec(inner, 0..10),
+                prop::collection::vec(arb_attribute(), 0..4),
+                prop::collection::vec(arb_prefix(), 0..4),
             )
-                .prop_map(|(name, children)| {
+                .prop_map(|(name, namespace, children, attributes, prefixes)| {
                     FixedContent::Element(FixedElement {
-                        namespace: "".to_string(),
+                        namespace: namespace.to_string(),
                         name: name.to_string(),
-                        attributes: vec![],
-                        prefixes: vec![],
+                        attributes: unduplicate_attributes(attributes.as_slice()),
+                        prefixes: unduplicate_prefixes(prefixes.as_slice()),
                         children,
                     })
                 })
@@ -57,15 +81,39 @@ fn arb_fixed_content() -> impl Strategy<Value = FixedContent> {
 }
 
 prop_compose! {
-    fn arb_fixed_element()(name in prop::sample::select(ELEMENT_NAMES), children in arb_fixed_content()) -> FixedElement {
+    fn arb_fixed_element()(name in prop::sample::select(ELEMENT_NAMES),
+                           namespace in prop::sample::select(NAMESPACES),
+                           children in arb_fixed_content(),
+                           attributes in prop::collection::vec(arb_attribute(), 0..4),
+                           prefixes in prop::collection::vec(arb_prefix(), 0..4)) -> FixedElement {
         FixedElement {
-            namespace: "".to_string(),
+            namespace: namespace.to_string(),
             name: name.to_string(),
-            attributes: vec![],
-            prefixes: vec![],
+            attributes: unduplicate_attributes(attributes.as_slice()),
+            prefixes: unduplicate_prefixes(prefixes.as_slice()),
             children: vec![children],
         }
     }
+}
+
+fn unduplicate_attributes(
+    attributes: &[((String, String), String)],
+) -> Vec<((String, String), String)> {
+    let mut seen = HashSet::default();
+    attributes
+        .iter()
+        .filter(|((name, namespace), _)| seen.insert((name.clone(), namespace.clone())))
+        .cloned()
+        .collect()
+}
+
+fn unduplicate_prefixes(prefixes: &[(String, String)]) -> Vec<(String, String)> {
+    let mut seen = HashSet::default();
+    prefixes
+        .iter()
+        .filter(|(prefix, _)| seen.insert(prefix.clone()))
+        .cloned()
+        .collect()
 }
 
 /// Generate a random XML document.
