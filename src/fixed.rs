@@ -2,63 +2,117 @@
 // Xot is a dynamic system, but for the purposes of proptests it's
 // useful to have a static representation of a tree of nodes.
 use crate::error::Error;
-use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text};
 use crate::xotdata::{Node, Xot};
 
-enum Fixed {
-    Text(Text),
-    Comment(Comment),
-    ProcessingInstruction(ProcessingInstruction),
-    Root(Vec<RootContent>, Box<Fixed>, Vec<RootContent>),
-    Element(Element, Vec<Fixed>),
+#[derive(Debug)]
+pub struct FixedRoot {
+    pub(crate) before: Vec<FixedRootContent>,
+    pub(crate) document_element: FixedElement,
+    pub(crate) after: Vec<FixedRootContent>,
 }
 
-enum RootContent {
-    Comment(Comment),
-    ProcessingInstruction(ProcessingInstruction),
+#[derive(Debug)]
+pub(crate) struct FixedElement {
+    pub(crate) namespace: String,
+    pub(crate) name: String,
+    pub(crate) attributes: Vec<((String, String), String)>,
+    pub(crate) prefixes: Vec<(String, String)>,
+    pub(crate) children: Vec<FixedContent>,
 }
 
-impl Fixed {
-    fn xotify(&self, xot: &mut Xot) -> Result<Node, Error> {
+#[derive(Debug)]
+pub(crate) enum FixedContent {
+    Text(String),
+    Comment(String),
+    ProcessingInstruction(String, Option<String>),
+    Element(FixedElement),
+}
+
+#[derive(Debug)]
+pub(crate) enum FixedRootContent {
+    Comment(String),
+    ProcessingInstruction(String, Option<String>),
+}
+
+impl FixedRoot {
+    pub fn xotify<'a>(&'a self, xot: &mut Xot<'a>) -> Result<Node, Error> {
+        let child = self.document_element.xotify(xot)?;
+        let root = xot.new_root(child)?;
+        for content in &self.before {
+            let node = create_root_content_node(xot, content);
+            xot.insert_before(root, node)?;
+        }
+        for content in &self.after {
+            let node = create_root_content_node(xot, content);
+            xot.append(root, node)?;
+        }
+        Ok(root)
+    }
+}
+
+impl FixedElement {
+    fn xotify<'a>(&'a self, xot: &mut Xot<'a>) -> Result<Node, Error> {
+        let ns = xot.add_namespace(&self.namespace);
+        let name = xot.add_name_ns(&self.name, ns);
+        let prefixes = self
+            .prefixes
+            .iter()
+            .map(|(prefix, ns)| {
+                let prefix = xot.add_prefix(prefix);
+                let ns = xot.add_namespace(ns);
+                (prefix, ns)
+            })
+            .collect::<Vec<_>>();
+        let attributes = self
+            .attributes
+            .iter()
+            .map(|((name, ns), value)| {
+                let ns = xot.add_namespace(ns);
+                let name = xot.add_name_ns(name, ns);
+                (name, value)
+            })
+            .collect::<Vec<_>>();
+
+        let element_node = xot.new_element(name);
+        let element_value = xot.element_mut(element_node).unwrap();
+
+        for (prefix, ns) in prefixes {
+            element_value.set_prefix(prefix, ns);
+        }
+        for (name, value) in attributes {
+            element_value.set_attribute(name, value);
+        }
+
+        let children = self
+            .children
+            .iter()
+            .map(|child| child.xotify(xot))
+            .collect::<Result<Vec<_>, _>>()?;
+        for child in children {
+            xot.append(element_node, child)?;
+        }
+        Ok(element_node)
+    }
+}
+
+impl FixedContent {
+    fn xotify<'a>(&'a self, xot: &mut Xot<'a>) -> Result<Node, Error> {
         Ok(match self {
-            Fixed::Text(text) => xot.new_text(text.get()),
-            Fixed::Comment(comment) => xot.new_comment(comment.get()),
-            Fixed::ProcessingInstruction(pi) => {
-                xot.new_processing_instruction(pi.target(), pi.data())
+            FixedContent::Text(text) => xot.new_text(text),
+            FixedContent::Comment(comment) => xot.new_comment(comment),
+            FixedContent::ProcessingInstruction(target, data) => {
+                xot.new_processing_instruction(target, data.as_deref())
             }
-            Fixed::Root(before, child, after) => {
-                let child = child.xotify(xot)?;
-                let root = xot.new_root(child)?;
-                for content in before {
-                    let node = create_root_content_node(xot, content);
-                    xot.insert_before(root, node)?;
-                }
-                for content in after {
-                    let node = create_root_content_node(xot, content);
-                    xot.append(root, node)?;
-                }
-                root
-            }
-            Fixed::Element(element, children) => {
-                let children = children
-                    .iter()
-                    .map(|child| child.xotify(xot))
-                    .collect::<Result<Vec<_>, _>>()?;
-                let element = xot.new_element(element.name());
-                for child in children {
-                    xot.append(element, child)?;
-                }
-                element
-            }
+            FixedContent::Element(element) => element.xotify(xot)?,
         })
     }
 }
 
-fn create_root_content_node(xot: &mut Xot, content: &RootContent) -> Node {
+fn create_root_content_node(xot: &mut Xot, content: &FixedRootContent) -> Node {
     match content {
-        RootContent::Comment(comment) => xot.new_comment(comment.get()),
-        RootContent::ProcessingInstruction(pi) => {
-            xot.new_processing_instruction(pi.target(), pi.data())
+        FixedRootContent::Comment(comment) => xot.new_comment(comment),
+        FixedRootContent::ProcessingInstruction(target, data) => {
+            xot.new_processing_instruction(target, data.as_deref())
         }
     }
 }
@@ -70,15 +124,17 @@ mod tests {
     #[test]
     fn test_xotify() {
         let mut xot = Xot::new();
-        let name_id = xot.add_name("foo");
-        let root = Fixed::Root(
-            vec![],
-            Box::new(Fixed::Element(
-                Element::new(name_id),
-                vec![Fixed::Text(Text::new("Example".to_string()))],
-            )),
-            vec![],
-        );
+        let root = FixedRoot {
+            before: vec![],
+            document_element: FixedElement {
+                namespace: "".to_string(),
+                name: "foo".to_string(),
+                attributes: vec![],
+                prefixes: vec![],
+                children: vec![FixedContent::Text("Example".to_string())],
+            },
+            after: vec![],
+        };
         let root = root.xotify(&mut xot).unwrap();
         assert_eq!(xot.serialize_to_string(root), "<foo>Example</foo>");
     }

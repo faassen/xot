@@ -53,6 +53,7 @@ mod nameaccess;
 mod namespace;
 mod parse;
 mod prefix;
+mod proptest;
 mod serialize;
 mod valueaccess;
 mod xmlvalue;

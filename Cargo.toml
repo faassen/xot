@@ -11,13 +11,17 @@ repository = "https://github.com/faassen/xot"
 readme = "README.md"
 keywords = ["xml", "tree", "dom"]
 
+[features]
+# proptest = ["dep:proptest"]
+
 [dependencies]
 ahash = "0.8.2"
 indextree = "4.5.0"
 vector-map = "1.0.1"
 xmlparser = "0.13.5"
+proptest = { version = "1.0.0" }
+
 
 [dev-dependencies]
 insta = { version = "1.21.2" }
-proptest = "1.0.0"
 rstest = "0.16.0"

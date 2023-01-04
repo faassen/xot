@@ -220,7 +220,11 @@ impl<'a> Xot<'a> {
             }
             Value::ProcessingInstruction(pi) => {
                 if let Some(data) = pi.data() {
-                    write!(w, "<?{} {}?>", pi.target(), data)?;
+                    if !data.is_empty() {
+                        write!(w, "<?{} {}?>", pi.target(), data)?;
+                    } else {
+                        write!(w, "<?{}?>", pi.target())?;
+                    }
                 } else {
                     write!(w, "<?{}?>", pi.target())?;
                 }

@@ -384,6 +384,9 @@ impl ProcessingInstruction {
         if target.to_lowercase() == "xml" {
             return Err(Error::InvalidTarget(target));
         }
+        if target.is_empty() {
+            return Err(Error::InvalidTarget(target));
+        }
         // XXX Ideally check that name follows XML spec
         self.target = target;
         Ok(())
@@ -393,6 +396,13 @@ impl ProcessingInstruction {
     pub fn set_data<S: Into<String>>(&mut self, data: Option<S>) {
         // XXX Ideally check that data follows XML spec, i.e. not contain
         // "?>".
-        self.data = data.map(|s| s.into());
+        if let Some(data) = data {
+            let data = data.into();
+            if !data.is_empty() {
+                self.data = Some(data);
+                return;
+            }
+        }
+        self.data = None;
     }
 }
