@@ -45,7 +45,8 @@ mod access;
 mod creation;
 mod entity;
 mod error;
-mod fixed;
+#[cfg(feature = "proptest")]
+pub mod fixed;
 mod idmap;
 mod manipulation;
 mod name;
@@ -53,7 +54,8 @@ mod nameaccess;
 mod namespace;
 mod parse;
 mod prefix;
-mod proptest;
+#[cfg(feature = "proptest")]
+pub mod proptest;
 mod serialize;
 mod valueaccess;
 mod xmlvalue;

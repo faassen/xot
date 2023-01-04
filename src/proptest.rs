@@ -1,3 +1,19 @@
+//! Proptest support for Xot
+//!
+//! Proptests allow you to test for *properties* of your code that must hold
+//! for arbitrary data. Xot helps you write a proptest by letting you generate
+//! an arbitrary XML document.
+//!
+//! This can be enabled by adding the `proptest` feature to your `Cargo.toml`:
+//!
+//! ```toml
+//! [dependencies]
+//! xot = { version = "0.9", features = ["proptest"] }
+//! ```
+//!
+//! See the [`proptest`](https://docs.rs/proptest/latest/proptest/)
+//! documentation for more information.
+
 use proptest::prelude::*;
 
 use crate::fixed::{FixedContent, FixedElement, FixedRoot, FixedRootContent};
@@ -52,7 +68,28 @@ prop_compose! {
     }
 }
 
-fn arb_fixed_root() -> impl Strategy<Value = FixedRoot> {
+/// Generate a random XML document.
+/// This produces a value that can be converted into a `Xot` node using its
+/// `xotify` method.
+///
+/// Example:
+///
+/// ```notrust
+/// use xot::proptest::arb_xml_root;
+/// use xot::Xot;
+///
+/// proptest! {
+///   #[test]
+///   fn test_arb_xml_can_serialize_parse(root in arb_xml_root()) {
+///     let mut xot = Xot::new();
+///     let node = root.xotify(&mut xot);
+///     let serialized = xot.serialize_to_string(node);
+///     let parsed = xot.parse(&serialized);
+///     prop_assert!(parsed.is_ok(), "Cannot parse: {} {} {:?}", serialized, parsed.err().unwrap(), serialized);
+///   }
+/// }
+/// ```
+pub fn arb_xml_root() -> impl Strategy<Value = FixedRoot> {
     let before = prop::collection::vec(
         prop_oneof![
             any::<String>().prop_map(FixedRootContent::Comment),
@@ -77,9 +114,9 @@ mod tests {
 
     proptest! {
         #[test]
-        fn test_arb_xml_can_serialize_parse_the_same(fixed_root in arb_fixed_root()) {
+        fn test_arb_xml_can_serialize_parse(fixed_root in arb_xml_root()) {
             let mut xot = Xot::new();
-            let node = fixed_root.xotify(&mut xot).unwrap();
+            let node = fixed_root.xotify(&mut xot);
             let serialized = xot.serialize_to_string(node);
             let parsed = xot.parse(&serialized);
             prop_assert!(parsed.is_ok(), "Cannot parse: {} {} {:?}", serialized, parsed.err().unwrap(), serialized);
