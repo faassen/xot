@@ -1,3 +1,4 @@
+use ahash::HashSet;
 use std::io::Write;
 
 use crate::access::NodeEdge;
@@ -299,8 +300,20 @@ impl<'a> FullnameSerializer<'a> {
         if to_prefix.is_empty() {
             return;
         }
-
         let mut entry = self.top().clone();
+        let prefixes = to_prefix.values().cloned().collect::<HashSet<_>>();
+        // if the prefix is already in the entry, we remove the old prefix as
+        // we need to shadow it
+        let mut to_remove = Vec::new();
+        for (namespace, prefix) in entry.iter() {
+            if prefixes.contains(prefix) {
+                to_remove.push(*namespace);
+            }
+        }
+        for namespace in to_remove {
+            entry.remove(&namespace);
+        }
+        // now add in the new prefixes
         entry.extend(to_prefix);
         self.prefix_stack.push(entry);
     }
@@ -324,11 +337,8 @@ impl<'a> FullnameSerializer<'a> {
         } else if name.namespace_id == self.xot.xml_namespace_id {
             return Fullname::Name(format!("xml:{}", name.name));
         }
-        let prefix_id = if !self.prefix_stack.is_empty() {
-            self.top().get(&name.namespace_id)
-        } else {
-            None
-        };
+        // there should always be at least 1 entry in the stack
+        let prefix_id = self.top().get(&name.namespace_id);
         if let Some(prefix_id) = prefix_id {
             if *prefix_id == self.xot.empty_prefix_id {
                 Fullname::Name(name.name.to_string())
