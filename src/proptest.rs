@@ -166,28 +166,34 @@ pub struct Config {
 ///
 /// This produces a value that can be converted into a `Xot` node using its
 /// `xotify` method.
-/// ```
-pub fn arb_xml_root_with_config(config: Config) -> impl Strategy<Value = FixedRoot> {
-    let size = if config.comments_and_pi_outside_document_element {
-        0..10
+pub fn arb_xml_root_with_config(config: Config) -> BoxedStrategy<FixedRoot> {
+    if config.comments_and_pi_outside_document_element {
+        let before = prop::collection::vec(
+            prop_oneof![
+                arb_comment().prop_map(FixedRootContent::Comment),
+                arb_processing_instruction().prop_map(|(target, data)| {
+                    FixedRootContent::ProcessingInstruction(target, data)
+                }),
+            ],
+            0..10,
+        );
+        let after = before.clone();
+        (before, arb_fixed_element(), after)
+            .prop_map(|(before, document_element, after)| FixedRoot {
+                before,
+                document_element,
+                after,
+            })
+            .boxed()
     } else {
-        0..0
-    };
-    let before = prop::collection::vec(
-        prop_oneof![
-            arb_comment().prop_map(FixedRootContent::Comment),
-            arb_processing_instruction().prop_map(|(target, data)| {
-                FixedRootContent::ProcessingInstruction(target, data)
-            }),
-        ],
-        size,
-    );
-    let after = before.clone();
-    (before, arb_fixed_element(), after).prop_map(|(before, document_element, after)| FixedRoot {
-        before,
-        document_element,
-        after,
-    })
+        arb_fixed_element()
+            .prop_map(|document_element| FixedRoot {
+                before: vec![],
+                document_element,
+                after: vec![],
+            })
+            .boxed()
+    }
 }
 
 #[cfg(test)]
@@ -198,6 +204,17 @@ mod tests {
     proptest! {
         #[test]
         fn test_arb_xml_can_serialize_parse(fixed_root in arb_xml_root()) {
+            let mut xot = Xot::new();
+            let node = fixed_root.xotify(&mut xot);
+            let serialized = xot.serialize_to_string(node);
+            let parsed = xot.parse(&serialized);
+            prop_assert!(parsed.is_ok(), "Cannot parse: {} {} {:?}", serialized, parsed.err().unwrap(), serialized);
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn test_arb_xml_can_serialize_parse2(fixed_root in arb_xml_root_with_config(Config::default())) {
             let mut xot = Xot::new();
             let node = fixed_root.xotify(&mut xot);
             let serialized = xot.serialize_to_string(node);

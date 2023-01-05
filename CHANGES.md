@@ -2,6 +2,10 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+- Now actually working `xot::proptest::arb_xml_root_with_config`.
+
 ## [0.9.1] - 2023-01-05
 
 ### Fixed
@@ -148,8 +152,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.9.1...HEAD
 
+[unreleased]: https://github.com/faassen/xot/compare/v0.9.1...HEAD
 [unreleased]: https://github.com/faassen/xot/compare/v0.9.0...v0.9.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.8.0...v0.9.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.7.1...v0.8.0
