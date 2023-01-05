@@ -52,11 +52,11 @@ impl FixedRoot {
         let root = xot.new_root(child).unwrap();
         for content in &self.before {
             let node = create_root_content_node(xot, content);
-            xot.insert_before(root, node).unwrap();
+            xot.insert_before(child, node).unwrap();
         }
         for content in &self.after {
             let node = create_root_content_node(xot, content);
-            xot.append(root, node).unwrap();
+            xot.append(child, node).unwrap();
         }
         root
     }

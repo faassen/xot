@@ -44,15 +44,26 @@ fn arb_prefix() -> impl Strategy<Value = (String, String)> {
         .prop_map(|(prefix, namespace)| (prefix.to_string(), namespace.to_string()))
 }
 
+fn arb_comment() -> impl Strategy<Value = String> {
+    XML_STRING.prop_filter("comment", |s| !s.contains('-'))
+}
+
+fn arb_processing_instruction() -> impl Strategy<Value = (String, Option<String>)> {
+    (
+        prop::sample::select(PI_NAMES),
+        prop::option::of(
+            XML_STRING_WITHOUT_WHITESPACE.prop_filter("non-empty string", |s| !s.is_empty()),
+        ),
+    )
+        .prop_map(|(target, data)| (target.to_string(), data))
+}
+
 fn arb_fixed_content() -> impl Strategy<Value = FixedContent> {
-    let pi_data = XML_STRING_WITHOUT_WHITESPACE.prop_filter("non-empty string", |s| !s.is_empty());
-    let comment_text = XML_STRING.prop_filter("comment", |s| !s.contains('-'));
     let leaf = prop_oneof![
         XML_STRING.prop_map(FixedContent::Text),
-        comment_text.prop_map(FixedContent::Comment),
-        (prop::sample::select(PI_NAMES), prop::option::of(pi_data)).prop_map(|(target, data)| {
-            FixedContent::ProcessingInstruction(target.to_string(), data)
-        }),
+        arb_comment().prop_map(FixedContent::Comment),
+        arb_processing_instruction()
+            .prop_map(|(target, data)| { FixedContent::ProcessingInstruction(target, data) }),
     ];
 
     leaf.prop_recursive(
@@ -140,18 +151,19 @@ fn unduplicate_prefixes(prefixes: &[(String, String)]) -> Vec<(String, String)> 
 pub fn arb_xml_root() -> impl Strategy<Value = FixedRoot> {
     let before = prop::collection::vec(
         prop_oneof![
-            any::<String>().prop_map(FixedRootContent::Comment),
-            (any::<String>(), any::<Option<String>>())
-                .prop_map(|(target, data)| FixedRootContent::ProcessingInstruction(target, data)),
+            arb_comment().prop_map(FixedRootContent::Comment),
+            arb_processing_instruction().prop_map(|(target, data)| {
+                FixedRootContent::ProcessingInstruction(target, data)
+            }),
         ],
         0..10,
     );
     let after = before.clone();
 
     (before, arb_fixed_element(), after).prop_map(|(before, document_element, after)| FixedRoot {
-        before: vec![],
+        before,
         document_element,
-        after: vec![],
+        after,
     })
 }
 
