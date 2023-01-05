@@ -6,6 +6,12 @@
 
 - Fixed incomprehensible text in `element_unwrap` error.
 
+### Added
+
+- Added `xot::proptest::arb_xml_root_with_config` which allows configuration of
+  what is generated. Right now you can only turn on or off generation of
+  comments and processing instructions outside of the document element.
+
 ## [0.9.0] - 2023-01-05
 
 ### Added

@@ -128,6 +128,7 @@ fn unduplicate_prefixes(prefixes: &[(String, String)]) -> Vec<(String, String)> 
 }
 
 /// Generate a random XML document.
+///
 /// This produces a value that can be converted into a `Xot` node using its
 /// `xotify` method.
 ///
@@ -149,6 +150,29 @@ fn unduplicate_prefixes(prefixes: &[(String, String)]) -> Vec<(String, String)> 
 /// }
 /// ```
 pub fn arb_xml_root() -> impl Strategy<Value = FixedRoot> {
+    arb_xml_root_with_config(Config {
+        comments_and_pi_outside_document_element: true,
+    })
+}
+
+/// Configure proptest
+#[derive(Default)]
+pub struct Config {
+    /// Can generate comments and pi outside the document element
+    comments_and_pi_outside_document_element: bool,
+}
+
+/// Generate a random XML document, with configuration.
+///
+/// This produces a value that can be converted into a `Xot` node using its
+/// `xotify` method.
+/// ```
+pub fn arb_xml_root_with_config(config: Config) -> impl Strategy<Value = FixedRoot> {
+    let size = if config.comments_and_pi_outside_document_element {
+        0..10
+    } else {
+        0..0
+    };
     let before = prop::collection::vec(
         prop_oneof![
             arb_comment().prop_map(FixedRootContent::Comment),
@@ -156,10 +180,9 @@ pub fn arb_xml_root() -> impl Strategy<Value = FixedRoot> {
                 FixedRootContent::ProcessingInstruction(target, data)
             }),
         ],
-        0..10,
+        size,
     );
     let after = before.clone();
-
     (before, arb_fixed_element(), after).prop_map(|(before, document_element, after)| FixedRoot {
         before,
         document_element,
