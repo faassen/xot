@@ -66,37 +66,29 @@ impl Value {
 pub type Attributes = VecMap<NameId, String>;
 /// A map of PrefixId to NamespaceId for namespace declarations.
 pub type ToNamespace = VecMap<PrefixId, NamespaceId>;
-pub(crate) type ToPrefix = VecMap<NamespaceId, PrefixId>;
 
 #[derive(Debug, Clone)]
 pub(crate) struct NamespaceInfo {
     pub(crate) to_namespace: ToNamespace,
-    pub(crate) to_prefix: ToPrefix,
 }
 
 impl NamespaceInfo {
     pub(crate) fn new() -> Self {
         NamespaceInfo {
             to_namespace: VecMap::new(),
-            to_prefix: VecMap::new(),
         }
     }
 
     pub(crate) fn add(&mut self, prefix_id: PrefixId, namespace_id: NamespaceId) {
         self.to_namespace.insert(prefix_id, namespace_id);
-        self.to_prefix.insert(namespace_id, prefix_id);
-    }
-
-    pub(crate) fn remove_by_namespace_id(&mut self, namespace_id: NamespaceId) {
-        if let Some(prefix_id) = self.to_prefix.remove(&namespace_id) {
-            self.to_namespace.remove(&prefix_id);
-        }
     }
 
     pub(crate) fn remove_by_prefix_id(&mut self, prefix_id: PrefixId) {
-        if let Some(namespace_id) = self.to_namespace.remove(&prefix_id) {
-            self.to_prefix.remove(&namespace_id);
-        }
+        self.to_namespace.remove(&prefix_id);
+    }
+
+    pub(crate) fn remove_by_namespace_id(&mut self, namespace_id: NamespaceId) {
+        self.to_namespace.retain(|_, v| *v != namespace_id);
     }
 }
 
@@ -238,7 +230,7 @@ impl Element {
     ///
     /// element.set_prefix(prefix_x, namespace_x);
     ///
-    /// assert_eq!(element.get_prefix(namespace_x), Some(prefix_x));
+    /// assert_eq!(element.prefixes().iter().collect::<Vec<_>>(), [(&prefix_x, &namespace_x)]);
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn set_prefix(&mut self, prefix_id: PrefixId, namespace_id: NamespaceId) {
@@ -253,13 +245,6 @@ impl Element {
     /// in an error.
     pub fn remove_prefix(&mut self, prefix_id: PrefixId) {
         self.namespace_info.remove_by_prefix_id(prefix_id);
-    }
-
-    /// Get the prefix for a namespace, if defined on this element.
-    ///
-    /// This does not check for ancestor namespace definitions.
-    pub fn get_prefix(&self, namespace_id: NamespaceId) -> Option<PrefixId> {
-        self.namespace_info.to_prefix.get(&namespace_id).copied()
     }
 
     /// Get the namespace for a prefix, if defined on this element.

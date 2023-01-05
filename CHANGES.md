@@ -2,6 +2,16 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+- Rework the way serialization works for namespaces, fixing various bugs
+  surrounding missing prefixes.
+
+### Removed
+
+- Remove the `get_prefix` method on `Element`. A namespace can have multiple
+  prefixes, and the API isn't really very useful.
+
 ## [0.8.0] - 2023-01-02
 
 ## Added
@@ -114,8 +124,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.8.0...HEAD
 
+[unreleased]: https://github.com/faassen/xot/compare/v0.8.0...HEAD
 [unreleased]: https://github.com/faassen/xot/compare/v0.7.1...v0.8.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.7.0...v0.7.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.6.1...v0.7.0
