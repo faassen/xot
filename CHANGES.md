@@ -2,6 +2,10 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+- Fixed incomprehensible text in `element_unwrap` error.
+
 ## [0.9.0] - 2023-01-05
 
 ### Added
@@ -136,8 +140,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.9.0...HEAD
 
+[unreleased]: https://github.com/faassen/xot/compare/v0.9.0...HEAD
 [unreleased]: https://github.com/faassen/xot/compare/v0.8.0...v0.9.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.7.1...v0.8.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.7.0...v0.7.1
