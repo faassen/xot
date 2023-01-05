@@ -261,13 +261,13 @@ impl<'a> Xot<'a> {
                 NodeEdge::Start(node) => {
                     let element = self.element(node);
                     if let Some(element) = element {
-                        fullname_serializer.push(&element.namespace_info.to_prefix);
+                        fullname_serializer.push(&element.namespace_info.to_namespace);
                         let element_fullname = fullname_serializer.fullname(element.name_id);
                         if let Fullname::MissingPrefix(namespace_id) = element_fullname {
                             missing_namespace_ids.insert(namespace_id);
                         }
                         for name_id in element.attributes.keys() {
-                            let attribute_fullname = fullname_serializer.fullname(*name_id);
+                            let attribute_fullname = fullname_serializer.fullname_attr(*name_id);
                             if let Fullname::MissingPrefix(namespace_id) = attribute_fullname {
                                 missing_namespace_ids.insert(namespace_id);
                             }
@@ -277,7 +277,7 @@ impl<'a> Xot<'a> {
                 NodeEdge::End(node) => {
                     let element = self.element(node);
                     if let Some(element) = element {
-                        fullname_serializer.pop(&element.namespace_info.to_prefix);
+                        fullname_serializer.pop(&element.namespace_info.to_namespace);
                     }
                 }
             }
@@ -368,8 +368,8 @@ impl<'a> Xot<'a> {
                         // we don't need to remove the fixed up prefixes because
                         // as duplicates they will definitely exist.
                         // In fact if we remove them first the push will fail to create
-                        // a new entry in the namespace stack, as to_prefix can become empty
-                        fullname_serializer.push(&element.namespace_info.to_prefix);
+                        // a new entry in the namespace stack, as to_namespace can become empty
+                        fullname_serializer.push(&element.namespace_info.to_namespace);
                     }
                 }
                 NodeEdge::End(node) => {
@@ -377,7 +377,7 @@ impl<'a> Xot<'a> {
                     if let Some(element) = element {
                         // to_prefix is only used to determine whether to pop
                         // so should be okay to send here
-                        fullname_serializer.pop(&element.namespace_info.to_prefix);
+                        fullname_serializer.pop(&element.namespace_info.to_namespace);
                     }
                 }
             }

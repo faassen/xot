@@ -61,3 +61,49 @@ fn test_prefix_ambiguous() {
         r#"<doc xmlns:x="http://example.com/x" xmlns:n0="http://example.com/x"><a xmlns:x="http://example.com/y" n0:b="X" x:b="Y"/></doc>"#
     );
 }
+
+#[test]
+fn test_prefix_ambiguous_no_ns() {
+    let mut xot = Xot::new();
+    let doc = xot
+        .parse(
+            r#"<a><a xmlns:x="http://example.com/y"><a xmlns:x="http://example.com/x"/></a></a>"#,
+        )
+        .unwrap();
+    let root_id = xot.document_element(doc).unwrap();
+    let a_id = xot.first_child(root_id).unwrap();
+    let a_id = xot.first_child(a_id).unwrap();
+
+    let ns_y_id = xot.add_namespace("http://example.com/y");
+    let name_q_id = xot.add_name_ns("q", ns_y_id);
+    let element = xot.element_mut(a_id).unwrap();
+    element.set_attribute(name_q_id, "Q");
+    assert_eq!(
+        xot.serialize_to_string(doc),
+        r#"<a xmlns:n0="http://example.com/y"><a xmlns:x="http://example.com/y"><a xmlns:x="http://example.com/x" n0:q="Q"/></a></a>"#
+    );
+}
+
+#[test]
+fn test_prefix_ambiguous_default_ns() {
+    let mut xot = Xot::new();
+    let doc = xot
+        .parse(r#"<a xmlns="http://example.com/y"><a><a/></a></a>"#)
+        .unwrap();
+    let root_id = xot.document_element(doc).unwrap();
+    let a_id = xot.first_child(root_id).unwrap();
+    let a_id = xot.first_child(a_id).unwrap();
+
+    let ns_y_id = xot.add_namespace("http://example.com/y");
+    let ns_empty_id = xot.add_namespace("");
+
+    let name_r_id = xot.add_name_ns("r", ns_y_id);
+    let name_empty_id = xot.add_name_ns("r", ns_empty_id);
+    let element = xot.element_mut(a_id).unwrap();
+    element.set_attribute(name_r_id, "R");
+    element.set_attribute(name_empty_id, "R2");
+    assert_eq!(
+        xot.serialize_to_string(doc),
+        r#"<n0:a xmlns="http://example.com/y" xmlns:n0="http://example.com/y"><n0:a><n0:a n0:r="R" r="R2"/></n0:a></n0:a>"#
+    );
+}

@@ -1,4 +1,3 @@
-use ahash::HashSet;
 use std::io::Write;
 
 use crate::access::NodeEdge;
@@ -185,7 +184,7 @@ impl<'a> Xot<'a> {
         match value {
             Value::Root => {}
             Value::Element(element) => {
-                fullname_serializer.push(&element.namespace_info.to_prefix);
+                fullname_serializer.push(&element.namespace_info.to_namespace);
 
                 let fullname = fullname_serializer.fullname_or_err(element.name_id)?;
 
@@ -193,7 +192,7 @@ impl<'a> Xot<'a> {
                 // serialize any extra prefixes if this is the top element of
                 // a fragment and they aren't declared already
                 if node == top_node {
-                    for (namespace_id, prefix_id) in fullname_serializer.top().iter() {
+                    for (namespace_id, prefix_id) in fullname_serializer.top_to_prefix().iter() {
                         if !element.namespace_info.to_namespace.contains_key(prefix_id) {
                             self.write_namespace_declaration(*prefix_id, *namespace_id, w)?;
                         }
@@ -203,7 +202,7 @@ impl<'a> Xot<'a> {
                     self.write_namespace_declaration(*prefix_id, *namespace_id, w)?;
                 }
                 for (name_id, value) in element.attributes.iter() {
-                    let fullname = fullname_serializer.fullname_or_err(*name_id)?;
+                    let fullname = fullname_serializer.fullname_attr_or_err(*name_id)?;
                     write!(w, " {}=\"{}\"", fullname, serialize_attribute(value.into()))?;
                 }
 
@@ -246,7 +245,7 @@ impl<'a> Xot<'a> {
                 let fullname = fullname_serializer.fullname_or_err(element.name_id)?;
                 write!(w, "</{}>", fullname)?;
             }
-            fullname_serializer.pop(&element.namespace_info.to_prefix);
+            fullname_serializer.pop(&element.namespace_info.to_namespace);
         }
         Ok(())
     }
@@ -274,7 +273,7 @@ impl<'a> Xot<'a> {
 
 pub(crate) struct FullnameSerializer<'a> {
     xot: &'a Xot<'a>,
-    prefix_stack: Vec<ToPrefix>,
+    prefix_stack: Vec<(ToNamespace, ToPrefix)>,
 }
 
 pub(crate) enum Fullname {
@@ -292,62 +291,95 @@ impl<'a> FullnameSerializer<'a> {
             .iter()
             .map(|(prefix, namespace)| (*namespace, *prefix))
             .collect::<ToPrefix>();
-        let prefix_stack = vec![to_prefix];
+        let prefix_stack = vec![(to_namespace, to_prefix)];
         Self { xot, prefix_stack }
     }
 
-    pub(crate) fn push(&mut self, to_prefix: &ToPrefix) {
-        if to_prefix.is_empty() {
+    pub(crate) fn push(&mut self, to_namespace: &ToNamespace) {
+        if to_namespace.is_empty() {
             return;
         }
-        let mut entry = self.top().clone();
-        let prefixes = to_prefix.values().cloned().collect::<HashSet<_>>();
-        // if the prefix is already in the entry, we remove the old prefix as
-        // we need to shadow it
-        let mut to_remove = Vec::new();
-        for (namespace, prefix) in entry.iter() {
-            if prefixes.contains(prefix) {
-                to_remove.push(*namespace);
-            }
-        }
-        for namespace in to_remove {
-            entry.remove(&namespace);
-        }
-        // now add in the new prefixes
-        entry.extend(to_prefix);
-        self.prefix_stack.push(entry);
+        let mut entry = self.top_to_namespace().clone();
+        // add in the new declarations. This may shadow existing prefixes
+        entry.extend(to_namespace);
+        // construct the inverse from this again; duplicate prefixes will be
+        // consolidated into one
+        let to_prefix = entry
+            .iter()
+            .map(|(prefix, namespace)| (*namespace, *prefix))
+            .collect::<ToPrefix>();
+        self.prefix_stack.push((entry, to_prefix));
     }
 
-    pub(crate) fn pop(&mut self, to_prefix: &ToPrefix) {
-        if to_prefix.is_empty() {
+    pub(crate) fn pop(&mut self, to_namespace: &ToNamespace) {
+        if to_namespace.is_empty() {
             return;
         }
         self.prefix_stack.pop();
     }
 
     #[inline]
-    pub(crate) fn top(&self) -> &ToPrefix {
+    pub(crate) fn top(&self) -> &(ToNamespace, ToPrefix) {
         &self.prefix_stack[self.prefix_stack.len() - 1]
     }
 
-    pub(crate) fn fullname(&self, name_id: NameId) -> Fullname {
+    #[inline]
+    pub(crate) fn top_to_namespace(&self) -> &ToNamespace {
+        &self.top().0
+    }
+
+    #[inline]
+    pub(crate) fn top_to_prefix(&self) -> &ToPrefix {
+        &self.top().1
+    }
+
+    fn name_info(&self, name_id: NameId) -> NameInfo {
         let name = self.xot.name_lookup.get_value(name_id);
         if name.namespace_id == self.xot.no_namespace_id {
-            return Fullname::Name(name.name.to_string());
+            return NameInfo::NoNamespace { name: &name.name };
         } else if name.namespace_id == self.xot.xml_namespace_id {
-            return Fullname::Name(format!("xml:{}", name.name));
+            return NameInfo::Prefixed {
+                name: &name.name,
+                prefix: "xml",
+            };
         }
         // there should always be at least 1 entry in the stack
-        let prefix_id = self.top().get(&name.namespace_id);
+        let prefix_id = self.top_to_prefix().get(&name.namespace_id);
         if let Some(prefix_id) = prefix_id {
             if *prefix_id == self.xot.empty_prefix_id {
-                Fullname::Name(name.name.to_string())
+                NameInfo::EmptyPrefix {
+                    name: &name.name,
+                    namespace_id: name.namespace_id,
+                }
             } else {
                 let prefix = self.xot.prefix_lookup.get_value(*prefix_id);
-                Fullname::Name(format!("{}:{}", prefix, name.name))
+                NameInfo::Prefixed {
+                    name: &name.name,
+                    prefix,
+                }
             }
         } else {
-            Fullname::MissingPrefix(name.namespace_id)
+            NameInfo::MissingPrefix {
+                namespace_id: name.namespace_id,
+            }
+        }
+    }
+
+    pub(crate) fn fullname(&self, name_id: NameId) -> Fullname {
+        match self.name_info(name_id) {
+            NameInfo::NoNamespace { name } => Fullname::Name(name.to_string()),
+            NameInfo::Prefixed { name, prefix } => Fullname::Name(format!("{}:{}", prefix, name)),
+            NameInfo::EmptyPrefix { name, .. } => Fullname::Name(name.to_string()),
+            NameInfo::MissingPrefix { namespace_id } => Fullname::MissingPrefix(namespace_id),
+        }
+    }
+
+    pub(crate) fn fullname_attr(&self, name_id: NameId) -> Fullname {
+        match self.name_info(name_id) {
+            NameInfo::NoNamespace { name } => Fullname::Name(name.to_string()),
+            NameInfo::Prefixed { name, prefix } => Fullname::Name(format!("{}:{}", prefix, name)),
+            NameInfo::EmptyPrefix { namespace_id, .. } => Fullname::MissingPrefix(namespace_id),
+            NameInfo::MissingPrefix { namespace_id } => Fullname::MissingPrefix(namespace_id),
         }
     }
 
@@ -358,7 +390,36 @@ impl<'a> FullnameSerializer<'a> {
         }
     }
 
-    pub(crate) fn is_namespace_known(&self, namespace_id: NamespaceId) -> bool {
-        self.top().contains_key(&namespace_id)
+    fn fullname_attr_or_err(&self, name_id: NameId) -> Result<String, Error> {
+        match self.fullname_attr(name_id) {
+            Fullname::Name(name) => Ok(name),
+            Fullname::MissingPrefix(namespace_id) => Err(Error::MissingPrefix(namespace_id)),
+        }
     }
+
+    pub(crate) fn is_namespace_known(&self, namespace_id: NamespaceId) -> bool {
+        self.top_to_prefix().contains_key(&namespace_id)
+    }
+}
+
+enum NameInfo<'a> {
+    // the name is in the default namespace
+    NoNamespace {
+        name: &'a str,
+    },
+    // the namespace has an empty or missing prefix
+    // How this is handled is different between elements and attributes
+    EmptyPrefix {
+        name: &'a str,
+        namespace_id: NamespaceId,
+    },
+    // the name is in a namespace, and the prefix is known
+    Prefixed {
+        name: &'a str,
+        prefix: &'a str,
+    },
+    // the name is in a namespace, but the prefix is not known
+    MissingPrefix {
+        namespace_id: NamespaceId,
+    },
 }
