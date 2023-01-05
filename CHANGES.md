@@ -2,10 +2,20 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- `proptest` support. If you enable the `proptest` feature you can use
+  `xot::proptest::arb_xml_root` in your own proptests. This generates a
+  arbitrary XML document out of a fixed set of elements, attributes, namespace
+  prefixes and namespaces.
+
+- Elements in the Xot tree are now more lightweight now as they don't
+  carry an inverse map of namespace to prefix anymore.
+
 ### Fixed
 
 - Rework the way serialization works for namespaces, fixing various bugs
-  surrounding missing prefixes.
+  surrounding serialization of missing prefixes.
 
 ### Removed
 
