@@ -75,7 +75,7 @@ impl<'a> Xot<'a> {
         let root_element = self.top_element(node);
         self.create_missing_prefixes(root_element).unwrap();
         // collect namespace prefixes for all ancestors of the fragment
-        let to_namespace = if let Some(parent) = self.parent(node) {
+        let extra_prefixes = if let Some(parent) = self.parent(node) {
             if self.value_type(parent) != ValueType::Root {
                 self.to_namespace_in_scope(parent)
             } else {
@@ -85,7 +85,8 @@ impl<'a> Xot<'a> {
             ToNamespace::new()
         };
         // now serialize with those additional prefixes
-        self.serialize_node_helper(node, w, to_namespace).unwrap();
+        self.serialize_node_helper(node, w, &extra_prefixes)
+            .unwrap();
     }
 
     /// Serialize document and fail if namespaces encountered without prefix defined.
@@ -123,7 +124,8 @@ impl<'a> Xot<'a> {
         if self.value_type(node) != ValueType::Root {
             panic!("Can only serialize root nodes");
         }
-        self.serialize_node_helper(node, w, ToNamespace::new())
+        let extra_prefixes = ToNamespace::new();
+        self.serialize_node_helper(node, w, &extra_prefixes)
     }
 
     /// Serialize document to a string.
@@ -157,15 +159,14 @@ impl<'a> Xot<'a> {
         &self,
         node: Node,
         w: &mut impl Write,
-        to_namespace: ToNamespace,
+        extra_prefixes: &ToNamespace,
     ) -> Result<(), Error> {
-        let mut fullname_serializer = FullnameSerializer::with_to_namespace(to_namespace, self);
-        let mut xml_writer = XmlSerializerWriter::new(self, &mut fullname_serializer, w);
+        let mut xml_writer = XmlSerializerWriter::new(self, w, extra_prefixes);
 
         for edge in self.traverse(node) {
             match edge {
                 NodeEdge::Start(current_node) => {
-                    self.handle_edge_start(node, current_node, &mut xml_writer)?;
+                    self.handle_edge_start(node, current_node, extra_prefixes, &mut xml_writer)?;
                 }
                 NodeEdge::End(current_node) => {
                     self.handle_edge_end(current_node, &mut xml_writer)?;
@@ -179,6 +180,7 @@ impl<'a> Xot<'a> {
         &self,
         top_node: Node,
         node: Node,
+        extra_prefixes: &ToNamespace,
         xml_writer: &mut XmlSerializerWriter<'a, impl Write>,
     ) -> Result<(), Error> {
         let value = self.value(node);
@@ -190,19 +192,14 @@ impl<'a> Xot<'a> {
                 // serialize any extra prefixes if this is the top element of
                 // a fragment and they aren't declared already
                 if node == top_node {
-                    let extra_prefixes = xml_writer
-                        .extra_prefixes()
-                        .iter()
-                        .map(|(prefix_id, namespace_id)| (*prefix_id, *namespace_id))
-                        .collect::<Vec<_>>();
                     for (prefix_id, namespace_id) in extra_prefixes {
-                        if !element.namespace_info.to_namespace.contains_key(&prefix_id) {
+                        if !element.namespace_info.to_namespace.contains_key(prefix_id) {
                             xml_writer.write_space()?;
                             xml_writer.write_namespace_declaration(
                                 node,
                                 element,
-                                prefix_id,
-                                namespace_id,
+                                *prefix_id,
+                                *namespace_id,
                             )?;
                         }
                     }
@@ -255,7 +252,6 @@ use crate::name::NameId;
 use crate::xmlvalue::{Comment, ProcessingInstruction, Text};
 
 pub trait SerializerWriter {
-    fn extra_prefixes(&self) -> &ToNamespace;
     fn write_start_tag_open(&mut self, node: Node, element: &Element) -> Result<(), Error>;
     fn write_start_tag_close(&mut self, node: Node, element: &Element) -> Result<(), Error>;
     fn write_end_tag(&mut self, node: Node, element: &Element) -> Result<(), Error>;
@@ -285,16 +281,18 @@ pub trait SerializerWriter {
 
 struct XmlSerializerWriter<'a, W: Write> {
     xot: &'a Xot<'a>,
-    fullname_serializer: &'a mut FullnameSerializer<'a>,
+    fullname_serializer: FullnameSerializer<'a>,
     w: &'a mut W,
 }
 
 impl<'a, W: Write> XmlSerializerWriter<'a, W> {
     pub(crate) fn new(
         xot: &'a Xot<'a>,
-        fullname_serializer: &'a mut FullnameSerializer<'a>,
         w: &'a mut W,
+        extra_prefixes: &ToNamespace,
     ) -> XmlSerializerWriter<'a, W> {
+        let fullname_serializer =
+            FullnameSerializer::with_to_namespace(extra_prefixes.clone(), xot);
         XmlSerializerWriter {
             xot,
             fullname_serializer,
@@ -304,10 +302,6 @@ impl<'a, W: Write> XmlSerializerWriter<'a, W> {
 }
 
 impl<'a, W: Write> SerializerWriter for XmlSerializerWriter<'a, W> {
-    fn extra_prefixes(&self) -> &ToNamespace {
-        self.fullname_serializer.top_to_namespace()
-    }
-
     fn write_start_tag_open(&mut self, node: Node, element: &Element) -> Result<(), Error> {
         self.fullname_serializer
             .push(&element.namespace_info.to_namespace);
