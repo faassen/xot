@@ -161,8 +161,8 @@ impl<'a> Xot<'a> {
         w: &mut impl Write,
         extra_prefixes: &ToNamespace,
     ) -> Result<(), Error> {
-        let xml_writer = XmlSerializerWriter::new(self, w, extra_prefixes);
-        let mut serializer = Serializer::new(xml_writer, extra_prefixes.clone());
+        let mut xml_writer = XmlSerializerWriter::new(self, w, extra_prefixes);
+        let mut serializer = Serializer::new(&mut xml_writer, extra_prefixes.clone());
         serializer.serialize_node(self, node)
     }
 }
@@ -170,13 +170,13 @@ impl<'a> Xot<'a> {
 use crate::name::NameId;
 use crate::xmlvalue::{Comment, ProcessingInstruction, Text};
 
-struct Serializer<W: SerializerWriter> {
-    writer: W,
+struct Serializer<'a, W: SerializerWriter> {
+    writer: &'a mut W,
     extra_prefixes: ToNamespace,
 }
 
-impl<W: SerializerWriter> Serializer<W> {
-    fn new(writer: W, extra_prefixes: ToNamespace) -> Self {
+impl<'a, W: SerializerWriter> Serializer<'a, W> {
+    fn new(writer: &'a mut W, extra_prefixes: ToNamespace) -> Self {
         Self {
             writer,
             extra_prefixes,
@@ -291,13 +291,13 @@ pub trait SerializerWriter {
 struct XmlSerializerWriter<'a, W: Write> {
     xot: &'a Xot<'a>,
     fullname_serializer: FullnameSerializer<'a>,
-    w: &'a mut W,
+    w: W,
 }
 
 impl<'a, W: Write> XmlSerializerWriter<'a, W> {
     pub(crate) fn new(
         xot: &'a Xot<'a>,
-        w: &'a mut W,
+        w: W,
         extra_prefixes: &ToNamespace,
     ) -> XmlSerializerWriter<'a, W> {
         let fullname_serializer =
@@ -409,5 +409,245 @@ impl<'a, W: Write> SerializerWriter for XmlSerializerWriter<'a, W> {
     fn write_space(&mut self) -> Result<(), Error> {
         write!(self.w, " ")?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_writer_record() {
+        let mut xot = Xot::new();
+        let doc = xot.parse(r#"<doc><a/></doc>"#).unwrap();
+
+        // this is a quoting write, which writes to a document, thus quoting
+        // the original XML
+        struct RecordingWrite {
+            data: Vec<String>,
+        }
+
+        impl RecordingWrite {
+            fn new() -> RecordingWrite {
+                RecordingWrite { data: Vec::new() }
+            }
+        }
+
+        impl Write for RecordingWrite {
+            fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
+                self.data.push(String::from_utf8(buf.to_vec()).unwrap());
+                Ok(buf.len())
+            }
+
+            fn flush(&mut self) -> Result<(), std::io::Error> {
+                Ok(())
+            }
+        }
+
+        let mut w = RecordingWrite::new();
+        let extra_prefixes = ToNamespace::new();
+        let mut writer = XmlSerializerWriter::new(&xot, &mut w, &extra_prefixes);
+        let mut serializer = Serializer::new(&mut writer, extra_prefixes);
+        serializer.serialize_node(&xot, doc).unwrap();
+        assert_eq!(w.data.join(""), r#"<doc><a/></doc>"#);
+    }
+
+    #[test]
+    fn test_middleware() {
+        let mut xot = Xot::new();
+
+        #[derive(Debug, PartialEq)]
+        enum StyledText {
+            Text(String),
+            StyleStart,
+            StyleEnd,
+        }
+        let doc = xot.parse(r#"<doc><a/><b/></doc>"#).unwrap();
+
+        struct LastPushedWrite {
+            last_pushed: Vec<String>,
+        }
+
+        impl LastPushedWrite {
+            fn new() -> LastPushedWrite {
+                LastPushedWrite {
+                    last_pushed: Vec::new(),
+                }
+            }
+
+            fn clear(&mut self) {
+                self.last_pushed.clear();
+            }
+
+            fn get(&self) -> String {
+                self.last_pushed.join("")
+            }
+        }
+
+        impl Write for LastPushedWrite {
+            fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
+                self.last_pushed
+                    .push(String::from_utf8(buf.to_vec()).unwrap());
+                Ok(buf.len())
+            }
+
+            fn flush(&mut self) -> Result<(), std::io::Error> {
+                Ok(())
+            }
+        }
+
+        struct StyleWriter<'a> {
+            data: Vec<StyledText>,
+            inner_writer: XmlSerializerWriter<'a, LastPushedWrite>,
+            xot: &'a Xot<'a>,
+        }
+
+        impl<'a> StyleWriter<'a> {
+            fn new(xot: &'a Xot<'a>, extra_prefixes: &ToNamespace) -> StyleWriter<'a> {
+                let last_pushed = LastPushedWrite::new();
+                let inner_writer = XmlSerializerWriter::new(&xot, last_pushed, &extra_prefixes);
+                StyleWriter {
+                    data: Vec::new(),
+                    inner_writer,
+                    xot,
+                }
+            }
+
+            fn clear(&mut self) {
+                self.inner_writer.w.clear();
+            }
+
+            fn get(&self) -> String {
+                self.inner_writer.w.get()
+            }
+        }
+
+        impl<'a> SerializerWriter for StyleWriter<'a> {
+            fn write_start_tag_open(&mut self, node: Node, element: &Element) -> Result<(), Error> {
+                self.clear();
+                self.inner_writer.write_start_tag_open(node, element)?;
+                let name_a = self.xot.name("a").unwrap();
+                if element.name() == name_a {
+                    self.data.push(StyledText::StyleStart);
+                    self.data.push(StyledText::Text(self.get()));
+                } else {
+                    self.data.push(StyledText::Text(self.get()));
+                }
+                Ok(())
+            }
+
+            fn write_start_tag_close(
+                &mut self,
+                node: Node,
+                element: &Element,
+            ) -> Result<(), Error> {
+                self.clear();
+                self.inner_writer.write_start_tag_close(node, element)?;
+                self.data.push(StyledText::Text(self.get()));
+                Ok(())
+            }
+
+            fn write_end_tag(&mut self, node: Node, element: &Element) -> Result<(), Error> {
+                self.clear();
+                self.inner_writer.write_end_tag(node, element)?;
+                let name_a = self.xot.name("a").unwrap();
+                if element.name() == name_a {
+                    self.data.push(StyledText::Text(self.get()));
+                    self.data.push(StyledText::StyleEnd);
+                } else {
+                    self.data.push(StyledText::Text(self.get()));
+                }
+                Ok(())
+            }
+
+            fn write_namespace_declaration(
+                &mut self,
+                node: Node,
+                element: &Element,
+                prefix_id: PrefixId,
+                namespace_id: NamespaceId,
+            ) -> Result<(), Error> {
+                self.clear();
+                self.inner_writer.write_namespace_declaration(
+                    node,
+                    element,
+                    prefix_id,
+                    namespace_id,
+                )?;
+                self.data.push(StyledText::Text(self.get()));
+                Ok(())
+            }
+
+            fn write_attribute(
+                &mut self,
+                node: Node,
+                element: &Element,
+                name_id: NameId,
+                value: &str,
+            ) -> Result<(), Error> {
+                self.clear();
+                self.inner_writer
+                    .write_attribute(node, element, name_id, value)?;
+                self.data.push(StyledText::Text(self.get()));
+                Ok(())
+            }
+
+            fn write_text(&mut self, node: Node, text: &Text) -> Result<(), Error> {
+                self.clear();
+                self.inner_writer.write_text(node, text)?;
+                self.data.push(StyledText::Text(self.get()));
+                Ok(())
+            }
+
+            fn write_comment(&mut self, node: Node, comment: &Comment) -> Result<(), Error> {
+                self.clear();
+                self.inner_writer.write_comment(node, comment)?;
+                self.data.push(StyledText::Text(self.get()));
+                Ok(())
+            }
+
+            fn write_processing_instruction(
+                &mut self,
+                node: Node,
+                pi: &ProcessingInstruction,
+            ) -> Result<(), Error> {
+                self.clear();
+                self.inner_writer.write_processing_instruction(node, pi)?;
+                self.data.push(StyledText::Text(self.get()));
+                Ok(())
+            }
+
+            fn write_space(&mut self) -> Result<(), Error> {
+                self.clear();
+                self.inner_writer.write_space()?;
+                self.data.push(StyledText::Text(self.get()));
+                Ok(())
+            }
+        }
+
+        let extra_prefixes = ToNamespace::new();
+
+        let mut writer = StyleWriter::new(&xot, &extra_prefixes);
+        let mut serializer = Serializer::new(&mut writer, extra_prefixes);
+        serializer.serialize_node(&xot, doc).unwrap();
+
+        let data = &writer.data;
+
+        assert_eq!(
+            data,
+            &vec![
+                StyledText::Text("<doc".to_string()),
+                StyledText::Text(">".to_string()),
+                StyledText::StyleStart,
+                StyledText::Text("<a".to_string()),
+                StyledText::Text("/>".to_string()),
+                StyledText::Text("".to_string()),
+                StyledText::StyleEnd,
+                StyledText::Text("<b".to_string()),
+                StyledText::Text("/>".to_string()),
+                StyledText::Text("".to_string()),
+                StyledText::Text("</doc>".to_string())
+            ]
+        );
     }
 }
