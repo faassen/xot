@@ -58,6 +58,7 @@ mod prefix;
 #[cfg(feature = "proptest")]
 pub mod proptest;
 mod serialize;
+mod serializer;
 mod valueaccess;
 mod xmlvalue;
 mod xotdata;
