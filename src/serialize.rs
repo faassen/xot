@@ -161,41 +161,56 @@ impl<'a> Xot<'a> {
         w: &mut impl Write,
         extra_prefixes: &ToNamespace,
     ) -> Result<(), Error> {
-        let mut xml_writer = XmlSerializerWriter::new(self, w, extra_prefixes);
+        let xml_writer = XmlSerializerWriter::new(self, w, extra_prefixes);
+        let mut serializer = Serializer::new(xml_writer, extra_prefixes.clone());
+        serializer.serialize_node(self, node)
+    }
+}
 
-        for edge in self.traverse(node) {
+use crate::name::NameId;
+use crate::xmlvalue::{Comment, ProcessingInstruction, Text};
+
+struct Serializer<W: SerializerWriter> {
+    writer: W,
+    extra_prefixes: ToNamespace,
+}
+
+impl<W: SerializerWriter> Serializer<W> {
+    fn new(writer: W, extra_prefixes: ToNamespace) -> Self {
+        Self {
+            writer,
+            extra_prefixes,
+        }
+    }
+
+    fn serialize_node(&mut self, xot: &Xot, node: Node) -> Result<(), Error> {
+        for edge in xot.traverse(node) {
             match edge {
                 NodeEdge::Start(current_node) => {
-                    self.handle_edge_start(node, current_node, extra_prefixes, &mut xml_writer)?;
+                    self.handle_edge_start(xot, node, current_node)?;
                 }
                 NodeEdge::End(current_node) => {
-                    self.handle_edge_end(current_node, &mut xml_writer)?;
+                    self.handle_edge_end(xot, current_node)?;
                 }
             }
         }
         Ok(())
     }
 
-    fn handle_edge_start(
-        &self,
-        top_node: Node,
-        node: Node,
-        extra_prefixes: &ToNamespace,
-        xml_writer: &mut XmlSerializerWriter<'a, impl Write>,
-    ) -> Result<(), Error> {
-        let value = self.value(node);
+    fn handle_edge_start(&mut self, xot: &Xot, top_node: Node, node: Node) -> Result<(), Error> {
+        let value = xot.value(node);
         match value {
             Value::Root => {}
             Value::Element(element) => {
-                xml_writer.write_start_tag_open(node, element)?;
+                self.writer.write_start_tag_open(node, element)?;
 
                 // serialize any extra prefixes if this is the top element of
                 // a fragment and they aren't declared already
                 if node == top_node {
-                    for (prefix_id, namespace_id) in extra_prefixes {
+                    for (prefix_id, namespace_id) in &self.extra_prefixes {
                         if !element.namespace_info.to_namespace.contains_key(prefix_id) {
-                            xml_writer.write_space()?;
-                            xml_writer.write_namespace_declaration(
+                            self.writer.write_space()?;
+                            self.writer.write_namespace_declaration(
                                 node,
                                 element,
                                 *prefix_id,
@@ -206,8 +221,8 @@ impl<'a> Xot<'a> {
                 }
 
                 for (prefix_id, namespace_id) in element.prefixes() {
-                    xml_writer.write_space()?;
-                    xml_writer.write_namespace_declaration(
+                    self.writer.write_space()?;
+                    self.writer.write_namespace_declaration(
                         node,
                         element,
                         *prefix_id,
@@ -216,40 +231,34 @@ impl<'a> Xot<'a> {
                 }
 
                 for (name_id, value) in element.attributes() {
-                    xml_writer.write_space()?;
-                    xml_writer.write_attribute(node, element, *name_id, value)?;
+                    self.writer.write_space()?;
+                    self.writer
+                        .write_attribute(node, element, *name_id, value)?;
                 }
 
-                xml_writer.write_start_tag_close(node, element)?;
+                self.writer.write_start_tag_close(node, element)?;
             }
             Value::Text(text) => {
-                xml_writer.write_text(node, text)?;
+                self.writer.write_text(node, text)?;
             }
             Value::Comment(comment) => {
-                xml_writer.write_comment(node, comment)?;
+                self.writer.write_comment(node, comment)?;
             }
             Value::ProcessingInstruction(pi) => {
-                xml_writer.write_processing_instruction(node, pi)?;
+                self.writer.write_processing_instruction(node, pi)?;
             }
         }
         Ok(())
     }
 
-    fn handle_edge_end(
-        &self,
-        node: Node,
-        xml_writer: &mut XmlSerializerWriter<'a, impl Write>,
-    ) -> Result<(), Error> {
-        let value = self.value(node);
+    fn handle_edge_end(&mut self, xot: &Xot, node: Node) -> Result<(), Error> {
+        let value = xot.value(node);
         if let Value::Element(element) = value {
-            xml_writer.write_end_tag(node, element)?;
+            self.writer.write_end_tag(node, element)?;
         }
         Ok(())
     }
 }
-
-use crate::name::NameId;
-use crate::xmlvalue::{Comment, ProcessingInstruction, Text};
 
 pub trait SerializerWriter {
     fn write_start_tag_open(&mut self, node: Node, element: &Element) -> Result<(), Error>;
