@@ -288,6 +288,130 @@ pub trait SerializerWriter {
     fn write_space(&mut self) -> Result<(), Error>;
 }
 
+struct LastPushedWrite {
+    last_pushed: Vec<String>,
+}
+
+impl LastPushedWrite {
+    fn new() -> LastPushedWrite {
+        LastPushedWrite {
+            last_pushed: Vec::new(),
+        }
+    }
+
+    fn clear(&mut self) {
+        self.last_pushed.clear();
+    }
+
+    fn get(&self) -> String {
+        self.last_pushed.join("")
+    }
+}
+
+impl Write for LastPushedWrite {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
+        self.last_pushed
+            .push(String::from_utf8(buf.to_vec()).unwrap());
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> Result<(), std::io::Error> {
+        Ok(())
+    }
+}
+
+struct StringWriter<'a> {
+    serializer_writer: XmlSerializerWriter<'a, LastPushedWrite>,
+}
+
+impl<'a> StringWriter<'a> {
+    fn new(xot: &'a Xot, extra_prefixes: &ToNamespace) -> StringWriter<'a> {
+        StringWriter {
+            serializer_writer: XmlSerializerWriter::new(
+                xot,
+                LastPushedWrite::new(),
+                extra_prefixes,
+            ),
+        }
+    }
+
+    fn clear(&mut self) {
+        self.serializer_writer.w.clear();
+    }
+
+    fn get(&self) -> String {
+        self.serializer_writer.w.get()
+    }
+
+    fn get_start_tag_open(&mut self, node: Node, element: &Element) -> Result<String, Error> {
+        self.clear();
+        self.serializer_writer.write_start_tag_open(node, element)?;
+        Ok(self.get())
+    }
+    fn get_start_tag_close(&mut self, node: Node, element: &Element) -> Result<String, Error> {
+        self.clear();
+        self.serializer_writer
+            .write_start_tag_close(node, element)?;
+        Ok(self.get())
+    }
+    fn get_end_tag(&mut self, node: Node, element: &Element) -> Result<String, Error> {
+        self.clear();
+        self.serializer_writer.write_end_tag(node, element)?;
+        Ok(self.get())
+    }
+    fn get_namespace_declaration(
+        &mut self,
+        node: Node,
+        element: &Element,
+        prefix_id: PrefixId,
+        namespace_id: NamespaceId,
+    ) -> Result<String, Error> {
+        self.clear();
+        self.serializer_writer.write_namespace_declaration(
+            node,
+            element,
+            prefix_id,
+            namespace_id,
+        )?;
+        Ok(self.get())
+    }
+    fn get_attribute(
+        &mut self,
+        node: Node,
+        element: &Element,
+        name_id: NameId,
+        value: &str,
+    ) -> Result<String, Error> {
+        self.clear();
+        self.serializer_writer
+            .write_attribute(node, element, name_id, value)?;
+        Ok(self.get())
+    }
+    fn get_text(&mut self, node: Node, text: &Text) -> Result<String, Error> {
+        self.clear();
+        self.serializer_writer.write_text(node, text)?;
+        Ok(self.get())
+    }
+    fn get_comment(&mut self, node: Node, comment: &Comment) -> Result<String, Error> {
+        self.clear();
+        self.serializer_writer.write_comment(node, comment)?;
+        Ok(self.get())
+    }
+    fn get_processing_instruction(
+        &mut self,
+        node: Node,
+        pi: &ProcessingInstruction,
+    ) -> Result<String, Error> {
+        self.clear();
+        self.serializer_writer
+            .write_processing_instruction(node, pi)?;
+        Ok(self.get())
+    }
+    fn get_space(&mut self) -> Result<String, Error> {
+        Ok(" ".to_string())
+    }
+}
+
 struct XmlSerializerWriter<'a, W: Write> {
     xot: &'a Xot<'a>,
     fullname_serializer: FullnameSerializer<'a>,
@@ -464,74 +588,32 @@ mod tests {
         }
         let doc = xot.parse(r#"<doc><a/><b/></doc>"#).unwrap();
 
-        struct LastPushedWrite {
-            last_pushed: Vec<String>,
-        }
-
-        impl LastPushedWrite {
-            fn new() -> LastPushedWrite {
-                LastPushedWrite {
-                    last_pushed: Vec::new(),
-                }
-            }
-
-            fn clear(&mut self) {
-                self.last_pushed.clear();
-            }
-
-            fn get(&self) -> String {
-                self.last_pushed.join("")
-            }
-        }
-
-        impl Write for LastPushedWrite {
-            fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
-                self.last_pushed
-                    .push(String::from_utf8(buf.to_vec()).unwrap());
-                Ok(buf.len())
-            }
-
-            fn flush(&mut self) -> Result<(), std::io::Error> {
-                Ok(())
-            }
-        }
-
         struct StyleWriter<'a> {
             data: Vec<StyledText>,
-            inner_writer: XmlSerializerWriter<'a, LastPushedWrite>,
+            inner_writer: StringWriter<'a>,
             xot: &'a Xot<'a>,
         }
 
         impl<'a> StyleWriter<'a> {
             fn new(xot: &'a Xot<'a>, extra_prefixes: &ToNamespace) -> StyleWriter<'a> {
-                let last_pushed = LastPushedWrite::new();
-                let inner_writer = XmlSerializerWriter::new(&xot, last_pushed, &extra_prefixes);
+                let inner_writer = StringWriter::new(xot, extra_prefixes);
                 StyleWriter {
                     data: Vec::new(),
                     inner_writer,
                     xot,
                 }
             }
-
-            fn clear(&mut self) {
-                self.inner_writer.w.clear();
-            }
-
-            fn get(&self) -> String {
-                self.inner_writer.w.get()
-            }
         }
 
         impl<'a> SerializerWriter for StyleWriter<'a> {
             fn write_start_tag_open(&mut self, node: Node, element: &Element) -> Result<(), Error> {
-                self.clear();
-                self.inner_writer.write_start_tag_open(node, element)?;
+                let text = self.inner_writer.get_start_tag_open(node, element)?;
                 let name_a = self.xot.name("a").unwrap();
                 if element.name() == name_a {
                     self.data.push(StyledText::StyleStart);
-                    self.data.push(StyledText::Text(self.get()));
+                    self.data.push(StyledText::Text(text));
                 } else {
-                    self.data.push(StyledText::Text(self.get()));
+                    self.data.push(StyledText::Text(text));
                 }
                 Ok(())
             }
@@ -541,21 +623,19 @@ mod tests {
                 node: Node,
                 element: &Element,
             ) -> Result<(), Error> {
-                self.clear();
-                self.inner_writer.write_start_tag_close(node, element)?;
-                self.data.push(StyledText::Text(self.get()));
+                let text = self.inner_writer.get_start_tag_close(node, element)?;
+                self.data.push(StyledText::Text(text));
                 Ok(())
             }
 
             fn write_end_tag(&mut self, node: Node, element: &Element) -> Result<(), Error> {
-                self.clear();
-                self.inner_writer.write_end_tag(node, element)?;
+                let text = self.inner_writer.get_end_tag(node, element)?;
                 let name_a = self.xot.name("a").unwrap();
                 if element.name() == name_a {
-                    self.data.push(StyledText::Text(self.get()));
+                    self.data.push(StyledText::Text(text));
                     self.data.push(StyledText::StyleEnd);
                 } else {
-                    self.data.push(StyledText::Text(self.get()));
+                    self.data.push(StyledText::Text(text));
                 }
                 Ok(())
             }
@@ -567,14 +647,13 @@ mod tests {
                 prefix_id: PrefixId,
                 namespace_id: NamespaceId,
             ) -> Result<(), Error> {
-                self.clear();
-                self.inner_writer.write_namespace_declaration(
+                let text = self.inner_writer.get_namespace_declaration(
                     node,
                     element,
                     prefix_id,
                     namespace_id,
                 )?;
-                self.data.push(StyledText::Text(self.get()));
+                self.data.push(StyledText::Text(text));
                 Ok(())
             }
 
@@ -585,24 +664,22 @@ mod tests {
                 name_id: NameId,
                 value: &str,
             ) -> Result<(), Error> {
-                self.clear();
-                self.inner_writer
-                    .write_attribute(node, element, name_id, value)?;
-                self.data.push(StyledText::Text(self.get()));
+                let text = self
+                    .inner_writer
+                    .get_attribute(node, element, name_id, value)?;
+                self.data.push(StyledText::Text(text));
                 Ok(())
             }
 
             fn write_text(&mut self, node: Node, text: &Text) -> Result<(), Error> {
-                self.clear();
-                self.inner_writer.write_text(node, text)?;
-                self.data.push(StyledText::Text(self.get()));
+                let text = self.inner_writer.get_text(node, text)?;
+                self.data.push(StyledText::Text(text));
                 Ok(())
             }
 
             fn write_comment(&mut self, node: Node, comment: &Comment) -> Result<(), Error> {
-                self.clear();
-                self.inner_writer.write_comment(node, comment)?;
-                self.data.push(StyledText::Text(self.get()));
+                let text = self.inner_writer.get_comment(node, comment)?;
+                self.data.push(StyledText::Text(text));
                 Ok(())
             }
 
@@ -611,16 +688,14 @@ mod tests {
                 node: Node,
                 pi: &ProcessingInstruction,
             ) -> Result<(), Error> {
-                self.clear();
-                self.inner_writer.write_processing_instruction(node, pi)?;
-                self.data.push(StyledText::Text(self.get()));
+                let text = self.inner_writer.get_processing_instruction(node, pi)?;
+                self.data.push(StyledText::Text(text));
                 Ok(())
             }
 
             fn write_space(&mut self) -> Result<(), Error> {
-                self.clear();
-                self.inner_writer.write_space()?;
-                self.data.push(StyledText::Text(self.get()));
+                let text = self.inner_writer.get_space()?;
+                self.data.push(StyledText::Text(text));
                 Ok(())
             }
         }
