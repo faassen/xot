@@ -2,10 +2,10 @@ use ahash::{HashMap, HashSet};
 
 use crate::access::NodeEdge;
 use crate::error::Error;
+use crate::fullname::{Fullname, FullnameSerializer};
 use crate::name::{Name, NameId};
 use crate::namespace::NamespaceId;
 use crate::prefix::PrefixId;
-use crate::serialize::{Fullname, FullnameSerializer};
 use crate::xmlvalue::ToNamespace;
 use crate::xotdata::{Node, Xot};
 

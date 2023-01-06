@@ -47,6 +47,7 @@ mod entity;
 mod error;
 #[cfg(feature = "proptest")]
 pub mod fixed;
+mod fullname;
 mod idmap;
 mod manipulation;
 mod name;
