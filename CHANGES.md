@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.10.1] - 2023-01-09
+
 ### Added
 
 - `namespace_for_name` to allow access of the namespace id of a particular
@@ -173,8 +175,9 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.10.1...HEAD
 
-[unreleased]: https://github.com/faassen/xot/compare/v0.10.0...HEAD
+[unreleased]: https://github.com/faassen/xot/compare/v0.10.0...v0.10.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.9.2...v0.10.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.9.1...v0.9.2
 [unreleased]: https://github.com/faassen/xot/compare/v0.9.0...v0.9.1
