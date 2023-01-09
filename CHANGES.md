@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.10.0] - 2023-01-09
+
 ### Added
 
 - New `serialize_with_writer` and `serialize_node_with_writer` methods. These
@@ -166,8 +168,9 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.10.0...HEAD
 
-[unreleased]: https://github.com/faassen/xot/compare/v0.9.2...HEAD
+[unreleased]: https://github.com/faassen/xot/compare/v0.9.2...v0.10.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.9.1...v0.9.2
 [unreleased]: https://github.com/faassen/xot/compare/v0.9.0...v0.9.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.8.0...v0.9.0
