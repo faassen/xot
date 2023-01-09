@@ -15,19 +15,12 @@ use crate::xotdata::{Node, Xot};
 pub(crate) struct Serializer<'a, W: SerializerWriter> {
     xot: &'a Xot<'a>,
     writer: &'a mut W,
-    fullname_serializer: FullnameSerializer<'a>,
 }
 
 impl<'a, W: SerializerWriter> Serializer<'a, W> {
     /// Create a new serializer from a serializer writer.
-
     pub fn new(xot: &'a Xot<'a>, writer: &'a mut W) -> Self {
-        let fullname_serializer = FullnameSerializer::new(xot);
-        Self {
-            xot,
-            writer,
-            fullname_serializer,
-        }
+        Self { xot, writer }
     }
 
     fn get_extra_prefixes(&self, node: Node) -> ToNamespace {
@@ -67,14 +60,12 @@ impl<'a, W: SerializerWriter> Serializer<'a, W> {
             Value::Element(element) => {
                 if node == top_node {
                     let extra_prefixes = self.get_extra_prefixes(node);
-                    self.fullname_serializer.push(&extra_prefixes);
+                    self.writer.push_prefixes(&extra_prefixes);
                     // since this will always be at the bottom, it doesn't need to be popped
                 }
-                self.fullname_serializer
-                    .push(&element.namespace_info.to_namespace);
-                let fullname = self.fullname_serializer.fullname_or_err(element.name_id)?;
                 self.writer
-                    .write_start_tag_open(node, element, fullname.as_ref())?;
+                    .push_prefixes(&element.namespace_info.to_namespace);
+                self.writer.write_start_tag_open(node, element)?;
 
                 // serialize any extra prefixes if this is the top element of
                 // a fragment and they aren't declared already
@@ -104,14 +95,8 @@ impl<'a, W: SerializerWriter> Serializer<'a, W> {
 
                 for (name_id, value) in element.attributes() {
                     self.writer.write_space()?;
-                    let fullname = self.fullname_serializer.fullname_attr_or_err(*name_id)?;
-                    self.writer.write_attribute(
-                        node,
-                        element,
-                        *name_id,
-                        value,
-                        fullname.as_ref(),
-                    )?;
+                    self.writer
+                        .write_attribute(node, element, *name_id, value)?;
                 }
 
                 self.writer.write_start_tag_close(node, element)?;
@@ -132,11 +117,9 @@ impl<'a, W: SerializerWriter> Serializer<'a, W> {
     fn handle_edge_end(&mut self, node: Node) -> Result<(), Error> {
         let value = self.xot.value(node);
         if let Value::Element(element) = value {
-            let fullname = self.fullname_serializer.fullname_or_err(element.name_id)?;
+            self.writer.write_end_tag(node, element)?;
             self.writer
-                .write_end_tag(node, element, fullname.as_ref())?;
-            self.fullname_serializer
-                .pop(&element.namespace_info.to_namespace);
+                .pop_prefixes(&element.namespace_info.to_namespace);
         }
         Ok(())
     }
@@ -160,18 +143,21 @@ impl<'a, W: SerializerWriter> Serializer<'a, W> {
 /// additional content, or to filter out particular strings and not write them
 /// at all.
 pub trait SerializerWriter {
+    /// Get the fullname for a name in serialization context
+    fn fullname(&self, name_id: NameId) -> Result<String, Error>;
+    /// Get the fullname for an attribute in serialiation context
+    fn fullname_attr(&self, name_id: NameId) -> Result<String, Error>;
+    /// Push new namespace prefixes during serialization
+    fn push_prefixes(&mut self, prefixes: &ToNamespace);
+    /// Pop namespace prefixes during serialization
+    fn pop_prefixes(&mut self, prefixes: &ToNamespace);
+
     /// Write the start tag opening: e.g `<foo`.
-    fn write_start_tag_open(
-        &mut self,
-        node: Node,
-        element: &Element,
-        fullname: &str,
-    ) -> Result<(), Error>;
+    fn write_start_tag_open(&mut self, node: Node, element: &Element) -> Result<(), Error>;
     /// Write the start tag closing, e.g. `>`, or `/>` if the element is empty.
     fn write_start_tag_close(&mut self, node: Node, element: &Element) -> Result<(), Error>;
     /// Write the end tag, e.g. `</foo>`, or nothing if the element is empty.
-    fn write_end_tag(&mut self, node: Node, element: &Element, fullname: &str)
-        -> Result<(), Error>;
+    fn write_end_tag(&mut self, node: Node, element: &Element) -> Result<(), Error>;
     /// Write a namespace declaration, e.g. `xmlns:foo="http://example.com"`.
     fn write_namespace_declaration(
         &mut self,
@@ -187,7 +173,6 @@ pub trait SerializerWriter {
         element: &Element,
         name_id: NameId,
         value: &str,
-        fullname: &str,
     ) -> Result<(), Error>;
     /// Write text, e.g `foo`.
     fn write_text(&mut self, node: Node, text: &Text) -> Result<(), Error>;
@@ -262,16 +247,30 @@ impl<'a> StringWriter<'a> {
         self.serializer_writer.w.get()
     }
 
+    /// Get the fullname for a name in serialization context
+    pub fn fullname(&self, name_id: NameId) -> Result<String, Error> {
+        self.serializer_writer.fullname(name_id)
+    }
+
+    /// Get the fullname for an attribute in serialiation context
+    pub fn fullname_attr(&self, name_id: NameId) -> Result<String, Error> {
+        self.serializer_writer.fullname_attr(name_id)
+    }
+
+    /// Push new namespace prefixes during serialization
+    pub fn push_prefixes(&mut self, prefixes: &ToNamespace) {
+        self.serializer_writer.push_prefixes(prefixes);
+    }
+
+    /// Pop namespace prefixes during serialization
+    pub fn pop_prefixes(&mut self, prefixes: &ToNamespace) {
+        self.serializer_writer.pop_prefixes(prefixes);
+    }
+
     /// Get opening of start tag
-    pub fn get_start_tag_open(
-        &mut self,
-        node: Node,
-        element: &Element,
-        fullname: &str,
-    ) -> Result<String, Error> {
+    pub fn get_start_tag_open(&mut self, node: Node, element: &Element) -> Result<String, Error> {
         self.clear();
-        self.serializer_writer
-            .write_start_tag_open(node, element, fullname)?;
+        self.serializer_writer.write_start_tag_open(node, element)?;
         Ok(self.get())
     }
     /// Get end of start tag
@@ -282,15 +281,9 @@ impl<'a> StringWriter<'a> {
         Ok(self.get())
     }
     /// Get end tag
-    pub fn get_end_tag(
-        &mut self,
-        node: Node,
-        element: &Element,
-        fullname: &str,
-    ) -> Result<String, Error> {
+    pub fn get_end_tag(&mut self, node: Node, element: &Element) -> Result<String, Error> {
         self.clear();
-        self.serializer_writer
-            .write_end_tag(node, element, fullname)?;
+        self.serializer_writer.write_end_tag(node, element)?;
         Ok(self.get())
     }
     /// Get namespace declaration
@@ -317,11 +310,10 @@ impl<'a> StringWriter<'a> {
         element: &Element,
         name_id: NameId,
         value: &str,
-        fullname: &str,
     ) -> Result<String, Error> {
         self.clear();
         self.serializer_writer
-            .write_attribute(node, element, name_id, value, fullname)?;
+            .write_attribute(node, element, name_id, value)?;
         Ok(self.get())
     }
     /// Get text
@@ -355,22 +347,44 @@ impl<'a> StringWriter<'a> {
 
 pub(crate) struct XmlSerializerWriter<'a, W: Write> {
     xot: &'a Xot<'a>,
+    fullname_serializer: FullnameSerializer<'a>,
     w: W,
 }
 
 impl<'a, W: Write> XmlSerializerWriter<'a, W> {
     pub(crate) fn new(xot: &'a Xot<'a>, w: W) -> XmlSerializerWriter<'a, W> {
-        XmlSerializerWriter { xot, w }
+        let fullname_serializer = FullnameSerializer::new(xot);
+        XmlSerializerWriter {
+            xot,
+            fullname_serializer,
+            w,
+        }
     }
 }
 
 impl<'a, W: Write> SerializerWriter for XmlSerializerWriter<'a, W> {
-    fn write_start_tag_open(
-        &mut self,
-        _node: Node,
-        _element: &Element,
-        fullname: &str,
-    ) -> Result<(), Error> {
+    fn fullname(&self, name_id: NameId) -> Result<String, Error> {
+        self.fullname_serializer
+            .fullname_or_err(name_id)
+            .map(|s| s.into_owned())
+    }
+
+    fn fullname_attr(&self, name_id: NameId) -> Result<String, Error> {
+        self.fullname_serializer
+            .fullname_attr_or_err(name_id)
+            .map(|s| s.into_owned())
+    }
+
+    fn push_prefixes(&mut self, prefixes: &ToNamespace) {
+        self.fullname_serializer.push(prefixes);
+    }
+
+    fn pop_prefixes(&mut self, prefixes: &ToNamespace) {
+        self.fullname_serializer.pop(prefixes);
+    }
+
+    fn write_start_tag_open(&mut self, _node: Node, _element: &Element) -> Result<(), Error> {
+        let fullname = self.fullname(_element.name_id)?;
         write!(self.w, "<{}", fullname)?;
         Ok(())
     }
@@ -384,13 +398,9 @@ impl<'a, W: Write> SerializerWriter for XmlSerializerWriter<'a, W> {
         Ok(())
     }
 
-    fn write_end_tag(
-        &mut self,
-        node: Node,
-        _element: &Element,
-        fullname: &str,
-    ) -> Result<(), Error> {
+    fn write_end_tag(&mut self, node: Node, _element: &Element) -> Result<(), Error> {
         if self.xot.first_child(node).is_some() {
+            let fullname = self.fullname(_element.name_id)?;
             write!(self.w, "</{}>", fullname)?;
         }
         Ok(())
@@ -421,10 +431,10 @@ impl<'a, W: Write> SerializerWriter for XmlSerializerWriter<'a, W> {
         &mut self,
         _node: Node,
         _element: &Element,
-        _name_id: NameId,
+        name_id: NameId,
         value: &str,
-        fullname: &str,
     ) -> Result<(), Error> {
+        let fullname = self.fullname_attr(name_id)?;
         write!(
             self.w,
             "{}=\"{}\"",
@@ -536,15 +546,24 @@ mod tests {
         }
 
         impl<'a> SerializerWriter for StyleWriter<'a> {
-            fn write_start_tag_open(
-                &mut self,
-                node: Node,
-                element: &Element,
-                fullname: &str,
-            ) -> Result<(), Error> {
-                let text = self
-                    .inner_writer
-                    .get_start_tag_open(node, element, fullname)?;
+            fn fullname(&self, name_id: NameId) -> Result<String, Error> {
+                self.inner_writer.fullname(name_id)
+            }
+
+            fn fullname_attr(&self, name_id: NameId) -> Result<String, Error> {
+                self.inner_writer.fullname_attr(name_id)
+            }
+
+            fn push_prefixes(&mut self, prefixes: &ToNamespace) {
+                self.inner_writer.push_prefixes(prefixes);
+            }
+
+            fn pop_prefixes(&mut self, prefixes: &ToNamespace) {
+                self.inner_writer.pop_prefixes(prefixes);
+            }
+
+            fn write_start_tag_open(&mut self, node: Node, element: &Element) -> Result<(), Error> {
+                let text = self.inner_writer.get_start_tag_open(node, element)?;
                 let name_a = self.xot.name("a").unwrap();
                 if element.name() == name_a {
                     self.data.push(StyledText::StyleStart);
@@ -565,13 +584,8 @@ mod tests {
                 Ok(())
             }
 
-            fn write_end_tag(
-                &mut self,
-                node: Node,
-                element: &Element,
-                fullname: &str,
-            ) -> Result<(), Error> {
-                let text = self.inner_writer.get_end_tag(node, element, fullname)?;
+            fn write_end_tag(&mut self, node: Node, element: &Element) -> Result<(), Error> {
+                let text = self.inner_writer.get_end_tag(node, element)?;
                 let name_a = self.xot.name("a").unwrap();
                 if element.name() == name_a {
                     self.data.push(StyledText::Text(text));
@@ -605,11 +619,10 @@ mod tests {
                 element: &Element,
                 name_id: NameId,
                 value: &str,
-                fullname: &str,
             ) -> Result<(), Error> {
                 let text = self
                     .inner_writer
-                    .get_attribute(node, element, name_id, value, fullname)?;
+                    .get_attribute(node, element, name_id, value)?;
                 self.data.push(StyledText::Text(text));
                 Ok(())
             }
