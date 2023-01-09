@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.10.2] - 2023-01-09
+
 ### Changed
 
 - `serialize_with_writer` now only takes an immutable self, and it's the only
@@ -181,8 +183,9 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.10.2...HEAD
 
-[unreleased]: https://github.com/faassen/xot/compare/v0.10.1...HEAD
+[unreleased]: https://github.com/faassen/xot/compare/v0.10.1...v0.10.2
 [unreleased]: https://github.com/faassen/xot/compare/v0.10.0...v0.10.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.9.2...v0.10.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.9.1...v0.9.2
