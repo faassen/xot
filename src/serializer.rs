@@ -644,8 +644,8 @@ mod tests {
         }
 
         let mut writer = StyleWriter::new(&xot);
-        let mut serializer = Serializer::new(&xot, &mut writer);
-        serializer.serialize_node(doc).unwrap();
+        // serializer.serialize_node(doc).unwrap();
+        xot.serialize_with_writer(doc, &mut writer).unwrap();
 
         let data = &writer.data;
 

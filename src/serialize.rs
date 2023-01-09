@@ -141,52 +141,17 @@ impl<'a> Xot<'a> {
         String::from_utf8(buf).unwrap()
     }
 
-    /// Serialize document with a custom serializer writer.
+    /// Serialize node with a custom serializer writer.
     ///
     /// This is an advanced method that allows customisation of the XML writing.
     ///
-    /// This only works with a root node.
+    /// Note that this does not create missing prefixes; you need to call
+    /// [`Xot::create_missing_prefixes`] yourself if you want it to create them.
     pub fn serialize_with_writer(
-        &mut self,
-        node: Node,
-        serializer_writer: &mut impl SerializerWriter,
-    ) -> Result<(), Error> {
-        let root_element = self.document_element(node).unwrap();
-        self.create_missing_prefixes(root_element).unwrap();
-        let mut serializer = Serializer::new(self, serializer_writer);
-        serializer.serialize_node(node)
-    }
-
-    /// Serialize document and fail if namespaces encountered without prefix defined.
-    ///
-    ///  This is an advanced method that allows customisation of the XML writing.
-    ///
-    /// This fails if there is a namespace without a prefix. Use
-    /// [`Xot::serialize_with_writer`] if you want it to generate synthetic prefixes
-    /// instead.
-    pub fn serialize_or_missing_prefix_with_writer(
         &self,
         node: Node,
         serializer_writer: &mut impl SerializerWriter,
     ) -> Result<(), Error> {
-        let mut serializer = Serializer::new(self, serializer_writer);
-        serializer.serialize_node(node)
-    }
-
-    /// Serialize node with writer
-    ///
-    /// This is an advanced method that allows customisation of the XML writing.
-    ///
-    /// This works with any node and produces an XML fragment for this node. If
-    /// the node is an element, any prefixes needed for the fragment are added
-    /// to this element.
-    pub fn serialize_node_with_writer(
-        &mut self,
-        node: Node,
-        serializer_writer: &mut impl SerializerWriter,
-    ) -> Result<(), Error> {
-        let root_element = self.top_element(node);
-        self.create_missing_prefixes(root_element).unwrap();
         let mut serializer = Serializer::new(self, serializer_writer);
         serializer.serialize_node(node)
     }

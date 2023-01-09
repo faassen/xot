@@ -2,6 +2,11 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Changed
+
+- `serialize_with_writer` is now immutable, and it's the only way to serialize
+  with a writer. It does not attempt to add missing prefixes anymore.
+
 ## [0.10.1] - 2023-01-09
 
 ### Added
@@ -175,8 +180,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.10.1...HEAD
 
+[unreleased]: https://github.com/faassen/xot/compare/v0.10.1...HEAD
 [unreleased]: https://github.com/faassen/xot/compare/v0.10.0...v0.10.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.9.2...v0.10.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.9.1...v0.9.2
