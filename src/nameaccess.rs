@@ -233,6 +233,22 @@ impl<'a> Xot<'a> {
         prefix
     }
 
+    /// Get the Namespace for a Name
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let ns = xot.add_namespace("http://example.com");
+    /// let name = xot.add_name_ns("a", ns);
+    ///
+    /// assert_eq!(xot.namespace_for_name(name), ns);
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    pub fn namespace_for_name(&self, name: NameId) -> NamespaceId {
+        self.name_lookup.get_value(name).namespace_id
+    }
+
     /// Creating missing prefixes.
     ///
     /// Due to creation or moving subtrees you can end up with XML elements or
