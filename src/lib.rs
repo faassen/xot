@@ -68,6 +68,7 @@ pub use error::Error;
 pub use name::NameId;
 pub use namespace::NamespaceId;
 pub use prefix::PrefixId;
+pub use serializer::{SerializerWriter, StringWriter};
 pub use xmlvalue::{
     Attributes, Comment, Element, ProcessingInstruction, Text, ToNamespace, Value, ValueType,
 };

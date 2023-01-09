@@ -1,14 +1,13 @@
 use std::io::Write;
 
-use crate::serializer::{Serializer, XmlSerializerWriter};
+use crate::serializer::{Serializer, SerializerWriter, XmlSerializerWriter};
 
 use crate::error::Error;
-use crate::xmlvalue::{ToNamespace, ValueType};
 use crate::xotdata::{Node, Xot};
 
 /// ## Serialization
 impl<'a> Xot<'a> {
-    /// Serialize document to a writer.
+    /// Serialize document to a Write.
     ///
     /// This only works with a root node.
     ///
@@ -20,18 +19,20 @@ impl<'a> Xot<'a> {
     /// let root = xot.parse("<p>Example</p>")?;
     ///
     /// let mut buf = Vec::new();
-    /// xot.serialize(root, &mut buf);
+    /// xot.serialize(root, &mut buf).unwrap();
     ///
     /// assert_eq!(buf, b"<p>Example</p>");
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn serialize(&mut self, node: Node, w: &mut impl Write) {
+    pub fn serialize(&mut self, node: Node, w: &mut impl Write) -> Result<(), Error> {
         let root_element = self.document_element(node).unwrap();
         self.create_missing_prefixes(root_element).unwrap();
-        self.serialize_or_missing_prefix(node, w).unwrap();
+        let mut serializer_writer = XmlSerializerWriter::new(self, w);
+        let mut serializer = Serializer::new(self, &mut serializer_writer);
+        serializer.serialize_node(node)
     }
 
-    /// Serialize a node to a writer.
+    /// Serialize a node to a Write.
     ///
     /// This works with any node and produces an XML fragment for this node. If
     /// the node is an element, any prefixes needed for the fragment are added
@@ -68,22 +69,12 @@ impl<'a> Xot<'a> {
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn serialize_node(&mut self, node: Node, w: &mut impl Write) {
+    pub fn serialize_node(&mut self, node: Node, w: &mut impl Write) -> Result<(), Error> {
         let root_element = self.top_element(node);
         self.create_missing_prefixes(root_element).unwrap();
-        // collect namespace prefixes for all ancestors of the fragment
-        let extra_prefixes = if let Some(parent) = self.parent(node) {
-            if self.value_type(parent) != ValueType::Root {
-                self.to_namespace_in_scope(parent)
-            } else {
-                ToNamespace::new()
-            }
-        } else {
-            ToNamespace::new()
-        };
-        // now serialize with those additional prefixes
-        self.serialize_node_helper(node, w, &extra_prefixes)
-            .unwrap();
+        let mut serializer_writer = XmlSerializerWriter::new(self, w);
+        let mut serializer = Serializer::new(self, &mut serializer_writer);
+        serializer.serialize_node(node)
     }
 
     /// Serialize document and fail if namespaces encountered without prefix defined.
@@ -118,11 +109,18 @@ impl<'a> Xot<'a> {
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn serialize_or_missing_prefix(&self, node: Node, w: &mut impl Write) -> Result<(), Error> {
-        if self.value_type(node) != ValueType::Root {
-            panic!("Can only serialize root nodes");
-        }
-        let extra_prefixes = ToNamespace::new();
-        self.serialize_node_helper(node, w, &extra_prefixes)
+        let mut serializer_writer = XmlSerializerWriter::new(self, w);
+        let mut serializer = Serializer::new(self, &mut serializer_writer);
+        serializer.serialize_node(node)
+    }
+
+    /// Serialize document to a string.
+    ///
+    /// This only works with a root node.
+    pub fn serialize_to_string(&mut self, node: Node) -> String {
+        let mut buf = Vec::new();
+        self.serialize(node, &mut buf).unwrap();
+        String::from_utf8(buf).unwrap()
     }
 
     /// Serialize document to a string.
@@ -134,32 +132,62 @@ impl<'a> Xot<'a> {
         Ok(String::from_utf8(buf).unwrap())
     }
 
-    /// Serialize document to a string.
-    ///
-    /// This only works with a root node.
-    pub fn serialize_to_string(&mut self, node: Node) -> String {
-        let mut buf = Vec::new();
-        self.serialize(node, &mut buf);
-        String::from_utf8(buf).unwrap()
-    }
-
     /// Serialize a node to a string.
     ///
     /// This works with any node and produces an XML fragment.
     pub fn serialize_node_to_string(&mut self, node: Node) -> String {
         let mut buf = Vec::new();
-        self.serialize_node(node, &mut buf);
+        self.serialize_node(node, &mut buf).unwrap();
         String::from_utf8(buf).unwrap()
     }
 
-    fn serialize_node_helper(
+    /// Serialize document with a custom serializer writer.
+    ///
+    /// This is an advanced method that allows customisation of the XML writing.
+    ///
+    /// This only works with a root node.
+    pub fn serialize_with_writer(
+        &mut self,
+        node: Node,
+        serializer_writer: &mut impl SerializerWriter,
+    ) -> Result<(), Error> {
+        let root_element = self.document_element(node).unwrap();
+        self.create_missing_prefixes(root_element).unwrap();
+        let mut serializer = Serializer::new(self, serializer_writer);
+        serializer.serialize_node(node)
+    }
+
+    /// Serialize document and fail if namespaces encountered without prefix defined.
+    ///
+    ///  This is an advanced method that allows customisation of the XML writing.
+    ///
+    /// This fails if there is a namespace without a prefix. Use
+    /// [`Xot::serialize_with_writer`] if you want it to generate synthetic prefixes
+    /// instead.
+    pub fn serialize_or_missing_prefix_with_writer(
         &self,
         node: Node,
-        w: &mut impl Write,
-        extra_prefixes: &ToNamespace,
+        serializer_writer: &mut impl SerializerWriter,
     ) -> Result<(), Error> {
-        let mut xml_writer = XmlSerializerWriter::new(self, w, extra_prefixes);
-        let mut serializer = Serializer::new(&mut xml_writer, extra_prefixes.clone());
-        serializer.serialize_node(self, node)
+        let mut serializer = Serializer::new(self, serializer_writer);
+        serializer.serialize_node(node)
+    }
+
+    /// Serialize node with writer
+    ///
+    /// This is an advanced method that allows customisation of the XML writing.
+    ///
+    /// This works with any node and produces an XML fragment for this node. If
+    /// the node is an element, any prefixes needed for the fragment are added
+    /// to this element.
+    pub fn serialize_node_with_writer(
+        &mut self,
+        node: Node,
+        serializer_writer: &mut impl SerializerWriter,
+    ) -> Result<(), Error> {
+        let root_element = self.top_element(node);
+        self.create_missing_prefixes(root_element).unwrap();
+        let mut serializer = Serializer::new(self, serializer_writer);
+        serializer.serialize_node(node)
     }
 }

@@ -2,6 +2,18 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- New `serialize_with_writer` and `serialize_node_with_writer` methods. These
+  can be used to customize the XML write process using the new
+  `SerializerWriter` trait. The `StringWriter` struct is also provided and is
+  useful to implement this trait.
+
+### Changed
+
+- `serialize` and `serialize_node` now do return an error object, as IO may
+  go wrong during the underlying write process and we don't want to hide this.
+
 ## [0.9.2] - 2023-01-05
 
 ### Fixed
@@ -154,8 +166,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.9.2...HEAD
 
+[unreleased]: https://github.com/faassen/xot/compare/v0.9.2...HEAD
 [unreleased]: https://github.com/faassen/xot/compare/v0.9.1...v0.9.2
 [unreleased]: https://github.com/faassen/xot/compare/v0.9.0...v0.9.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.8.0...v0.9.0
