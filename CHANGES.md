@@ -4,8 +4,9 @@
 
 ### Changed
 
-- `serialize_with_writer` is now immutable, and it's the only way to serialize
-  with a writer. It does not attempt to add missing prefixes anymore.
+- `serialize_with_writer` now only takes an immutable self, and it's the only
+  way to serialize with a writer. It does not attempt to add missing prefixes
+  anymore.
 
 ## [0.10.1] - 2023-01-09
 
