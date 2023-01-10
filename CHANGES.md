@@ -7,6 +7,10 @@
 - Add pretty printing support. You can use `Xot::serializer_options()` to turn on
   pretty printing before serialization.
 
+- You can implement `write_additional_attributes` and
+  `write_additional_namespace_declarations` in `SerializerWriter`
+  to insert additional information into an element.
+
 ### Breaking changes
 
 - Revised the serialization API yet again as it was getting too complicated:
