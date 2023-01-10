@@ -2,6 +2,31 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- Add pretty printing support. You can use `Xot::serializer_options()` to turn on
+  pretty printing before serialization.
+
+### Breaking change
+
+- Revised the serialization API yet again as it was getting too complicated:
+
+  - To serialize any node (including the root) to a `Xot::to_string`. This replaces
+    `Xot::serialize_to_string` and `Xot::serialize_node_to_string`.
+
+  - Serialization never takes a mutable self anymore.
+
+  - To write to a `Write`, use `Xot::write`. This replaces `Xot::serialize` and
+    `Xot::serialize_node`.
+
+  - Previously serialization to string did not return an error. This has been
+    changed so that an error is returned as well.
+
+  - Serialization errors if a namespace URI is encountered with a missing
+    prefix. This can be fixed by calling `create_missing_prefixes` just before
+    serialization, but you need to do this manually; it won't be automatic
+    anymore.
+
 ## [0.10.3] - 2023-01-09
 
 ### Changed
@@ -192,8 +217,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.10.3...HEAD
 
+[unreleased]: https://github.com/faassen/xot/compare/v0.10.3...HEAD
 [unreleased]: https://github.com/faassen/xot/compare/v0.10.2...v0.10.3
 [unreleased]: https://github.com/faassen/xot/compare/v0.10.1...v0.10.2
 [unreleased]: https://github.com/faassen/xot/compare/v0.10.0...v0.10.1
