@@ -7,7 +7,7 @@
 - Add pretty printing support. You can use `Xot::serializer_options()` to turn on
   pretty printing before serialization.
 
-### Breaking change
+### Breaking changes
 
 - Revised the serialization API yet again as it was getting too complicated:
 
@@ -26,6 +26,10 @@
     prefix. This can be fixed by calling `create_missing_prefixes` just before
     serialization, but you need to do this manually; it won't be automatic
     anymore.
+
+- Removed `write_space()` from the `SerializerWriter` trait as well as the
+  `StringWriter` struct. Spaces are now automatically outputted when an
+  attribute or namespace is written.
 
 ## [0.10.3] - 2023-01-09
 
