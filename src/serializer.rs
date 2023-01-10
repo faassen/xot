@@ -72,7 +72,6 @@ impl<'a, W: SerializerWriter> Serializer<'a, W> {
                 if node == top_node {
                     for (prefix_id, namespace_id) in self.get_extra_prefixes(node) {
                         if !element.namespace_info.to_namespace.contains_key(&prefix_id) {
-                            self.writer.write_space()?;
                             self.writer.write_namespace_declaration(
                                 node,
                                 element,
@@ -84,7 +83,6 @@ impl<'a, W: SerializerWriter> Serializer<'a, W> {
                 }
 
                 for (prefix_id, namespace_id) in element.prefixes() {
-                    self.writer.write_space()?;
                     self.writer.write_namespace_declaration(
                         node,
                         element,
@@ -94,7 +92,6 @@ impl<'a, W: SerializerWriter> Serializer<'a, W> {
                 }
 
                 for (name_id, value) in element.attributes() {
-                    self.writer.write_space()?;
                     self.writer
                         .write_attribute(node, element, *name_id, value)?;
                 }
@@ -184,8 +181,6 @@ pub trait SerializerWriter {
         node: Node,
         pi: &ProcessingInstruction,
     ) -> Result<(), Error>;
-    /// Write a space, e.g. ` `.
-    fn write_space(&mut self) -> Result<(), Error>;
 }
 
 struct LastPushedWrite {
@@ -339,10 +334,6 @@ impl<'a> StringWriter<'a> {
             .write_processing_instruction(node, pi)?;
         Ok(self.get())
     }
-    /// Get space
-    pub fn get_space(&mut self) -> Result<String, Error> {
-        Ok(" ".to_string())
-    }
 }
 
 pub(crate) struct XmlSerializerWriter<'a, W: Write> {
@@ -420,11 +411,11 @@ impl<'a, W: Write> SerializerWriter for XmlSerializerWriter<'a, W> {
     ) -> Result<(), Error> {
         let namespace = self.xot.namespace_str(namespace_id);
         if prefix_id == self.xot.empty_prefix_id {
-            write!(self.w, "xmlns=\"{}\"", namespace)?;
+            write!(self.w, " xmlns=\"{}\"", namespace)?;
         } else {
             write!(
                 self.w,
-                "xmlns:{}=\"{}\"",
+                " xmlns:{}=\"{}\"",
                 self.xot.prefix_str(prefix_id),
                 namespace
             )?;
@@ -442,7 +433,7 @@ impl<'a, W: Write> SerializerWriter for XmlSerializerWriter<'a, W> {
         let fullname = self.fullname_attr(name_id)?;
         write!(
             self.w,
-            "{}=\"{}\"",
+            " {}=\"{}\"",
             fullname,
             serialize_attribute(value.into())
         )?;
@@ -473,11 +464,6 @@ impl<'a, W: Write> SerializerWriter for XmlSerializerWriter<'a, W> {
         } else {
             write!(self.w, "<?{}?>", processing_instruction.target())?;
         }
-        Ok(())
-    }
-
-    fn write_space(&mut self) -> Result<(), Error> {
-        write!(self.w, " ")?;
         Ok(())
     }
 }
@@ -650,12 +636,6 @@ mod tests {
                 pi: &ProcessingInstruction,
             ) -> Result<(), Error> {
                 let text = self.inner_writer.get_processing_instruction(node, pi)?;
-                self.data.push(StyledText::Text(text));
-                Ok(())
-            }
-
-            fn write_space(&mut self) -> Result<(), Error> {
-                let text = self.inner_writer.get_space()?;
                 self.data.push(StyledText::Text(text));
                 Ok(())
             }

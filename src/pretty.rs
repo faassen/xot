@@ -185,11 +185,6 @@ impl<'a, W: Write> SerializerWriter for PrettyWriter<'a, W> {
         self.newline()?;
         Ok(())
     }
-
-    fn write_space(&mut self) -> Result<(), Error> {
-        self.inner_writer.write_space()?;
-        Ok(())
-    }
 }
 
 #[cfg(test)]
