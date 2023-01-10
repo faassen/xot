@@ -80,7 +80,7 @@ impl<'a, W: Write> PrettyWriter<'a, W> {
         let has_children = self.xot.first_child(node).is_some();
         if has_children {
             if !self.has_text_child(node) {
-                self.write_newline()?;
+                self.newline()?;
                 self.unmixed();
             } else {
                 self.mixed();
@@ -101,7 +101,7 @@ impl<'a, W: Write> PrettyWriter<'a, W> {
         Ok(())
     }
 
-    fn dedent_newline(&mut self) -> Result<(), Error> {
+    fn newline(&mut self) -> Result<(), Error> {
         if !self.in_mixed() {
             self.write_newline()?;
         }
@@ -139,7 +139,6 @@ impl<'a, W: Write> SerializerWriter for PrettyWriter<'a, W> {
 
     fn write_start_tag_close(&mut self, node: Node, element: &Element) -> Result<(), Error> {
         self.inner_writer.write_start_tag_close(node, element)?;
-
         self.indent(node)?;
         Ok(())
     }
@@ -147,7 +146,7 @@ impl<'a, W: Write> SerializerWriter for PrettyWriter<'a, W> {
     fn write_end_tag(&mut self, node: Node, element: &Element) -> Result<(), Error> {
         self.dedent(node)?;
         self.inner_writer.write_end_tag(node, element)?;
-        self.dedent_newline()?;
+        self.newline()?;
         Ok(())
     }
 
@@ -183,7 +182,7 @@ impl<'a, W: Write> SerializerWriter for PrettyWriter<'a, W> {
     fn write_comment(&mut self, node: Node, comment: &Comment) -> Result<(), Error> {
         self.write_indentation()?;
         self.inner_writer.write_comment(node, comment)?;
-        self.dedent_newline()?;
+        self.newline()?;
         Ok(())
     }
 
@@ -194,7 +193,7 @@ impl<'a, W: Write> SerializerWriter for PrettyWriter<'a, W> {
     ) -> Result<(), Error> {
         self.write_indentation()?;
         self.inner_writer.write_processing_instruction(node, pi)?;
-        self.dedent_newline()?;
+        self.newline()?;
         Ok(())
     }
 
@@ -251,11 +250,56 @@ mod tests {
     }
 
     #[test]
+    fn test_text_mixed_element() {
+        let mut xot = Xot::new();
+
+        let doc = xot
+            .parse(r#"<doc><p>Hello <em>world</em>!</p></doc>"#)
+            .unwrap();
+
+        let mut buf = Vec::new();
+        let mut writer = PrettyWriter::new(&xot, &mut buf);
+        xot.serialize_with_writer(doc, &mut writer).unwrap();
+        let s = String::from_utf8(buf).unwrap();
+        assert_snapshot!(s);
+    }
+
+    #[test]
+    fn test_text_mixed_element_nested() {
+        let mut xot = Xot::new();
+
+        let doc = xot
+            .parse(r#"<doc><p>Hello <em><strong>world</strong></em>!</p></doc>"#)
+            .unwrap();
+
+        let mut buf = Vec::new();
+        let mut writer = PrettyWriter::new(&xot, &mut buf);
+        xot.serialize_with_writer(doc, &mut writer).unwrap();
+        let s = String::from_utf8(buf).unwrap();
+        assert_snapshot!(s);
+    }
+
+    #[test]
     fn test_comment() {
         let mut xot = Xot::new();
 
         let doc = xot
             .parse(r#"<doc><a><!--hello--><!--world--></a></doc>"#)
+            .unwrap();
+
+        let mut buf = Vec::new();
+        let mut writer = PrettyWriter::new(&xot, &mut buf);
+        xot.serialize_with_writer(doc, &mut writer).unwrap();
+        let s = String::from_utf8(buf).unwrap();
+        assert_snapshot!(s);
+    }
+
+    #[test]
+    fn test_text_mixed_comment() {
+        let mut xot = Xot::new();
+
+        let doc = xot
+            .parse(r#"<doc><p>Hello <!--world-->!</p></doc>"#)
             .unwrap();
 
         let mut buf = Vec::new();
