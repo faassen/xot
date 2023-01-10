@@ -1,0 +1,9 @@
+---
+source: src/pretty.rs
+expression: s
+---
+<doc>
+  <a>text</a>
+  <a>text 2</a>
+</doc>
+

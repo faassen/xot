@@ -360,6 +360,11 @@ impl<'a, W: Write> XmlSerializerWriter<'a, W> {
             w,
         }
     }
+
+    pub(crate) fn write(&mut self, s: &str) -> Result<(), Error> {
+        self.w.write_all(s.as_bytes())?;
+        Ok(())
+    }
 }
 
 impl<'a, W: Write> SerializerWriter for XmlSerializerWriter<'a, W> {

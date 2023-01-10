@@ -1,0 +1,11 @@
+---
+source: src/pretty.rs
+expression: s
+---
+<doc>
+  <a>
+    <!--hello-->
+    <!--world-->
+  </a>
+</doc>
+
