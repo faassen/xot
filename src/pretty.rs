@@ -280,6 +280,21 @@ mod tests {
     }
 
     #[test]
+    fn test_multiple_mixed() {
+        let mut xot = Xot::new();
+
+        let doc = xot
+            .parse(r#"<doc><p>Hello <em>world</em>!</p><p>Greetings, <strong>universe</strong>!</p></doc>"#)
+            .unwrap();
+
+        let mut buf = Vec::new();
+        let mut writer = PrettyWriter::new(&xot, &mut buf);
+        xot.serialize_with_writer(doc, &mut writer).unwrap();
+        let s = String::from_utf8(buf).unwrap();
+        assert_snapshot!(s);
+    }
+
+    #[test]
     fn test_comment() {
         let mut xot = Xot::new();
 
