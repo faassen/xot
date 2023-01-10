@@ -9,13 +9,14 @@
 //!
 //! let mut xot = Xot::new();
 //!
-//! let root = xot.parse("<p>Example</p>").unwrap();
-//! let doc_el = xot.document_element(root).unwrap();
+//! let root = xot.parse("<p>Example</p>")?;
+//! let doc_el = xot.document_element(root)?;
 //! let txt = xot.first_child(doc_el).unwrap();
 //! let txt_value = xot.text_mut(txt).unwrap();
 //! txt_value.set("Hello, world!");
 //!
-//! assert_eq!(xot.serialize_to_string(root), "<p>Hello, world!</p>");
+//! assert_eq!(xot.to_string(root)?, "<p>Hello, world!</p>");
+//! # Ok::<(), xot::Error>(())
 //! ```
 //!
 //! ## Xot approach
@@ -69,6 +70,7 @@ pub use error::Error;
 pub use name::NameId;
 pub use namespace::NamespaceId;
 pub use prefix::PrefixId;
+pub use serialize::SerializeOptions;
 pub use serializer::{SerializerWriter, StringWriter};
 pub use xmlvalue::{
     Attributes, Comment, Element, ProcessingInstruction, Text, ToNamespace, Value, ValueType,

@@ -8,7 +8,7 @@ fn test_serialize_node() {
         .unwrap();
     let node = xot.first_child(xot.document_element(doc).unwrap()).unwrap();
     assert_eq!(
-        xot.serialize_node_to_string(node),
+        xot.to_string(node).unwrap(),
         r#"<foo:a xmlns:foo="http://example.com"/>"#
     );
 }
@@ -21,7 +21,7 @@ fn test_serialize_node_default_ns() {
         .unwrap();
     let node = xot.first_child(xot.document_element(doc).unwrap()).unwrap();
     assert_eq!(
-        xot.serialize_node_to_string(node),
+        xot.to_string(node).unwrap(),
         r#"<a xmlns="http://example.com"/>"#
     );
 }
@@ -34,7 +34,7 @@ fn test_serialize_node_default_ns_nested() {
         .unwrap();
     let node = xot.first_child(xot.document_element(doc).unwrap()).unwrap();
     assert_eq!(
-        xot.serialize_node_to_string(node),
+        xot.to_string(node).unwrap(),
         r#"<a xmlns="http://example.com"><b/></a>"#
     );
 }
@@ -56,8 +56,11 @@ fn test_prefix_ambiguous() {
     let element = xot.element_mut(a_id).unwrap();
     element.set_attribute(name_x_id, "X");
     element.set_attribute(name_y_id, "Y");
+
+    xot.create_missing_prefixes(doc).unwrap();
+
     assert_eq!(
-        xot.serialize_to_string(doc),
+        xot.to_string(doc).unwrap(),
         r#"<doc xmlns:x="http://example.com/x" xmlns:n0="http://example.com/x"><a xmlns:x="http://example.com/y" n0:b="X" x:b="Y"/></doc>"#
     );
 }
@@ -78,8 +81,9 @@ fn test_prefix_ambiguous_no_ns() {
     let name_q_id = xot.add_name_ns("q", ns_y_id);
     let element = xot.element_mut(a_id).unwrap();
     element.set_attribute(name_q_id, "Q");
+    xot.create_missing_prefixes(doc).unwrap();
     assert_eq!(
-        xot.serialize_to_string(doc),
+        xot.to_string(doc).unwrap(),
         r#"<a xmlns:n0="http://example.com/y"><a xmlns:x="http://example.com/y"><a xmlns:x="http://example.com/x" n0:q="Q"/></a></a>"#
     );
 }
@@ -102,8 +106,9 @@ fn test_prefix_ambiguous_default_ns() {
     let element = xot.element_mut(a_id).unwrap();
     element.set_attribute(name_r_id, "R");
     element.set_attribute(name_empty_id, "R2");
+    xot.create_missing_prefixes(doc).unwrap();
     assert_eq!(
-        xot.serialize_to_string(doc),
+        xot.to_string(doc).unwrap(),
         r#"<a xmlns="http://example.com/y" xmlns:n0="http://example.com/y"><a><a n0:r="R" r="R2"/></a></a>"#
     );
 }
@@ -123,8 +128,9 @@ fn test_prefix_ambiguous_default_ns2() {
     let name_r_id = xot.add_name_ns("r", ns_y_id);
     let element = xot.element_mut(a_id).unwrap();
     element.set_attribute(name_r_id, "R");
+    xot.create_missing_prefixes(doc).unwrap();
     assert_eq!(
-        xot.serialize_to_string(doc),
+        xot.to_string(doc).unwrap(),
         r#"<a xmlns:n0="http://example.com/y"><a><a xmlns="http://example.com/y" n0:r="R"/></a></a>"#
     );
 }

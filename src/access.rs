@@ -82,7 +82,7 @@ impl<'a> Xot<'a> {
     /// let p = xot.document_element(root).unwrap();
     /// let text = xot.first_child(p).unwrap();
     /// xot.remove(text);
-    /// assert_eq!(xot.serialize_to_string(root), "<p/>");
+    /// assert_eq!(xot.to_string(root).unwrap(), "<p/>");
     /// assert!(xot.is_removed(text));
     /// ```
     pub fn is_removed(&self, node: Node) -> bool {

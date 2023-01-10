@@ -26,7 +26,7 @@ fn test_add_attribute_entities() {
         element.set_attribute(a, "Created & set".to_string());
     }
     assert_eq!(
-        xot.serialize_to_string(doc),
+        xot.to_string(doc).unwrap(),
         r#"<doc a="Created &amp; set"/>"#
     );
 }

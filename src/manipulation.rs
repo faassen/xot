@@ -75,7 +75,7 @@ impl<'a> Xot<'a> {
     /// let p_el = xot.new_element(p_name);
     /// xot.append(doc_el, p_el)?;
     ///
-    /// assert_eq!(xot.serialize_to_string(root), r#"<doc><p>Example</p><p/></doc>"#);
+    /// assert_eq!(xot.to_string(root)?, r#"<doc><p>Example</p><p/></doc>"#);
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn append(&mut self, parent: Node, child: Node) -> Result<(), Error> {
@@ -100,7 +100,7 @@ impl<'a> Xot<'a> {
     ///
     /// xot.append_text(doc_el, "Hello")?;
     ///
-    /// assert_eq!(xot.serialize_to_string(root), r#"<doc><p>Example</p>Hello</doc>"#);
+    /// assert_eq!(xot.to_string(root)?, r#"<doc><p>Example</p>Hello</doc>"#);
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn append_text(&mut self, parent: Node, text: &str) -> Result<(), Error> {
@@ -126,7 +126,7 @@ impl<'a> Xot<'a> {
     /// let name_id = xot.add_name("foo");
     /// xot.append_element(doc_el, name_id)?;
     ///
-    /// assert_eq!(xot.serialize_to_string(root), "<doc><foo/></doc>");
+    /// assert_eq!(xot.to_string(root)?, "<doc><foo/></doc>");
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn append_element(&mut self, parent: Node, name_id: NameId) -> Result<(), Error> {
@@ -185,7 +185,7 @@ impl<'a> Xot<'a> {
     ///
     /// xot.insert_after(a_el, b_el)?;
     ///
-    /// assert_eq!(xot.serialize_to_string(root), r#"<doc><a/><b/><c/></doc>"#);
+    /// assert_eq!(xot.to_string(root)?, r#"<doc><a/><b/><c/></doc>"#);
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn insert_after(&mut self, reference_node: Node, new_sibling: Node) -> Result<(), Error> {
@@ -241,8 +241,8 @@ impl<'a> Xot<'a> {
     ///
     /// xot.detach(a_el)?;
     ///
-    /// assert_eq!(xot.serialize_to_string(root), r#"<doc/>"#);
-    /// assert_eq!(xot.serialize_node_to_string(a_el), r#"<a><b><c/></b></a>"#);
+    /// assert_eq!(xot.to_string(root)?, r#"<doc/>"#);
+    /// assert_eq!(xot.to_string(a_el)?, r#"<a><b><c/></b></a>"#);
     ///
     /// // a_al still exist; it's not removed like with [`Xot::remove`].
     /// assert!(!xot.is_removed(a_el));
@@ -274,7 +274,7 @@ impl<'a> Xot<'a> {
     ///
     /// xot.remove(a_el)?;
     ///
-    /// assert_eq!(xot.serialize_to_string(root), r#"<doc/>"#);
+    /// assert_eq!(xot.to_string(root)?, r#"<doc/>"#);
     ///
     /// // a_al is removed; it's not detached like with [`Xot::detach`].
     /// assert!(xot.is_removed(a_el));
@@ -313,13 +313,13 @@ impl<'a> Xot<'a> {
     ///
     /// let cloned = xot.clone(a_el);
     ///
-    /// assert_eq!(xot.serialize_to_string(root), r#"<doc><a><b><c/></b></a></doc>"#);
+    /// assert_eq!(xot.to_string(root)?, r#"<doc><a><b><c/></b></a></doc>"#);
     ///
     /// // cloned is not attached to anything
     /// assert!(xot.parent(cloned).is_none());
     ///
     /// // cloned is a new fragment
-    /// assert_eq!(xot.serialize_node_to_string(cloned), r#"<a><b><c/></b></a>"#);
+    /// assert_eq!(xot.to_string(cloned)?, r#"<a><b><c/></b></a>"#);
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
@@ -381,12 +381,13 @@ impl<'a> Xot<'a> {
     /// let a_el = xot.first_child(doc_el).unwrap();
     ///
     /// let cloned = xot.clone_with_prefixes(a_el);
-    /// assert_eq!(xot.serialize_node_to_string(cloned), r#"<foo:a xmlns:foo="http://example.com"><foo:b><foo:c/></foo:b></foo:a>"#);
+    /// assert_eq!(xot.to_string(cloned)?, r#"<foo:a xmlns:foo="http://example.com"><foo:b><foo:c/></foo:b></foo:a>"#);
     ///
-    /// // if you do a normal clone, prefixes aren't preserved and are generated instead
+    /// // if you do a normal clone, prefixes aren't preserved and need to be generated instead
     ///
     /// let cloned = xot.clone(a_el);
-    /// assert_eq!(xot.serialize_node_to_string(cloned), r#"<n0:a xmlns:n0="http://example.com"><n0:b><n0:c/></n0:b></n0:a>"#);
+    /// xot.create_missing_prefixes(cloned)?;
+    /// assert_eq!(xot.to_string(cloned)?, r#"<n0:a xmlns:n0="http://example.com"><n0:b><n0:c/></n0:b></n0:a>"#);
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
@@ -428,7 +429,7 @@ impl<'a> Xot<'a> {
     ///
     /// xot.element_unwrap(a_el)?;
     ///
-    /// assert_eq!(xot.serialize_to_string(root), r#"<doc><b><c/></b></doc>"#);
+    /// assert_eq!(xot.to_string(root)?, r#"<doc><b><c/></b></doc>"#);
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
@@ -508,8 +509,8 @@ impl<'a> Xot<'a> {
     /// let a_name = xot.add_name("a");
     /// let wrapper = xot.element_wrap(b_el, a_name)?;
     ///
-    /// assert_eq!(xot.serialize_to_string(root), r#"<doc><a><b><c/></b></a></doc>"#);
-    /// assert_eq!(xot.serialize_node_to_string(wrapper), r#"<a><b><c/></b></a>"#);
+    /// assert_eq!(xot.to_string(root)?, r#"<doc><a><b><c/></b></a></doc>"#);
+    /// assert_eq!(xot.to_string(wrapper)?, r#"<a><b><c/></b></a>"#);
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn element_wrap(&mut self, node: Node, name_id: NameId) -> Result<Node, Error> {
@@ -571,7 +572,7 @@ impl<'a> Xot<'a> {
     ///
     /// xot.replace(a_el, d_el)?;
     ///
-    /// assert_eq!(xot.serialize_to_string(root), r#"<doc><d/><c/></doc>"#);
+    /// assert_eq!(xot.to_string(root)?, r#"<doc><d/><c/></doc>"#);
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn replace(&mut self, replaced_node: Node, replacing_node: Node) -> Result<(), Error> {

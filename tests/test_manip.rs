@@ -8,7 +8,7 @@ fn test_manipulate_text() {
     if let Value::Text(node) = xot.value_mut(text_id) {
         node.set("Changed");
     }
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc>Changed</doc>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc>Changed</doc>"#);
 }
 
 #[test]
@@ -21,7 +21,7 @@ fn test_manipulate_attribute() {
     if let Value::Element(element) = xot.value_mut(el_id) {
         element.set_attribute(a, "Changed".to_string());
     }
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc a="Changed"/>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc a="Changed"/>"#);
 }
 
 #[test]
@@ -35,7 +35,7 @@ fn test_add_attribute() {
     if let Value::Element(element) = xot.value_mut(el_id) {
         element.set_attribute(a, "Created".to_string());
     }
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc a="Created"/>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc a="Created"/>"#);
 }
 
 #[test]
@@ -52,7 +52,7 @@ fn test_manipulate_attribute_ns() {
         element.set_attribute(a, "Changed".to_string());
     }
     assert_eq!(
-        xot.serialize_to_string(doc),
+        xot.to_string(doc).unwrap(),
         r#"<doc xmlns:ns="http://example.com" ns:a="Changed"/>"#
     );
 }
@@ -72,7 +72,7 @@ fn test_add_attribute_ns() {
         element.set_attribute(a, "Created".to_string());
     }
     assert_eq!(
-        xot.serialize_to_string(doc),
+        xot.to_string(doc).unwrap(),
         r#"<doc xmlns:foo="http://example.com" foo:a="Created"/>"#
     );
 }
@@ -84,7 +84,7 @@ fn test_append_element() {
     let el_id = xot.document_element(doc).unwrap();
     let name = xot.add_name("a");
     xot.append_element(el_id, name).unwrap();
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc><a/></doc>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc><a/></doc>"#);
 }
 
 #[test]
@@ -95,7 +95,7 @@ fn test_prepend_element() {
     let name = xot.add_name("a");
     let new_el_id = xot.new_element(name);
     xot.prepend(el_id, new_el_id).unwrap();
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc><a/><b/></doc>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc><a/><b/></doc>"#);
 }
 
 #[test]
@@ -107,7 +107,7 @@ fn test_insert_before_element() {
     let name = xot.add_name("a");
     let new_el_id = xot.new_element(name);
     xot.insert_before(before_id, new_el_id).unwrap();
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc><a/><b/></doc>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc><a/><b/></doc>"#);
 }
 
 #[test]
@@ -119,7 +119,7 @@ fn test_insert_after_element() {
     let name = xot.add_name("a");
     let new_el_id = xot.new_element(name);
     xot.insert_after(before_id, new_el_id).unwrap();
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc><b/><a/></doc>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc><b/><a/></doc>"#);
 }
 
 #[test]
@@ -128,7 +128,7 @@ fn test_append_text() {
     let doc = xot.parse(r#"<doc/>"#).unwrap();
     let el_id = xot.document_element(doc).unwrap();
     xot.append_text(el_id, "Changed").unwrap();
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc>Changed</doc>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc>Changed</doc>"#);
 }
 
 #[test]
@@ -151,7 +151,7 @@ fn test_append_text_after_text_consolidates_nodes() {
         Value::Text(node) => assert_eq!(node.get(), "AlphaBeta"),
         _ => panic!("Expected text node"),
     }
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc>AlphaBeta</doc>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc>AlphaBeta</doc>"#);
 }
 
 #[test]
@@ -167,7 +167,7 @@ fn test_append_text_after_text_consolidates_nodes_direct_append() {
         Value::Text(node) => assert_eq!(node.get(), "AlphaBeta"),
         _ => panic!("Expected text node"),
     }
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc>AlphaBeta</doc>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc>AlphaBeta</doc>"#);
 }
 
 #[test]
@@ -178,7 +178,7 @@ fn test_insert_before_consolidate_text() {
     let txt = xot.new_text("Beta");
     xot.insert_before(el_id, txt).unwrap();
     assert_eq!(xot.text(el_id).map(|n| n.get()), Some("BetaAlpha"));
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc>BetaAlpha</doc>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc>BetaAlpha</doc>"#);
 }
 
 #[test]
@@ -189,7 +189,7 @@ fn test_insert_after_consolidate_text() {
     let txt = xot.new_text("Beta");
     xot.insert_after(el_id, txt).unwrap();
     assert_eq!(xot.text(el_id).map(|n| n.get()), Some("AlphaBeta"));
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc>AlphaBeta</doc>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc>AlphaBeta</doc>"#);
 }
 
 #[test]
@@ -201,7 +201,7 @@ fn test_prepend_consolidate_text() {
     xot.prepend(el_id, txt).unwrap();
     let text_el_id = xot.first_child(el_id).unwrap();
     assert_eq!(xot.text(text_el_id).map(|n| n.get()), Some("BetaAlpha"));
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc>BetaAlpha</doc>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc>BetaAlpha</doc>"#);
 }
 
 #[test]
@@ -227,7 +227,7 @@ fn test_root_node_append_comment() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<doc/>"#).unwrap();
     xot.append_comment(doc, "hello").unwrap();
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc/><!--hello-->"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc/><!--hello-->"#);
 }
 
 #[test]
@@ -246,7 +246,7 @@ fn test_remove_text_consolidation() {
     // we should have a single text node
     let text_el_id = xot.first_child(xot.document_element(doc).unwrap()).unwrap();
     assert_eq!(xot.text_str(text_el_id), Some("AlphaBeta"));
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc>AlphaBeta</doc>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc>AlphaBeta</doc>"#);
 }
 
 #[test]
@@ -277,8 +277,8 @@ fn test_move_text_consolidation() {
         .first_child(xot.document_element(doc_b).unwrap())
         .unwrap();
     assert_eq!(xot.text_str(text_el_id), Some("AlphaBeta"));
-    assert_eq!(xot.serialize_to_string(doc_a), r#"<doc><a/></doc>"#);
-    assert_eq!(xot.serialize_to_string(doc_b), r#"<doc>AlphaBeta</doc>"#);
+    assert_eq!(xot.to_string(doc_a).unwrap(), r#"<doc><a/></doc>"#);
+    assert_eq!(xot.to_string(doc_b).unwrap(), r#"<doc>AlphaBeta</doc>"#);
 }
 
 #[test]
@@ -304,7 +304,7 @@ fn test_create_missing_prefixes() {
     xot.append_element(root_id, name_id).unwrap();
     xot.create_missing_prefixes(root_id).unwrap();
     assert_eq!(
-        xot.serialize_to_string(doc),
+        xot.to_string(doc).unwrap(),
         r#"<doc xmlns:n0="http://example.com"><n0:a/></doc>"#
     );
 }
@@ -321,11 +321,11 @@ fn test_clone() {
         .unwrap()
         .set("Goodbye!");
     assert_eq!(
-        xot.serialize_to_string(root),
+        xot.to_string(root).unwrap(),
         r#"<doc><a>Goodbye!</a></doc>"#
     );
     assert!(!xot.is_removed(a_id_clone));
-    assert_eq!(xot.serialize_node_to_string(a_id_clone), r#"<a>Hello!</a>"#);
+    assert_eq!(xot.to_string(a_id_clone).unwrap(), r#"<a>Hello!</a>"#);
 }
 
 #[test]
@@ -334,7 +334,7 @@ fn test_clone_root() {
     let root = xot.parse(r#"<doc><a>Hello!</a></doc>"#).unwrap();
     let root_clone = xot.clone(root);
     assert_eq!(
-        xot.serialize_node_to_string(root_clone),
+        xot.to_string(root_clone).unwrap(),
         r#"<doc><a>Hello!</a></doc>"#
     );
 }
@@ -353,12 +353,13 @@ fn test_clone_with_namespaces() {
         .unwrap()
         .set("Goodbye!");
     assert_eq!(
-        xot.serialize_to_string(root),
+        xot.to_string(root).unwrap(),
         r#"<doc xmlns="http://example.com"><a>Goodbye!</a></doc>"#
     );
     assert!(!xot.is_removed(a_id_clone));
+    xot.create_missing_prefixes(a_id_clone).unwrap();
     assert_eq!(
-        xot.serialize_node_to_string(a_id_clone),
+        xot.to_string(a_id_clone).unwrap(),
         r#"<n0:a xmlns:n0="http://example.com">Hello!</n0:a>"#
     );
 }
@@ -377,12 +378,12 @@ fn test_clone_with_prefixes() {
         .unwrap()
         .set("Goodbye!");
     assert_eq!(
-        xot.serialize_to_string(root),
+        xot.to_string(root).unwrap(),
         r#"<doc xmlns="http://example.com"><a>Goodbye!</a></doc>"#
     );
     assert!(!xot.is_removed(a_id_clone));
     assert_eq!(
-        xot.serialize_node_to_string(a_id_clone),
+        xot.to_string(a_id_clone).unwrap(),
         r#"<a xmlns="http://example.com">Hello!</a>"#
     );
 }
@@ -404,7 +405,7 @@ fn test_element_unwrap() {
     xot.element_unwrap(el_id).unwrap();
 
     assert_eq!(
-        xot.serialize_to_string(doc),
+        xot.to_string(doc).unwrap(),
         r#"<doc><first/><one/><two/><second/></doc>"#
     );
 }
@@ -425,7 +426,7 @@ fn test_element_unwrap_consolidation_single_element() {
     // we should have a single text node
     let text_el_id = xot.first_child(xot.document_element(doc).unwrap()).unwrap();
     assert_eq!(xot.text_str(text_el_id), Some("AlphaBeta"));
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc>AlphaBeta</doc>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc>AlphaBeta</doc>"#);
 }
 
 #[test]
@@ -444,7 +445,7 @@ fn test_element_unwrap_consolidation_text_in_element() {
     // we should have a single text node
     let text_el_id = xot.first_child(xot.document_element(doc).unwrap()).unwrap();
     assert_eq!(xot.text_str(text_el_id), Some("Alpha!Beta"));
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc>Alpha!Beta</doc>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc>Alpha!Beta</doc>"#);
 }
 
 #[test]
@@ -462,7 +463,7 @@ fn test_element_unwrap_consolidation_text_in_element_at_beginning() {
     xot.element_unwrap(el_id).unwrap();
     let text_el_id = xot.first_child(xot.document_element(doc).unwrap()).unwrap();
     assert_eq!(xot.text_str(text_el_id), Some("Alpha!"));
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc>Alpha!<b/>Beta</doc>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc>Alpha!<b/>Beta</doc>"#);
 }
 
 #[test]
@@ -481,7 +482,7 @@ fn test_element_unwrap_consolidation_text_in_element_at_end() {
 
     let text_el_id = xot.last_child(xot.document_element(doc).unwrap()).unwrap();
     assert_eq!(xot.text_str(text_el_id), Some("!Beta"));
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc>Alpha<b/>!Beta</doc>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc>Alpha<b/>!Beta</doc>"#);
 }
 
 #[test]
@@ -502,10 +503,7 @@ fn test_element_unwrap_consolidation_text_in_element_both_ends() {
     assert_eq!(xot.text_str(text_el_id), Some("Alpha?"));
     let text_el_id = xot.last_child(xot.document_element(doc).unwrap()).unwrap();
     assert_eq!(xot.text_str(text_el_id), Some("!Beta"));
-    assert_eq!(
-        xot.serialize_to_string(doc),
-        r#"<doc>Alpha?<b/>!Beta</doc>"#
-    );
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc>Alpha?<b/>!Beta</doc>"#);
 }
 
 #[test]
@@ -516,7 +514,7 @@ fn test_element_unwrap_document_element() {
 
     xot.element_unwrap(document_element).unwrap();
 
-    assert_eq!(xot.serialize_to_string(doc), r#"<p>Hello</p>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<p>Hello</p>"#);
 }
 
 #[test]
@@ -545,7 +543,7 @@ fn test_element_wrap() {
     let txt_el = xot.first_child(doc_el).unwrap();
     let name_p = xot.add_name("p");
     xot.element_wrap(txt_el, name_p).unwrap();
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc><p>Alpha</p></doc>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc><p>Alpha</p></doc>"#);
 }
 
 #[test]
@@ -557,7 +555,7 @@ fn test_element_wrap_middle() {
     let name_p = xot.add_name("p");
     xot.element_wrap(txt_el, name_p).unwrap();
     assert_eq!(
-        xot.serialize_to_string(doc),
+        xot.to_string(doc).unwrap(),
         r#"<doc><first/><p>Alpha</p><second/></doc>"#
     );
 }
@@ -569,7 +567,7 @@ fn test_element_wrap_document_element() {
     let doc_el = xot.document_element(doc).unwrap();
     let name_p = xot.add_name("p");
     xot.element_wrap(doc_el, name_p).unwrap();
-    assert_eq!(xot.serialize_to_string(doc), r#"<p><doc>Alpha</doc></p>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<p><doc>Alpha</doc></p>"#);
 }
 
 #[test]
@@ -588,10 +586,7 @@ fn test_element_wrap_standalone_element() {
     let element = xot.new_element(element_name);
     let name_p = xot.add_name("p");
     let wrapper = xot.element_wrap(element, name_p).unwrap();
-    assert_eq!(
-        xot.serialize_node_to_string(wrapper),
-        r#"<p><element/></p>"#
-    );
+    assert_eq!(xot.to_string(wrapper).unwrap(), r#"<p><element/></p>"#);
 }
 
 #[test]
@@ -602,7 +597,7 @@ fn test_deduplicate_namespace() {
         .unwrap();
     xot.deduplicate_namespaces(root);
     assert_eq!(
-        xot.serialize_to_string(root),
+        xot.to_string(root).unwrap(),
         r#"<doc xmlns="http://example.com"><a>Hello!</a></doc>"#
     );
 }
@@ -615,7 +610,7 @@ fn test_deduplicate_named_namespace() {
         .unwrap();
     xot.deduplicate_namespaces(root);
     assert_eq!(
-        xot.serialize_to_string(root),
+        xot.to_string(root).unwrap(),
         r#"<doc xmlns="http://example.com"><a>Hello!</a></doc>"#
     );
 }
@@ -635,7 +630,7 @@ fn test_deduplicate_named_namespace_again() {
         .unwrap();
     xot.deduplicate_namespaces(root);
     assert_eq!(
-        xot.serialize_to_string(root),
+        xot.to_string(root).unwrap(),
         r#"<section xmlns="http://docbook.org/ns/docbook" xmlns:diff="http://paligo.net/nxd" version="5.0">
   <title>Title</title>
   <para diff:delete="">Para first old </para><para diff:insert="">Before emphasis <emphasis>emphasis</emphasis> After emphasis</para>
@@ -659,7 +654,7 @@ fn test_replace_node() {
 
     xot.replace(replaced, replacing).unwrap();
 
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc><p/></doc>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc><p/></doc>"#);
 }
 
 #[test]
@@ -673,7 +668,7 @@ fn test_replace_document_element() {
 
     xot.replace(doc_el, replacing).unwrap();
 
-    assert_eq!(xot.serialize_to_string(doc), r#"<p/>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<p/>"#);
 }
 
 #[test]
@@ -698,8 +693,8 @@ fn test_detach() {
 
     xot.detach(detached).unwrap();
 
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc/>"#);
-    assert_eq!(xot.serialize_node_to_string(detached), r#"<a><b/></a>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc/>"#);
+    assert_eq!(xot.to_string(detached).unwrap(), r#"<a><b/></a>"#);
 }
 
 #[test]
@@ -716,7 +711,7 @@ fn test_replace_node_reconciliate_text_before() {
     let found = xot.first_child(doc_el).unwrap();
     assert_eq!(xot.text_str(found), Some("AlphaX"));
 
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc>AlphaX</doc>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc>AlphaX</doc>"#);
 }
 
 #[test]
@@ -733,7 +728,7 @@ fn test_replace_node_reconciliate_text_after() {
     let found = xot.first_child(doc_el).unwrap();
     assert_eq!(xot.text_str(found), Some("XAlpha"));
 
-    assert_eq!(xot.serialize_to_string(doc), r#"<doc>XAlpha</doc>"#);
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc>XAlpha</doc>"#);
 }
 
 #[test]
@@ -752,8 +747,8 @@ fn test_replace_node_reconciliates_where_detached() {
     let found = xot.first_child(doc_b_el).unwrap();
     assert_eq!(xot.text_str(found), Some("ab"));
 
-    assert_eq!(xot.serialize_to_string(doc_a), r#"<doc><y/></doc>"#);
-    assert_eq!(xot.serialize_to_string(doc_b), r#"<doc>ab</doc>"#);
+    assert_eq!(xot.to_string(doc_a).unwrap(), r#"<doc><y/></doc>"#);
+    assert_eq!(xot.to_string(doc_b).unwrap(), r#"<doc>ab</doc>"#);
 }
 
 #[test]
@@ -764,6 +759,6 @@ fn test_new_root() -> Result<(), Error> {
 
     let root = xot.new_root(doc_el)?;
 
-    assert_eq!(xot.serialize_to_string(root), r#"<doc/>"#);
+    assert_eq!(xot.to_string(root).unwrap(), r#"<doc/>"#);
     Ok(())
 }

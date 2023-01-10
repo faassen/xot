@@ -148,6 +148,6 @@ mod tests {
             after: vec![],
         };
         let root = root.xotify(&mut xot);
-        assert_eq!(xot.serialize_to_string(root), "<foo>Example</foo>");
+        assert_eq!(xot.to_string(root).unwrap(), "<foo>Example</foo>");
     }
 }

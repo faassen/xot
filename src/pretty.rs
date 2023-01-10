@@ -8,31 +8,20 @@ use crate::serializer::{SerializerWriter, XmlSerializerWriter};
 use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text, ToNamespace, ValueType};
 use crate::xotdata::{Node, Xot};
 
-// pretty printing
-
-// approach: modify tree to insert whitespace
-// alternative approach: modify serializer to insert whitespace
-
-// modify serializer rule:
-// when we insert a tag open, we put in the indentation level,
-// unless this tag is part of a mixed content node
-// when we insert a tag close, we reduce the indentation level
-// each tag is inserted. If we insert any other node, we don't mess with indentation.
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum StackEntry {
     Unmixed,
     Mixed,
 }
 
-struct PrettyWriter<'a, W: Write> {
+pub(crate) struct PrettyWriter<'a, W: Write> {
     xot: &'a Xot<'a>,
     inner_writer: XmlSerializerWriter<'a, W>,
     stack: Vec<StackEntry>,
 }
 
 impl<'a, W: Write> PrettyWriter<'a, W> {
-    fn new(xot: &'a Xot<'a>, w: W) -> PrettyWriter<'a, W> {
+    pub(crate) fn new(xot: &'a Xot<'a>, w: W) -> PrettyWriter<'a, W> {
         let inner_writer = XmlSerializerWriter::new(xot, w);
         PrettyWriter {
             xot,

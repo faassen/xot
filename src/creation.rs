@@ -29,7 +29,7 @@ impl<'a> Xot<'a> {
     /// /// now create the root
     /// let root = xot.new_root(doc_el)?;
     ///
-    /// assert_eq!(xot.serialize_to_string(root), "<doc>Hello, world!</doc>");
+    /// assert_eq!(xot.to_string(root)?, "<doc>Hello, world!</doc>");
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn new_root(&mut self, node: Node) -> Result<Node, Error> {
@@ -64,7 +64,7 @@ impl<'a> Xot<'a> {
     /// let doc_el = xot.new_element(doc_name);
     ///
     /// let root = xot.new_root(doc_el)?;
-    /// assert_eq!(xot.serialize_to_string(root), "<doc/>");
+    /// assert_eq!(xot.to_string(root)?, "<doc/>");
     /// # Ok::<(), xot::Error>(())
     /// ```
     ///
@@ -87,7 +87,7 @@ impl<'a> Xot<'a> {
     ///
     /// let root = xot.new_root(doc_el)?;
     ///
-    /// assert_eq!(xot.serialize_to_string(root), r#"<ex:doc xmlns:ex="http://example.com"/>"#);
+    /// assert_eq!(xot.to_string(root)?, r#"<ex:doc xmlns:ex="http://example.com"/>"#);
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn new_element(&mut self, name: NameId) -> Node {
@@ -102,10 +102,10 @@ impl<'a> Xot<'a> {
     ///
     /// let mut xot = Xot::new();
     /// let root = xot.parse(r#"<doc/>"#)?;
-    /// let doc_el = xot.document_element(root).unwrap();
+    /// let doc_el = xot.document_element(root)?;
     /// let txt = xot.new_text("Hello, world!");
     /// xot.append(doc_el, txt)?;
-    /// assert_eq!(xot.serialize_to_string(root), "<doc>Hello, world!</doc>");
+    /// assert_eq!(xot.to_string(root)?, "<doc>Hello, world!</doc>");
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn new_text(&mut self, text: &str) -> Node {
@@ -120,10 +120,10 @@ impl<'a> Xot<'a> {
     ///
     /// let mut xot = Xot::new();
     /// let root = xot.parse(r#"<doc/>"#)?;
-    /// let doc_el = xot.document_element(root).unwrap();
+    /// let doc_el = xot.document_element(root)?;
     /// let comment = xot.new_comment("Hello, world!");
     /// xot.append(doc_el, comment)?;
-    /// assert_eq!(xot.serialize_to_string(root), "<doc><!--Hello, world!--></doc>");
+    /// assert_eq!(xot.to_string(root)?, "<doc><!--Hello, world!--></doc>");
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn new_comment(&mut self, comment: &str) -> Node {
@@ -138,10 +138,10 @@ impl<'a> Xot<'a> {
     ///
     /// let mut xot = Xot::new();
     /// let root = xot.parse(r#"<doc/>"#)?;
-    /// let doc_el = xot.document_element(root).unwrap();
+    /// let doc_el = xot.document_element(root)?;
     /// let pi = xot.new_processing_instruction("target", Some("data"));
     /// xot.append(doc_el, pi)?;
-    /// assert_eq!(xot.serialize_to_string(root), r#"<doc><?target data?></doc>"#);
+    /// assert_eq!(xot.to_string(root)?, r#"<doc><?target data?></doc>"#);
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn new_processing_instruction(&mut self, target: &str, data: Option<&str>) -> Node {

@@ -206,7 +206,8 @@ mod tests {
         fn test_arb_xml_can_serialize_parse(fixed_root in arb_xml_root()) {
             let mut xot = Xot::new();
             let node = fixed_root.xotify(&mut xot);
-            let serialized = xot.serialize_to_string(node);
+            xot.create_missing_prefixes(node).unwrap();
+            let serialized = xot.to_string(node).unwrap();
             let parsed = xot.parse(&serialized);
             prop_assert!(parsed.is_ok(), "Cannot parse: {} {} {:?}", serialized, parsed.err().unwrap(), serialized);
         }
@@ -217,7 +218,8 @@ mod tests {
         fn test_arb_xml_can_serialize_parse2(fixed_root in arb_xml_root_with_config(Config::default())) {
             let mut xot = Xot::new();
             let node = fixed_root.xotify(&mut xot);
-            let serialized = xot.serialize_to_string(node);
+            xot.create_missing_prefixes(node).unwrap();
+            let serialized = xot.to_string(node).unwrap();
             let parsed = xot.parse(&serialized);
             prop_assert!(parsed.is_ok(), "Cannot parse: {} {} {:?}", serialized, parsed.err().unwrap(), serialized);
         }

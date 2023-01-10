@@ -72,6 +72,6 @@ fn roundtrip(#[values(
     let (name, xml) = value;
     let mut xot = Xot::new();
     let doc = xot.parse(xml).unwrap();
-    let output_xml = xot.serialize_to_string(doc);
+    let output_xml = xot.to_string(doc).unwrap();
     assert_eq!(xml, &output_xml, "roundtrip failed for: {}", name);
 }

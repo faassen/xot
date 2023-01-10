@@ -71,7 +71,7 @@ impl<'a> Xot<'a> {
     /// // add an element, using the name
     /// let node = xot.append_element(doc_el, name)?;
     ///
-    /// assert_eq!(xot.serialize_to_string(root), "<doc><a/></doc>");
+    /// assert_eq!(xot.to_string(root)?, "<doc><a/></doc>");
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
@@ -258,15 +258,14 @@ impl<'a> Xot<'a> {
     /// This function creates the missing prefixes on the given node. The
     /// prefixes are named "n0", "n1", "n2", etc.
     ///
-    /// You probably do not need to call this manually: [`Xot::serialize`],
-    /// [`Xot::serialize_to_string`] and [`Xot::serialize_node_to_string`] all
-    /// call this function before serializing.
-    ///
-    /// You can also serialize without calling this by using
-    /// [`Xot::serialize_or_missing_prefix`],
-    /// [`Xot::serialize_or_missing_prefix_to_string`] which error if any
-    /// prefix is not defined instead.
+    /// You can use this function just before serializing the tree to XML
+    /// using [`Xot::write`] or [`Xot::to_string`].
     pub fn create_missing_prefixes(&mut self, node: Node) -> Result<(), Error> {
+        let node = if self.is_root(node) {
+            self.document_element(node).unwrap()
+        } else {
+            node
+        };
         if !self.is_element(node) {
             return Err(Error::NotElement(node));
         }
@@ -326,7 +325,7 @@ impl<'a> Xot<'a> {
     /// let root = xot.parse(r#"<doc xmlns="http://example.com"><a xmlns="http://example.com"/></doc>"#)?;
     /// xot.deduplicate_namespaces(root);
     ///
-    /// assert_eq!(xot.serialize_to_string(root), r#"<doc xmlns="http://example.com"><a/></doc>"#);
+    /// assert_eq!(xot.to_string(root)?, r#"<doc xmlns="http://example.com"><a/></doc>"#);
     /// # Ok::<(), xot::Error>(())
     /// ```
     ///
@@ -340,7 +339,7 @@ impl<'a> Xot<'a> {
     ///
     /// xot.deduplicate_namespaces(root);
     ///
-    /// assert_eq!(xot.serialize_to_string(root), r#"<ns:doc xmlns:ns="http://example.com"><ns:a/></ns:doc>"#);
+    /// assert_eq!(xot.to_string(root)?, r#"<ns:doc xmlns:ns="http://example.com"><ns:a/></ns:doc>"#);
     /// # Ok::<(), xot::Error>(())
     /// ```
     ///
@@ -354,7 +353,7 @@ impl<'a> Xot<'a> {
     ///
     /// xot.deduplicate_namespaces(root);
     ///
-    /// assert_eq!(xot.serialize_to_string(root), r#"<ns:doc xmlns:ns="http://example.com"><ns:a/></ns:doc>"#);
+    /// assert_eq!(xot.to_string(root)?, r#"<ns:doc xmlns:ns="http://example.com"><ns:a/></ns:doc>"#);
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn deduplicate_namespaces(&mut self, node: Node) {

@@ -297,7 +297,7 @@ impl Text {
     /// let text = xot.text_mut(text_node).unwrap();
     /// text.set("New text");
     ///
-    /// assert_eq!(xot.serialize_to_string(root), r#"<doc>New text</doc>"#);
+    /// assert_eq!(xot.to_string(root).unwrap(), r#"<doc>New text</doc>"#);
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn set<S: Into<String>>(&mut self, text: S) {

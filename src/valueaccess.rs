@@ -240,7 +240,7 @@ impl<'a> Xot<'a> {
     ///
     /// let mut xot = Xot::new();
     /// let root = xot.parse("<doc>Example</doc>")?;
-    /// let doc_el = xot.document_element(root).unwrap();
+    /// let doc_el = xot.document_element(root)?;
     /// let text_node = xot.first_child(doc_el).unwrap();
     ///
     /// let text = xot.text_mut(text_node).unwrap();
@@ -248,7 +248,7 @@ impl<'a> Xot<'a> {
     /// text.set("New text");
     ///
     /// assert_eq!(xot.text_str(text_node).unwrap(), "New text");
-    /// assert_eq!(xot.serialize_to_string(root), "<doc>New text</doc>");
+    /// assert_eq!(xot.to_string(root)?, "<doc>New text</doc>");
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn text_mut(&mut self, node: Node) -> Option<&mut Text> {
@@ -303,7 +303,7 @@ impl<'a> Xot<'a> {
     ///
     /// let mut xot = Xot::new();
     /// let root = xot.parse(r#"<doc><child a="A"/></doc>"#)?;
-    /// let doc_el = xot.document_element(root).unwrap();
+    /// let doc_el = xot.document_element(root)?;
     /// let child_el = xot.first_child(doc_el).unwrap();
     ///
     /// let prefix = xot.add_prefix("ns");
@@ -314,13 +314,13 @@ impl<'a> Xot<'a> {
     ///
     /// element.set_attribute(b_name, "B");
     ///
-    /// assert_eq!(xot.serialize_to_string(root), r#"<doc><child a="A" b="B"/></doc>"#);
+    /// assert_eq!(xot.to_string(root)?, r#"<doc><child a="A" b="B"/></doc>"#);
     ///
     /// let element = xot.element_mut(child_el).unwrap();
     ///
     /// element.set_prefix(prefix, ns);
     ///
-    /// assert_eq!(xot.serialize_to_string(root), r#"<doc><child xmlns:ns="http://example.com" a="A" b="B"/></doc>"#);
+    /// assert_eq!(xot.to_string(root)?, r#"<doc><child xmlns:ns="http://example.com" a="A" b="B"/></doc>"#);
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn element_mut(&mut self, node: Node) -> Option<&mut Element> {
@@ -387,13 +387,13 @@ impl<'a> Xot<'a> {
     /// let text = xot.text_content_mut(a_el).unwrap();
     /// text.set("New value");
     ///
-    /// assert_eq!(xot.serialize_to_string(root), "<doc><a>New value</a><b/></doc>");
+    /// assert_eq!(xot.to_string(root)?, "<doc><a>New value</a><b/></doc>");
     ///
     ///
     /// let text = xot.text_content_mut(b_el).unwrap();
     /// text.set("New value 2");
     ///
-    /// assert_eq!(xot.serialize_to_string(root), "<doc><a>New value</a><b>New value 2</b></doc>");
+    /// assert_eq!(xot.to_string(root)?, "<doc><a>New value</a><b>New value 2</b></doc>");
     ///  
     ///
     /// # Ok::<(), xot::Error>(())
