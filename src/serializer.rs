@@ -90,11 +90,14 @@ impl<'a, W: SerializerWriter> Serializer<'a, W> {
                         *namespace_id,
                     )?;
                 }
+                self.writer
+                    .write_additional_namespace_declarations(node, element)?;
 
                 for (name_id, value) in element.attributes() {
                     self.writer
                         .write_attribute(node, element, *name_id, value)?;
                 }
+                self.writer.write_additional_attributes(node, element)?;
 
                 self.writer.write_start_tag_close(node, element)?;
             }
@@ -163,6 +166,21 @@ pub trait SerializerWriter {
         prefix_id: PrefixId,
         namespace_id: NamespaceId,
     ) -> Result<(), Error>;
+    /// Write any additional namespace declarations.
+    ///
+    /// This can be implemented by a serializer that needs to write additional
+    /// namespace declarations after the existing namespace declarations have
+    /// been written.
+    ///
+    /// The default implementation writes nothing.
+    fn write_additional_namespace_declarations(
+        &mut self,
+        _node: Node,
+        _element: &Element,
+    ) -> Result<(), Error> {
+        // by default, do nothing
+        Ok(())
+    }
     /// Write an attribute, e.g. `foo="bar"`.
     fn write_attribute(
         &mut self,
@@ -171,6 +189,20 @@ pub trait SerializerWriter {
         name_id: NameId,
         value: &str,
     ) -> Result<(), Error>;
+    /// Write any additional attributes.
+    ///
+    /// This can implemented by a serializer that needs to write additional
+    /// attributes after the existing attributes have been written.
+    ///
+    /// The default implementation writes nothing.
+    fn write_additional_attributes(
+        &mut self,
+        _node: Node,
+        _element: &Element,
+    ) -> Result<(), Error> {
+        // by default, do nothing
+        Ok(())
+    }
     /// Write text, e.g `foo`.
     fn write_text(&mut self, node: Node, text: &Text) -> Result<(), Error>;
     /// Write a comment, e.g. `<!-- foo -->`.
@@ -517,7 +549,6 @@ mod tests {
             StyleStart,
             StyleEnd,
         }
-        let doc = xot.parse(r#"<doc><a/><b/></doc>"#).unwrap();
 
         struct StyleWriter<'a> {
             data: Vec<StyledText>,
@@ -641,8 +672,8 @@ mod tests {
             }
         }
 
+        let doc = xot.parse(r#"<doc><a/><b/></doc>"#).unwrap();
         let mut writer = StyleWriter::new(&xot);
-        // serializer.serialize_node(doc).unwrap();
         xot.serialize_with_writer(doc, &mut writer).unwrap();
 
         let data = &writer.data;
@@ -662,6 +693,165 @@ mod tests {
                 StyledText::Text("".to_string()),
                 StyledText::Text("</doc>".to_string())
             ]
+        );
+    }
+
+    #[test]
+    fn test_middleware_additional() {
+        let mut xot = Xot::new();
+
+        struct Writer<'a, W: Write> {
+            xot: &'a Xot<'a>,
+            inner_writer: XmlSerializerWriter<'a, W>,
+            new_prefix_id: PrefixId,
+            new_namespace_id: NamespaceId,
+            new_attribute_name_id: NameId,
+        }
+
+        impl<'a, W: Write> Writer<'a, W> {
+            fn new(
+                xot: &'a Xot<'a>,
+                w: W,
+                new_prefix_id: PrefixId,
+                new_namespace_id: NamespaceId,
+                new_attribute_name_id: NameId,
+            ) -> Writer<'a, W> {
+                let inner_writer = XmlSerializerWriter::new(xot, w);
+                Writer {
+                    inner_writer,
+                    xot,
+                    new_prefix_id,
+                    new_namespace_id,
+                    new_attribute_name_id,
+                }
+            }
+        }
+
+        impl<'a, W: Write> SerializerWriter for Writer<'a, W> {
+            fn fullname(&self, name_id: NameId) -> Result<String, Error> {
+                self.inner_writer.fullname(name_id)
+            }
+
+            fn fullname_attr(&self, name_id: NameId) -> Result<String, Error> {
+                self.inner_writer.fullname_attr(name_id)
+            }
+
+            fn push_prefixes(&mut self, prefixes: &ToNamespace) {
+                self.inner_writer.push_prefixes(prefixes);
+            }
+
+            fn pop_prefixes(&mut self, prefixes: &ToNamespace) {
+                self.inner_writer.pop_prefixes(prefixes);
+            }
+
+            fn write_start_tag_open(&mut self, node: Node, element: &Element) -> Result<(), Error> {
+                self.inner_writer.write_start_tag_open(node, element)
+            }
+
+            fn write_start_tag_close(
+                &mut self,
+                node: Node,
+                element: &Element,
+            ) -> Result<(), Error> {
+                self.inner_writer.write_start_tag_close(node, element)
+            }
+
+            fn write_end_tag(&mut self, node: Node, element: &Element) -> Result<(), Error> {
+                self.inner_writer.write_end_tag(node, element)
+            }
+
+            fn write_namespace_declaration(
+                &mut self,
+                node: Node,
+                element: &Element,
+                prefix_id: PrefixId,
+                namespace_id: NamespaceId,
+            ) -> Result<(), Error> {
+                self.inner_writer.write_namespace_declaration(
+                    node,
+                    element,
+                    prefix_id,
+                    namespace_id,
+                )
+            }
+
+            fn write_attribute(
+                &mut self,
+                node: Node,
+                element: &Element,
+                name_id: NameId,
+                value: &str,
+            ) -> Result<(), Error> {
+                self.inner_writer
+                    .write_attribute(node, element, name_id, value)
+            }
+
+            fn write_text(&mut self, node: Node, text: &Text) -> Result<(), Error> {
+                self.inner_writer.write_text(node, text)
+            }
+
+            fn write_comment(&mut self, node: Node, comment: &Comment) -> Result<(), Error> {
+                self.inner_writer.write_comment(node, comment)
+            }
+
+            fn write_processing_instruction(
+                &mut self,
+                node: Node,
+                pi: &ProcessingInstruction,
+            ) -> Result<(), Error> {
+                self.inner_writer.write_processing_instruction(node, pi)
+            }
+
+            fn write_additional_namespace_declarations(
+                &mut self,
+                node: Node,
+                element: &Element,
+            ) -> Result<(), Error> {
+                self.inner_writer.write_namespace_declaration(
+                    node,
+                    element,
+                    self.new_prefix_id,
+                    self.new_namespace_id,
+                )?;
+                Ok(())
+            }
+
+            fn write_additional_attributes(
+                &mut self,
+                node: Node,
+                element: &Element,
+            ) -> Result<(), Error> {
+                self.inner_writer.write_attribute(
+                    node,
+                    element,
+                    self.new_attribute_name_id,
+                    "value",
+                )?;
+                Ok(())
+            }
+        }
+
+        let doc = xot
+            .parse(r#"<doc><a xmlns:y="http://example.com/y" y="Y"/><b/></doc>"#)
+            .unwrap();
+        let new_prefix_id = xot.add_prefix("x");
+        let new_namespace_id = xot.add_namespace("http://example.com");
+        let new_attribute_name_id = xot.add_name("attr");
+        let mut buf = Vec::new();
+        let mut writer = Writer::new(
+            &xot,
+            &mut buf,
+            new_prefix_id,
+            new_namespace_id,
+            new_attribute_name_id,
+        );
+        xot.serialize_with_writer(doc, &mut writer).unwrap();
+
+        let s = String::from_utf8(buf).unwrap();
+
+        assert_eq!(
+            s,
+            r#"<doc xmlns:x="http://example.com" attr="value"><a xmlns:y="http://example.com/y" xmlns:x="http://example.com" y="Y" attr="value"/><b xmlns:x="http://example.com" attr="value"/></doc>"#
         );
     }
 }
