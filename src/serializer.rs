@@ -9,7 +9,7 @@ use crate::name::NameId;
 use crate::namespace::NamespaceId;
 use crate::prefix::PrefixId;
 use crate::pretty::Pretty;
-use crate::xmlvalue::{Element, ToNamespace};
+use crate::xmlvalue::{Element, Prefixes};
 use crate::xmlvalue::{Value, ValueType};
 use crate::xotdata::{Node, Xot};
 
@@ -28,7 +28,7 @@ pub enum OutputToken<'a> {
 }
 
 #[generator(yield((Node, OutputToken<'a>)))]
-pub(crate) fn gen_tokens<'a>(xot: &'a Xot<'a>, node: Node, extra_prefixes: &ToNamespace) {
+pub(crate) fn gen_tokens<'a>(xot: &'a Xot<'a>, node: Node, extra_prefixes: &Prefixes) {
     for edge in xot.traverse(node) {
         match edge {
             NodeEdge::Start(current_node) => {
@@ -48,7 +48,7 @@ pub(crate) fn gen_tokens<'a>(xot: &'a Xot<'a>, node: Node, extra_prefixes: &ToNa
 }
 
 #[generator(yield(OutputToken<'a>))]
-fn gen_edge_start<'a>(xot: &'a Xot<'a>, top_node: Node, node: Node, extra_prefixes: &ToNamespace) {
+fn gen_edge_start<'a>(xot: &'a Xot<'a>, top_node: Node, node: Node, extra_prefixes: &Prefixes) {
     let value = xot.value(node);
     match value {
         Value::Root => {}
@@ -59,7 +59,7 @@ fn gen_edge_start<'a>(xot: &'a Xot<'a>, top_node: Node, node: Node, extra_prefix
             // a fragment and they aren't declared already
             if node == top_node {
                 for (prefix_id, namespace_id) in extra_prefixes {
-                    if !element.namespace_info.to_namespace.contains_key(prefix_id) {
+                    if !element.namespace_info.prefixes.contains_key(prefix_id) {
                         yield_!(OutputToken::NamespaceDeclaration(
                             element,
                             *prefix_id,
@@ -116,7 +116,7 @@ pub struct SerializationData {
 }
 
 impl<'a> XmlSerializer<'a> {
-    pub(crate) fn new(xot: &'a Xot<'a>, extra_prefixes: &ToNamespace) -> Self {
+    pub(crate) fn new(xot: &'a Xot<'a>, extra_prefixes: &Prefixes) -> Self {
         let mut fullname_serializer = FullnameSerializer::new(xot);
         fullname_serializer.push(extra_prefixes);
         Self {
@@ -177,7 +177,7 @@ impl<'a> XmlSerializer<'a> {
         let r = match output_token {
             StartTagOpen(element) => {
                 self.fullname_serializer
-                    .push(&element.namespace_info.to_namespace);
+                    .push(&element.namespace_info.prefixes);
                 SerializationData {
                     space: false,
                     text: format!(
@@ -215,7 +215,7 @@ impl<'a> XmlSerializer<'a> {
                     }
                 };
                 self.fullname_serializer
-                    .pop(&element.namespace_info.to_namespace);
+                    .pop(&element.namespace_info.prefixes);
                 r
             }
             NamespaceDeclaration(_element, prefix_id, namespace_id) => {
@@ -274,16 +274,16 @@ impl<'a> XmlSerializer<'a> {
     }
 }
 
-pub(crate) fn get_extra_prefixes(xot: &Xot, node: Node) -> ToNamespace {
+pub(crate) fn get_extra_prefixes(xot: &Xot, node: Node) -> Prefixes {
     // collect namespace prefixes for all ancestors of the fragment
     if let Some(parent) = xot.parent(node) {
         if xot.value_type(parent) != ValueType::Root {
-            xot.to_namespace_in_scope(parent)
+            xot.prefixes_in_scope(parent)
         } else {
-            ToNamespace::new()
+            Prefixes::new()
         }
     } else {
-        ToNamespace::new()
+        Prefixes::new()
     }
 }
 
@@ -298,7 +298,7 @@ mod tests {
         let a_id = xot.add_name("a");
         let doc = xot.document_element(root).unwrap();
         let doc_el = xot.element(doc).unwrap();
-        let extra_prefixes = ToNamespace::new();
+        let extra_prefixes = Prefixes::new();
         mk_gen!(let mut iter = gen_tokens(&xot, doc, &extra_prefixes));
 
         let v = iter.next().unwrap().1;

@@ -6,7 +6,7 @@ use crate::fullname::{Fullname, FullnameSerializer};
 use crate::name::{Name, NameId};
 use crate::namespace::NamespaceId;
 use crate::prefix::PrefixId;
-use crate::xmlvalue::ToNamespace;
+use crate::xmlvalue::Prefixes;
 use crate::xotdata::{Node, Xot};
 
 /// ## Names, namespaces and prefixes.
@@ -276,7 +276,7 @@ impl<'a> Xot<'a> {
                 NodeEdge::Start(node) => {
                     let element = self.element(node);
                     if let Some(element) = element {
-                        fullname_serializer.push(&element.namespace_info.to_namespace);
+                        fullname_serializer.push(&element.namespace_info.prefixes);
                         let element_fullname = fullname_serializer.fullname(element.name_id);
                         if let Fullname::MissingPrefix(namespace_id) = element_fullname {
                             missing_namespace_ids.insert(namespace_id);
@@ -292,7 +292,7 @@ impl<'a> Xot<'a> {
                 NodeEdge::End(node) => {
                     let element = self.element(node);
                     if let Some(element) = element {
-                        fullname_serializer.pop(&element.namespace_info.to_namespace);
+                        fullname_serializer.pop(&element.namespace_info.prefixes);
                     }
                 }
             }
@@ -383,8 +383,8 @@ impl<'a> Xot<'a> {
                         // we don't need to remove the fixed up prefixes because
                         // as duplicates they will definitely exist.
                         // In fact if we remove them first the push will fail to create
-                        // a new entry in the namespace stack, as to_namespace can become empty
-                        fullname_serializer.push(&element.namespace_info.to_namespace);
+                        // a new entry in the namespace stack, as prefixes can become empty
+                        fullname_serializer.push(&element.namespace_info.prefixes);
                     }
                 }
                 NodeEdge::End(node) => {
@@ -392,7 +392,7 @@ impl<'a> Xot<'a> {
                     if let Some(element) = element {
                         // to_prefix is only used to determine whether to pop
                         // so should be okay to send here
-                        fullname_serializer.pop(&element.namespace_info.to_namespace);
+                        fullname_serializer.pop(&element.namespace_info.prefixes);
                     }
                 }
             }
@@ -406,27 +406,27 @@ impl<'a> Xot<'a> {
         }
     }
 
-    pub(crate) fn to_namespace_in_scope(&self, node: Node) -> ToNamespace {
-        let mut to_namespace = ToNamespace::new();
+    pub(crate) fn prefixes_in_scope(&self, node: Node) -> Prefixes {
+        let mut prefixes = Prefixes::new();
         for ancestor in self.ancestors(node) {
             let element = self.element(ancestor);
             if let Some(element) = element {
                 for (prefix_id, namespace_id) in element.prefixes() {
                     // prefixes defined later override those defined earlier
-                    if to_namespace.contains_key(prefix_id) {
+                    if prefixes.contains_key(prefix_id) {
                         continue;
                     }
-                    to_namespace.insert(*prefix_id, *namespace_id);
+                    prefixes.insert(*prefix_id, *namespace_id);
                 }
             }
         }
-        to_namespace
+        prefixes
     }
 
-    pub(crate) fn base_to_namespace(&self) -> ToNamespace {
-        let mut to_namespace = ToNamespace::new();
-        to_namespace.insert(self.xml_prefix_id, self.xml_namespace_id);
-        to_namespace
+    pub(crate) fn base_prefixes(&self) -> Prefixes {
+        let mut prefixes = Prefixes::new();
+        prefixes.insert(self.xml_prefix_id, self.xml_namespace_id);
+        prefixes
     }
 }
 
@@ -452,17 +452,14 @@ mod tests {
         let bar = xot.prefix("bar").unwrap();
 
         assert_eq!(
-            xot.to_namespace_in_scope(doc_el),
+            xot.prefixes_in_scope(doc_el),
             VecMap::from_iter(vec![(foo, ns)])
         );
 
-        assert_eq!(
-            xot.to_namespace_in_scope(a),
-            VecMap::from_iter(vec![(foo, ns)])
-        );
+        assert_eq!(xot.prefixes_in_scope(a), VecMap::from_iter(vec![(foo, ns)]));
 
         assert_eq!(
-            xot.to_namespace_in_scope(b),
+            xot.prefixes_in_scope(b),
             VecMap::from_iter(vec![(foo, ns_foo), (bar, ns_bar)])
         );
     }

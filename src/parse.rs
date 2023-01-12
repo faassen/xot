@@ -6,7 +6,7 @@ use crate::error::Error;
 use crate::name::{Name, NameId};
 use crate::prefix::PrefixId;
 use crate::xmlvalue::{
-    Attributes, Comment, Element, NamespaceInfo, ProcessingInstruction, Text, ToNamespace, Value,
+    Attributes, Comment, Element, NamespaceInfo, Prefixes, ProcessingInstruction, Text, Value,
 };
 use crate::xotdata::{Node, Xot};
 
@@ -49,7 +49,7 @@ impl ElementBuilder {
     ) -> Result<Element, Error> {
         document_builder
             .name_id_builder
-            .push(&self.namespace_info.to_namespace);
+            .push(&self.namespace_info.prefixes);
         let attributes = self.build_attributes(document_builder, xot)?;
         let name_id =
             document_builder
@@ -73,10 +73,10 @@ struct DocumentBuilder {
 impl DocumentBuilder {
     fn new(xot: &mut Xot) -> Self {
         let root = xot.arena.new_node(Value::Root);
-        let mut name_id_builder = NameIdBuilder::new(xot.base_to_namespace());
-        let mut base_to_namespace = ToNamespace::new();
-        base_to_namespace.insert(xot.empty_prefix_id, xot.no_namespace_id);
-        name_id_builder.push(&base_to_namespace);
+        let mut name_id_builder = NameIdBuilder::new(xot.base_prefixes());
+        let mut base_prefixes = Prefixes::new();
+        base_prefixes.insert(xot.empty_prefix_id, xot.no_namespace_id);
+        name_id_builder.push(&base_prefixes);
         DocumentBuilder {
             tree: root,
             current_node_id: root,
@@ -142,8 +142,7 @@ impl DocumentBuilder {
     fn close_element_immediate(&mut self, xot: &mut Xot) {
         let current_node = xot.arena.get(self.current_node_id).unwrap();
         if let Value::Element(element) = current_node.get() {
-            self.name_id_builder
-                .pop(&element.namespace_info.to_namespace);
+            self.name_id_builder.pop(&element.namespace_info.prefixes);
         }
         self.current_node_id = current_node.parent().expect("Cannot close root node");
     }
@@ -155,8 +154,7 @@ impl DocumentBuilder {
             if element.name_id != name_id {
                 return Err(Error::InvalidCloseTag(prefix.to_string(), name.to_string()));
             }
-            self.name_id_builder
-                .pop(&element.namespace_info.to_namespace);
+            self.name_id_builder.pop(&element.namespace_info.prefixes);
         }
         self.current_node_id = current_node.parent().expect("Cannot close root node");
         Ok(())
@@ -193,27 +191,27 @@ impl DocumentBuilder {
 }
 
 struct NameIdBuilder {
-    namespace_stack: Vec<ToNamespace>,
+    namespace_stack: Vec<Prefixes>,
 }
 
 impl NameIdBuilder {
-    fn new(to_namespace: ToNamespace) -> Self {
-        let namespace_stack = vec![to_namespace];
+    fn new(prefixes: Prefixes) -> Self {
+        let namespace_stack = vec![prefixes];
         Self { namespace_stack }
     }
 
-    fn push(&mut self, to_namespace: &ToNamespace) {
-        if to_namespace.is_empty() {
+    fn push(&mut self, prefixes: &Prefixes) {
+        if prefixes.is_empty() {
             return;
         }
         // can always use top as there's a bottom entry
         let mut entry = self.top().clone();
-        entry.extend(to_namespace);
+        entry.extend(prefixes);
         self.namespace_stack.push(entry);
     }
 
-    fn pop(&mut self, to_namespace: &ToNamespace) {
-        if to_namespace.is_empty() {
+    fn pop(&mut self, prefixes: &Prefixes) {
+        if prefixes.is_empty() {
             return;
         }
         // should always be able to pop as there's a bottom entry
@@ -221,7 +219,7 @@ impl NameIdBuilder {
     }
 
     #[inline]
-    fn top(&self) -> &ToNamespace {
+    fn top(&self) -> &Prefixes {
         &self.namespace_stack[self.namespace_stack.len() - 1]
     }
 

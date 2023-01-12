@@ -3,7 +3,7 @@ use crate::xotdata::{Node, Xot};
 use crate::access::NodeEdge;
 use crate::error::Error;
 use crate::name::NameId;
-use crate::xmlvalue::{ToNamespace, Value, ValueType};
+use crate::xmlvalue::{Prefixes, Value, ValueType};
 
 /// ## Manipulation
 ///
@@ -393,15 +393,15 @@ impl<'a> Xot<'a> {
     /// ```
     pub fn clone_with_prefixes(&mut self, node: Node) -> Node {
         // get all prefixes defined in scope
-        let to_namespace = if let Some(node) = self.parent(node) {
-            self.to_namespace_in_scope(node)
+        let prefixes = if let Some(node) = self.parent(node) {
+            self.prefixes_in_scope(node)
         } else {
-            ToNamespace::new()
+            Prefixes::new()
         };
         let clone = self.clone(node);
         // add any prefixes from outer scope we may need
         if let Some(element) = self.element_mut(clone) {
-            for (prefix, ns) in to_namespace {
+            for (prefix, ns) in prefixes {
                 if element.prefixes().contains_key(&prefix) {
                     continue;
                 }

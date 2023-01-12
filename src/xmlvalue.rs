@@ -65,30 +65,30 @@ impl Value {
 /// A map of NameId to String for attributes
 pub type Attributes = VecMap<NameId, String>;
 /// A map of PrefixId to NamespaceId for namespace declarations.
-pub type ToNamespace = VecMap<PrefixId, NamespaceId>;
+pub type Prefixes = VecMap<PrefixId, NamespaceId>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct NamespaceInfo {
-    pub(crate) to_namespace: ToNamespace,
+    pub(crate) prefixes: Prefixes,
 }
 
 impl NamespaceInfo {
     pub(crate) fn new() -> Self {
         NamespaceInfo {
-            to_namespace: VecMap::new(),
+            prefixes: VecMap::new(),
         }
     }
 
     pub(crate) fn add(&mut self, prefix_id: PrefixId, namespace_id: NamespaceId) {
-        self.to_namespace.insert(prefix_id, namespace_id);
+        self.prefixes.insert(prefix_id, namespace_id);
     }
 
     pub(crate) fn remove_by_prefix_id(&mut self, prefix_id: PrefixId) {
-        self.to_namespace.remove(&prefix_id);
+        self.prefixes.remove(&prefix_id);
     }
 
     pub(crate) fn remove_by_namespace_id(&mut self, namespace_id: NamespaceId) {
-        self.to_namespace.retain(|_, v| *v != namespace_id);
+        self.prefixes.retain(|_, v| *v != namespace_id);
     }
 }
 
@@ -251,15 +251,15 @@ impl Element {
     ///
     /// This does not check for ancestor namespace definitions.
     pub fn get_namespace(&self, prefix_id: PrefixId) -> Option<NamespaceId> {
-        self.namespace_info.to_namespace.get(&prefix_id).copied()
+        self.namespace_info.prefixes.get(&prefix_id).copied()
     }
 
     /// Get a map of prefixes to namespaces.
     ///
     /// It only returns those prefixes that are defined
     /// on this element.
-    pub fn prefixes(&self) -> &ToNamespace {
-        &self.namespace_info.to_namespace
+    pub fn prefixes(&self) -> &Prefixes {
+        &self.namespace_info.prefixes
     }
 }
 

@@ -72,6 +72,6 @@ pub use namespace::NamespaceId;
 pub use prefix::PrefixId;
 pub use serialize::SerializeOptions;
 pub use xmlvalue::{
-    Attributes, Comment, Element, ProcessingInstruction, Text, ToNamespace, Value, ValueType,
+    Attributes, Comment, Element, Prefixes, ProcessingInstruction, Text, Value, ValueType,
 };
 pub use xotdata::{Node, Xot};
