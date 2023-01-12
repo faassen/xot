@@ -276,7 +276,7 @@ impl<'a> Xot<'a> {
                 NodeEdge::Start(node) => {
                     let element = self.element(node);
                     if let Some(element) = element {
-                        fullname_serializer.push(&element.namespace_info.prefixes);
+                        fullname_serializer.push(&element.prefixes);
                         let element_fullname = fullname_serializer.fullname(element.name_id);
                         if let Fullname::MissingPrefix(namespace_id) = element_fullname {
                             missing_namespace_ids.insert(namespace_id);
@@ -292,7 +292,7 @@ impl<'a> Xot<'a> {
                 NodeEdge::End(node) => {
                     let element = self.element(node);
                     if let Some(element) = element {
-                        fullname_serializer.pop(&element.namespace_info.prefixes);
+                        fullname_serializer.pop(&element.prefixes);
                     }
                 }
             }
@@ -305,7 +305,7 @@ impl<'a> Xot<'a> {
         }
         let value = self.element_mut(node).unwrap();
         for (prefix_id, namespace_id) in prefixes_to_add {
-            value.namespace_info.add(prefix_id, *namespace_id);
+            value.prefixes.insert(prefix_id, *namespace_id);
         }
         Ok(())
     }
@@ -384,7 +384,7 @@ impl<'a> Xot<'a> {
                         // as duplicates they will definitely exist.
                         // In fact if we remove them first the push will fail to create
                         // a new entry in the namespace stack, as prefixes can become empty
-                        fullname_serializer.push(&element.namespace_info.prefixes);
+                        fullname_serializer.push(&element.prefixes);
                     }
                 }
                 NodeEdge::End(node) => {
@@ -392,7 +392,7 @@ impl<'a> Xot<'a> {
                     if let Some(element) = element {
                         // to_prefix is only used to determine whether to pop
                         // so should be okay to send here
-                        fullname_serializer.pop(&element.namespace_info.prefixes);
+                        fullname_serializer.pop(&element.prefixes);
                     }
                 }
             }
@@ -401,7 +401,7 @@ impl<'a> Xot<'a> {
         for (node, to_remove) in fixup_nodes {
             let element = self.element_mut(node).unwrap();
             for namespace_id in to_remove {
-                element.namespace_info.remove_by_namespace_id(namespace_id)
+                element.remove_namespace(namespace_id)
             }
         }
     }

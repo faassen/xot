@@ -5,15 +5,13 @@ use crate::entity::{parse_attribute, parse_text};
 use crate::error::Error;
 use crate::name::{Name, NameId};
 use crate::prefix::PrefixId;
-use crate::xmlvalue::{
-    Attributes, Comment, Element, NamespaceInfo, Prefixes, ProcessingInstruction, Text, Value,
-};
+use crate::xmlvalue::{Attributes, Comment, Element, Prefixes, ProcessingInstruction, Text, Value};
 use crate::xotdata::{Node, Xot};
 
 struct ElementBuilder {
     prefix: String,
     name: String,
-    namespace_info: NamespaceInfo,
+    prefixes: Prefixes,
     attributes: Vec<((String, String), String)>,
 }
 
@@ -22,7 +20,7 @@ impl ElementBuilder {
         ElementBuilder {
             prefix,
             name,
-            namespace_info: NamespaceInfo::new(),
+            prefixes: Prefixes::new(),
             attributes: Vec::new(),
         }
     }
@@ -47,9 +45,7 @@ impl ElementBuilder {
         document_builder: &mut DocumentBuilder,
         xot: &mut Xot,
     ) -> Result<Element, Error> {
-        document_builder
-            .name_id_builder
-            .push(&self.namespace_info.prefixes);
+        document_builder.name_id_builder.push(&self.prefixes);
         let attributes = self.build_attributes(document_builder, xot)?;
         let name_id =
             document_builder
@@ -57,7 +53,7 @@ impl ElementBuilder {
                 .element_name_id(&self.prefix, &self.name, xot)?;
         Ok(Element {
             name_id,
-            namespace_info: self.namespace_info,
+            prefixes: self.prefixes,
             attributes,
         })
     }
@@ -95,8 +91,8 @@ impl DocumentBuilder {
         self.element_builder
             .as_mut()
             .unwrap()
-            .namespace_info
-            .add(prefix_id, namespace_id);
+            .prefixes
+            .insert(prefix_id, namespace_id);
     }
 
     fn attribute(&mut self, prefix: &str, name: &str, value: &str) -> Result<(), Error> {
@@ -142,7 +138,7 @@ impl DocumentBuilder {
     fn close_element_immediate(&mut self, xot: &mut Xot) {
         let current_node = xot.arena.get(self.current_node_id).unwrap();
         if let Value::Element(element) = current_node.get() {
-            self.name_id_builder.pop(&element.namespace_info.prefixes);
+            self.name_id_builder.pop(&element.prefixes);
         }
         self.current_node_id = current_node.parent().expect("Cannot close root node");
     }
@@ -154,7 +150,7 @@ impl DocumentBuilder {
             if element.name_id != name_id {
                 return Err(Error::InvalidCloseTag(prefix.to_string(), name.to_string()));
             }
-            self.name_id_builder.pop(&element.namespace_info.prefixes);
+            self.name_id_builder.pop(&element.prefixes);
         }
         self.current_node_id = current_node.parent().expect("Cannot close root node");
         Ok(())

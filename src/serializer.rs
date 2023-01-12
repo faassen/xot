@@ -59,7 +59,7 @@ fn gen_edge_start<'a>(xot: &'a Xot<'a>, top_node: Node, node: Node, extra_prefix
             // a fragment and they aren't declared already
             if node == top_node {
                 for (prefix_id, namespace_id) in extra_prefixes {
-                    if !element.namespace_info.prefixes.contains_key(prefix_id) {
+                    if !element.prefixes.contains_key(prefix_id) {
                         yield_!(OutputToken::NamespaceDeclaration(
                             element,
                             *prefix_id,
@@ -176,8 +176,7 @@ impl<'a> XmlSerializer<'a> {
         use OutputToken::*;
         let r = match output_token {
             StartTagOpen(element) => {
-                self.fullname_serializer
-                    .push(&element.namespace_info.prefixes);
+                self.fullname_serializer.push(&element.prefixes);
                 SerializationData {
                     space: false,
                     text: format!(
@@ -214,8 +213,7 @@ impl<'a> XmlSerializer<'a> {
                         text: "".to_string(),
                     }
                 };
-                self.fullname_serializer
-                    .pop(&element.namespace_info.prefixes);
+                self.fullname_serializer.pop(&element.prefixes);
                 r
             }
             NamespaceDeclaration(_element, prefix_id, namespace_id) => {

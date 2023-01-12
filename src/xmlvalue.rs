@@ -67,47 +67,22 @@ pub type Attributes = VecMap<NameId, String>;
 /// A map of PrefixId to NamespaceId for namespace declarations.
 pub type Prefixes = VecMap<PrefixId, NamespaceId>;
 
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) struct NamespaceInfo {
-    pub(crate) prefixes: Prefixes,
-}
-
-impl NamespaceInfo {
-    pub(crate) fn new() -> Self {
-        NamespaceInfo {
-            prefixes: VecMap::new(),
-        }
-    }
-
-    pub(crate) fn add(&mut self, prefix_id: PrefixId, namespace_id: NamespaceId) {
-        self.prefixes.insert(prefix_id, namespace_id);
-    }
-
-    pub(crate) fn remove_by_prefix_id(&mut self, prefix_id: PrefixId) {
-        self.prefixes.remove(&prefix_id);
-    }
-
-    pub(crate) fn remove_by_namespace_id(&mut self, namespace_id: NamespaceId) {
-        self.prefixes.retain(|_, v| *v != namespace_id);
-    }
-}
-
 /// XML element value.
 ///
 /// Example: `<foo/>` or `<foo bar="baz"/>`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Element {
     pub(crate) name_id: NameId,
+    pub(crate) prefixes: Prefixes,
     pub(crate) attributes: Attributes,
-    pub(crate) namespace_info: NamespaceInfo,
 }
 
 impl Element {
     pub(crate) fn new(name_id: NameId) -> Self {
         Element {
             name_id,
+            prefixes: Prefixes::new(),
             attributes: Attributes::new(),
-            namespace_info: NamespaceInfo::new(),
         }
     }
 
@@ -234,24 +209,31 @@ impl Element {
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn set_prefix(&mut self, prefix_id: PrefixId, namespace_id: NamespaceId) {
-        self.namespace_info.add(prefix_id, namespace_id);
+        self.prefixes.insert(prefix_id, namespace_id);
     }
 
     /// Remove namespace prefix and associated namespace.
     ///
     /// This may result in documents with missing prefixes. This can be safely
-    /// serialized as missing namespace prefixes are automatically generated,
-    /// unless you use [`Xot::serialize_or_missing_prefix`](`crate::Xot::serialize_or_missing_prefix`) which will result
-    /// in an error.
+    /// serialized if you call [`Xot::create_missing_prefixes`] before serialization.
     pub fn remove_prefix(&mut self, prefix_id: PrefixId) {
-        self.namespace_info.remove_by_prefix_id(prefix_id);
+        self.prefixes.remove(&prefix_id);
+    }
+
+    /// Remove prefixs by namespace.
+    ///
+    /// This may result in documents with missing prefixes. This can be safely
+    /// serialized if you call [`Xot::create_missing_prefixes`] before
+    /// serialization.
+    pub fn remove_namespace(&mut self, namespace_id: NamespaceId) {
+        self.prefixes.retain(|_, v| *v != namespace_id);
     }
 
     /// Get the namespace for a prefix, if defined on this element.
     ///
     /// This does not check for ancestor namespace definitions.
     pub fn get_namespace(&self, prefix_id: PrefixId) -> Option<NamespaceId> {
-        self.namespace_info.prefixes.get(&prefix_id).copied()
+        self.prefixes.get(&prefix_id).copied()
     }
 
     /// Get a map of prefixes to namespaces.
@@ -259,7 +241,7 @@ impl Element {
     /// It only returns those prefixes that are defined
     /// on this element.
     pub fn prefixes(&self) -> &Prefixes {
-        &self.namespace_info.prefixes
+        &self.prefixes
     }
 }
 
