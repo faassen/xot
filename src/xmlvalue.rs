@@ -67,7 +67,7 @@ pub type Attributes = VecMap<NameId, String>;
 /// A map of PrefixId to NamespaceId for namespace declarations.
 pub type ToNamespace = VecMap<PrefixId, NamespaceId>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct NamespaceInfo {
     pub(crate) to_namespace: ToNamespace,
 }
@@ -95,7 +95,7 @@ impl NamespaceInfo {
 /// XML element value.
 ///
 /// Example: `<foo/>` or `<foo bar="baz"/>`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Element {
     pub(crate) name_id: NameId,
     pub(crate) attributes: Attributes,

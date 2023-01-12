@@ -57,10 +57,12 @@ mod namespace;
 mod parse;
 mod prefix;
 mod pretty;
+mod pretty2;
 #[cfg(feature = "proptest")]
 pub mod proptest;
 mod serialize;
 mod serializer;
+mod serializer2;
 mod valueaccess;
 mod xmlvalue;
 mod xotdata;
