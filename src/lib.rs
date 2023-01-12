@@ -56,7 +56,7 @@ mod nameaccess;
 mod namespace;
 mod parse;
 mod prefix;
-mod pretty2;
+mod pretty;
 #[cfg(feature = "proptest")]
 pub mod proptest;
 mod serialize;

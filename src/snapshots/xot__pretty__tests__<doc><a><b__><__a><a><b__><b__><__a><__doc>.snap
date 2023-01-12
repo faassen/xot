@@ -1,5 +1,5 @@
 ---
-source: src/pretty2.rs
+source: src/pretty.rs
 expression: output_xml
 ---
 <doc>

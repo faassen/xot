@@ -1,7 +1,7 @@
 use next_gen::prelude::*;
 use std::io::Write;
 
-use crate::pretty2::serialize as serialize_pretty;
+use crate::pretty::serialize as serialize_pretty;
 use crate::serializer2::serialize;
 use crate::serializer3::{get_extra_prefixes, serialize_node};
 
