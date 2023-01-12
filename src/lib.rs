@@ -72,7 +72,7 @@ pub use namespace::NamespaceId;
 pub use prefix::PrefixId;
 pub use pretty::Pretty;
 pub use serialize::{SerializeOptions, Serializer};
-pub use serializer::OutputToken;
+pub use serializer::{OutputToken, SerializationData};
 pub use xmlvalue::{
     Attributes, Comment, Element, Prefixes, ProcessingInstruction, Text, Value, ValueType,
 };

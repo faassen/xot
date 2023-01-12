@@ -159,9 +159,9 @@ impl<'a> XmlSerializer<'a> {
         &mut self,
         w: &mut W,
         node: Node,
-        output_token: OutputToken,
+        output_token: OutputToken<'a>,
     ) -> Result<(), Error> {
-        let data = self.render_token(node, &output_token)?;
+        let data = self.render_token(node, output_token)?;
         if data.space {
             w.write_all(b" ").unwrap();
         }
@@ -172,7 +172,7 @@ impl<'a> XmlSerializer<'a> {
     pub(crate) fn render_token(
         &mut self,
         node: Node,
-        output_token: &OutputToken,
+        output_token: OutputToken<'a>,
     ) -> Result<SerializationData, Error> {
         use OutputToken::*;
         let r = match output_token {
@@ -218,14 +218,14 @@ impl<'a> XmlSerializer<'a> {
                 r
             }
             NamespaceDeclaration(_element, prefix_id, namespace_id) => {
-                let namespace = self.xot.namespace_str(*namespace_id);
-                if *prefix_id == self.xot.empty_prefix_id {
+                let namespace = self.xot.namespace_str(namespace_id);
+                if prefix_id == self.xot.empty_prefix_id {
                     SerializationData {
                         space: true,
                         text: format!("xmlns=\"{}\"", namespace),
                     }
                 } else {
-                    let prefix = self.xot.prefix_str(*prefix_id);
+                    let prefix = self.xot.prefix_str(prefix_id);
                     SerializationData {
                         space: true,
                         text: format!("xmlns:{}=\"{}\"", prefix, namespace),
@@ -237,7 +237,7 @@ impl<'a> XmlSerializer<'a> {
                 text: "".to_string(),
             },
             Attribute(_element, name_id, value) => {
-                let fullname = self.fullname_serializer.fullname_attr_or_err(*name_id)?;
+                let fullname = self.fullname_serializer.fullname_attr_or_err(name_id)?;
                 SerializationData {
                     space: true,
                     text: format!("{}=\"{}\"", fullname, serialize_attribute((*value).into())),

@@ -1,4 +1,4 @@
-use xot::{Error, Node, OutputToken, Pretty, Serializer, Xot};
+use xot::{Error, Node, OutputToken, Pretty, SerializationData, Serializer, Xot};
 
 #[test]
 fn test_style() -> Result<(), Error> {
@@ -11,12 +11,21 @@ fn test_style() -> Result<(), Error> {
     let mut xot = Xot::new();
 
     let root = xot.parse("<a><b><style>foo</style></b></a>")?;
-
+    // expected:
+    // <a>
+    //  <b><span>foo</span></b>
+    // </a>
+    // because foo is text content, and thus span shouldn't be indented or affected
+    // we currently determine text content by using the xot structure, but
+    // we should instead peek ahead in the stream to determine a text node
+    // so the stream should be ahead by all children of the current node
+    // This way Pretty doesn't need access to xot anymore.
     let name_style = xot.add_name("style");
 
-    let serializer = xot.serializer(root);
-    let output_tokens = serializer.output_tokens();
-    let pretty = xot.pretty();
+    let mut serializer = xot.serializer(root);
+    let extra_prefixes = xot::Prefixes::new();
+    let output_tokens = xot.output_tokens(root, &extra_prefixes);
+    let mut pretty = xot.pretty();
 
     #[derive(Debug, PartialEq, Eq)]
     enum Style {
@@ -25,19 +34,16 @@ fn test_style() -> Result<(), Error> {
         Text(String),
     }
 
-    let output = Vec::new();
+    let mut output = Vec::new();
 
     use OutputToken::*;
 
     fn render_normal(
-        serializer: &mut Serializer,
-        pretty: &mut Pretty,
-        node: Node,
-        output_token: &OutputToken,
+        indentation: usize,
+        newline: bool,
+        rendered: SerializationData,
         output: &mut Vec<Style>,
-    ) -> Result<(), Error> {
-        let (indentation, newline) = pretty.prettify(node, output_token);
-        let rendered = serializer.render(node, output_token)?;
+    ) {
         if indentation > 0 {
             output.push(Style::Text(" ".repeat(indentation * 2)));
         }
@@ -48,7 +54,6 @@ fn test_style() -> Result<(), Error> {
         if newline {
             output.push(Style::Text("\n".to_string()));
         }
-        Ok(())
     }
 
     for (node, output_token) in output_tokens {
@@ -57,58 +62,46 @@ fn test_style() -> Result<(), Error> {
                 if element.name() == name_style {
                     output.push(Style::Start);
                 } else {
-                    render_normal(
-                        &mut serializer,
-                        &mut pretty,
-                        node,
-                        &output_token,
-                        &mut output,
-                    );
+                    let (indentation, newline) = pretty.prettify(node, &output_token);
+                    let rendered = serializer.render(node, output_token)?;
+                    render_normal(indentation, newline, rendered, &mut output);
+                }
+            }
+            StartTagClose(element) => {
+                if element.name() == name_style {
+                    // do nothing
+                } else {
+                    let (indentation, newline) = pretty.prettify(node, &output_token);
+                    let rendered = serializer.render(node, output_token)?;
+                    render_normal(indentation, newline, rendered, &mut output);
                 }
             }
             EndTag(element) => {
                 if element.name() == name_style {
                     output.push(Style::End);
                 } else {
-                    render_normal(
-                        &mut serializer,
-                        &mut pretty,
-                        node,
-                        &output_token,
-                        &mut output,
-                    );
+                    let (indentation, newline) = pretty.prettify(node, &output_token);
+                    let rendered = serializer.render(node, output_token)?;
+                    render_normal(indentation, newline, rendered, &mut output);
                 }
             }
             _ => {
-                render_normal(
-                    &mut serializer,
-                    &mut pretty,
-                    node,
-                    &output_token,
-                    &mut output,
-                );
+                let (indentation, newline) = pretty.prettify(node, &output_token);
+                let rendered = serializer.render(node, output_token)?;
+                render_normal(indentation, newline, rendered, &mut output);
             }
         }
     }
+    let output = output
+        .iter()
+        .map(|style| match style {
+            Style::Start => "<span>".to_string(),
+            Style::End => "</span>".to_string(),
+            Style::Text(text) => text.to_string(),
+        })
+        .collect::<Vec<_>>()
+        .join("");
 
-    assert_eq!(
-        output,
-        vec![
-            Style::Text("<a>".to_string()),
-            Style::Text("\n".to_string()),
-            Style::Text("  ".to_string()),
-            Style::Text("<b>".to_string()),
-            Style::Text("\n".to_string()),
-            Style::Start,
-            Style::Text("foo".to_string()),
-            Style::End,
-            Style::Text("\n".to_string()),
-            Style::Text("  ".to_string()),
-            Style::Text("</b>".to_string()),
-            Style::Text("\n".to_string()),
-            Style::Text("</a>".to_string()),
-            Style::Text("\n".to_string()),
-        ]
-    );
+    assert_eq!(output, "");
     Ok(())
 }

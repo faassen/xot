@@ -48,7 +48,7 @@ impl<'a> Serializer<'a> {
     pub fn render(
         &mut self,
         node: Node,
-        output_token: &OutputToken<'a>,
+        output_token: OutputToken<'a>,
     ) -> Result<SerializationData, Error> {
         self.xml_serializer.render_token(node, output_token)
     }
@@ -156,4 +156,21 @@ impl<'a> Xot<'a> {
     pub fn pretty(&self) -> Pretty {
         Pretty::new(self)
     }
+
+    pub fn output_tokens(
+        &'a self,
+        node: Node,
+        extra_prefixes: &'a Prefixes,
+    ) -> impl Iterator<Item = (Node, OutputToken<'a>)> + '_ {
+        mk_gen!(let output_tokens = box gen_tokens(self, node, extra_prefixes));
+        output_tokens
+    }
+
+    // pub fn render(
+    //     &mut self,
+    //     node: Node,
+    //     output_token: &'a OutputToken<'a>,
+    // ) -> Result<SerializationData, Error> {
+    //     self.xml_serializer.render_token(node, output_token)
+    // }
 }
