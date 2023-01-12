@@ -26,6 +26,83 @@ pub enum OutputToken<'a> {
     ProcessingInstruction(&'a str, Option<&'a str>),
 }
 
+#[generator(yield((Node, OutputToken<'a>)))]
+pub(crate) fn gen_tokens<'a>(xot: &'a Xot<'a>, node: Node, extra_prefixes: &ToNamespace) {
+    for edge in xot.traverse(node) {
+        match edge {
+            NodeEdge::Start(current_node) => {
+                mk_gen!(let gen = gen_edge_start(xot, node, current_node, extra_prefixes));
+                for output_token in gen {
+                    yield_!((current_node, output_token));
+                }
+            }
+            NodeEdge::End(current_node) => {
+                mk_gen!(let gen = gen_edge_end(xot, current_node));
+                for output_token in gen {
+                    yield_!((current_node, output_token));
+                }
+            }
+        }
+    }
+}
+
+#[generator(yield(OutputToken<'a>))]
+fn gen_edge_start<'a>(xot: &'a Xot<'a>, top_node: Node, node: Node, extra_prefixes: &ToNamespace) {
+    let value = xot.value(node);
+    match value {
+        Value::Root => {}
+        Value::Element(element) => {
+            yield_!(OutputToken::StartTagOpen(element));
+
+            // serialize any extra prefixes if this is the top element of
+            // a fragment and they aren't declared already
+            if node == top_node {
+                for (prefix_id, namespace_id) in extra_prefixes {
+                    if !element.namespace_info.to_namespace.contains_key(prefix_id) {
+                        yield_!(OutputToken::NamespaceDeclaration(
+                            element,
+                            *prefix_id,
+                            *namespace_id,
+                        ));
+                    }
+                }
+            }
+
+            for (prefix_id, namespace_id) in element.prefixes() {
+                yield_!(OutputToken::NamespaceDeclaration(
+                    element,
+                    *prefix_id,
+                    *namespace_id,
+                ));
+            }
+            yield_!(OutputToken::NamespacesFinished(element));
+
+            for (name_id, value) in element.attributes() {
+                yield_!(OutputToken::Attribute(element, *name_id, value));
+            }
+            yield_!(OutputToken::AttributesFinished(element));
+
+            yield_!(OutputToken::StartTagClose(element));
+        }
+        Value::Text(text) => {
+            yield_!(OutputToken::Text(text.get()));
+        }
+        Value::Comment(comment) => {
+            yield_!(OutputToken::Comment(comment.get()));
+        }
+        Value::ProcessingInstruction(pi) => {
+            yield_!(OutputToken::ProcessingInstruction(pi.target(), pi.data()));
+        }
+    }
+}
+#[generator(yield(OutputToken<'a>))]
+fn gen_edge_end<'a>(xot: &'a Xot<'a>, node: Node) {
+    let value = xot.value(node);
+    if let Value::Element(element) = value {
+        yield_!(OutputToken::EndTag(element));
+    }
+}
+
 pub(crate) struct XmlSerializer<'a> {
     xot: &'a Xot<'a>,
     fullname_serializer: FullnameSerializer<'a>,
@@ -192,91 +269,6 @@ pub(crate) fn get_extra_prefixes(xot: &Xot, node: Node) -> ToNamespace {
     }
 }
 
-/// Serialize a node and all its children using the writer.
-///
-/// The writer controls what happens with the serialized data.
-#[generator(yield((Node, OutputToken<'a>)))]
-pub(crate) fn to_tokens<'a>(xot: &'a Xot<'a>, node: Node, extra_prefixes: &ToNamespace) {
-    for edge in xot.traverse(node) {
-        match edge {
-            NodeEdge::Start(current_node) => {
-                mk_gen!(let gen = handle_edge_start(xot, node, current_node, extra_prefixes));
-                for output_token in gen {
-                    yield_!((current_node, output_token));
-                }
-            }
-            NodeEdge::End(current_node) => {
-                mk_gen!(let gen = handle_edge_end(xot, current_node));
-                for output_token in gen {
-                    yield_!((current_node, output_token));
-                }
-            }
-        }
-    }
-}
-
-#[generator(yield(OutputToken<'a>))]
-fn handle_edge_start<'a>(
-    xot: &'a Xot<'a>,
-    top_node: Node,
-    node: Node,
-    extra_prefixes: &ToNamespace,
-) {
-    let value = xot.value(node);
-    match value {
-        Value::Root => {}
-        Value::Element(element) => {
-            yield_!(OutputToken::StartTagOpen(element));
-
-            // serialize any extra prefixes if this is the top element of
-            // a fragment and they aren't declared already
-            if node == top_node {
-                for (prefix_id, namespace_id) in extra_prefixes {
-                    if !element.namespace_info.to_namespace.contains_key(prefix_id) {
-                        yield_!(OutputToken::NamespaceDeclaration(
-                            element,
-                            *prefix_id,
-                            *namespace_id,
-                        ));
-                    }
-                }
-            }
-
-            for (prefix_id, namespace_id) in element.prefixes() {
-                yield_!(OutputToken::NamespaceDeclaration(
-                    element,
-                    *prefix_id,
-                    *namespace_id,
-                ));
-            }
-            yield_!(OutputToken::NamespacesFinished(element));
-
-            for (name_id, value) in element.attributes() {
-                yield_!(OutputToken::Attribute(element, *name_id, value));
-            }
-            yield_!(OutputToken::AttributesFinished(element));
-
-            yield_!(OutputToken::StartTagClose(element));
-        }
-        Value::Text(text) => {
-            yield_!(OutputToken::Text(text.get()));
-        }
-        Value::Comment(comment) => {
-            yield_!(OutputToken::Comment(comment.get()));
-        }
-        Value::ProcessingInstruction(pi) => {
-            yield_!(OutputToken::ProcessingInstruction(pi.target(), pi.data()));
-        }
-    }
-}
-#[generator(yield(OutputToken<'a>))]
-fn handle_edge_end<'a>(xot: &'a Xot<'a>, node: Node) {
-    let value = xot.value(node);
-    if let Value::Element(element) = value {
-        yield_!(OutputToken::EndTag(element));
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -289,7 +281,7 @@ mod tests {
         let doc = xot.document_element(root).unwrap();
         let doc_el = xot.element(doc).unwrap();
         let extra_prefixes = ToNamespace::new();
-        mk_gen!(let mut iter = to_tokens(&xot, doc, &extra_prefixes));
+        mk_gen!(let mut iter = gen_tokens(&xot, doc, &extra_prefixes));
 
         let v = iter.next().unwrap().1;
         assert_eq!(v, OutputToken::StartTagOpen(doc_el));
