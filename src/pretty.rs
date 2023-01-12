@@ -8,7 +8,7 @@ enum StackEntry {
     Mixed,
 }
 
-pub(crate) struct Pretty<'a> {
+pub struct Pretty<'a> {
     xot: &'a Xot<'a>,
     stack: Vec<StackEntry>,
 }
@@ -57,7 +57,7 @@ impl<'a> Pretty<'a> {
             .any(|child| self.xot.value_type(child) == ValueType::Text)
     }
 
-    pub(crate) fn prettify(&mut self, node: Node, output_token: &OutputToken) -> (usize, bool) {
+    pub fn prettify(&mut self, node: Node, output_token: &OutputToken) -> (usize, bool) {
         use OutputToken::*;
         match output_token {
             StartTagOpen(_) => (self.get_indentation(), false),

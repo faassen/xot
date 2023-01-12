@@ -7,10 +7,6 @@
 - Add pretty printing support. You can use `Xot::serializer_options()` to turn on
   pretty printing before serialization.
 
-- You can implement `write_additional_attributes` and
-  `write_additional_namespace_declarations` in `SerializerWriter`
-  to insert additional information into an element.
-
 ### Breaking changes
 
 - Revised the serialization API yet again as it was getting too complicated:
@@ -31,9 +27,8 @@
     serialization, but you need to do this manually; it won't be automatic
     anymore.
 
-- Removed `write_space()` from the `SerializerWriter` trait as well as the
-  `StringWriter` struct. Spaces are now automatically outputted when an
-  attribute or namespace is written.
+- Removed the `SerializerWriter` trait introduced by `0.10.0`, and
+  `serialize_with_writer`.
 
 ## [0.10.3] - 2023-01-09
 

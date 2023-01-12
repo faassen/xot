@@ -2,7 +2,11 @@ use next_gen::prelude::*;
 use std::io::Write;
 
 use crate::error::Error;
-use crate::serializer::{gen_tokens, get_extra_prefixes, XmlSerializer};
+use crate::pretty::Pretty;
+use crate::serializer::{
+    gen_tokens, get_extra_prefixes, OutputToken, SerializationData, XmlSerializer,
+};
+use crate::xmlvalue::Prefixes;
 use crate::xotdata::{Node, Xot};
 
 /// Options to control serialization
@@ -17,16 +21,49 @@ pub struct WithSerializeOptions<'a> {
     options: SerializeOptions,
 }
 
+pub struct Serializer<'a> {
+    xot: &'a Xot<'a>,
+    node: Node,
+    xml_serializer: XmlSerializer<'a>,
+    extra_prefixes: Prefixes,
+}
+
+impl<'a> Serializer<'a> {
+    pub fn new(xot: &'a Xot<'a>, node: Node) -> Self {
+        let extra_prefixes = get_extra_prefixes(xot, node);
+        let xml_serializer = XmlSerializer::new(xot, &extra_prefixes);
+        Self {
+            xot,
+            node,
+            xml_serializer,
+            extra_prefixes,
+        }
+    }
+
+    pub fn output_tokens(&self) -> impl Iterator<Item = (Node, OutputToken<'a>)> + '_ {
+        mk_gen!(let output_tokens = box gen_tokens(self.xot, self.node, &self.extra_prefixes));
+        output_tokens
+    }
+
+    pub fn render(
+        &mut self,
+        node: Node,
+        output_token: &OutputToken<'a>,
+    ) -> Result<SerializationData, Error> {
+        self.xml_serializer.render_token(node, output_token)
+    }
+}
+
 impl<'a> WithSerializeOptions<'a> {
     /// Write node as XML.
     pub fn write(&self, node: Node, w: &mut impl Write) -> Result<(), Error> {
         let extra_prefixes = get_extra_prefixes(self.xot, node);
         mk_gen!(let output_tokens = gen_tokens(self.xot, node, &extra_prefixes));
-        let mut xml_serializer = XmlSerializer::new(self.xot, &extra_prefixes);
+        let mut serializer = XmlSerializer::new(self.xot, &extra_prefixes);
         if self.options.pretty {
-            xml_serializer.serialize_pretty(w, output_tokens)
+            serializer.serialize_pretty(w, output_tokens)
         } else {
-            xml_serializer.serialize(w, output_tokens)
+            serializer.serialize(w, output_tokens)
         }
     }
 
@@ -112,19 +149,11 @@ impl<'a> Xot<'a> {
         WithSerializeOptions { xot: self, options }
     }
 
-    // /// Serialize node with a custom serializer writer.
-    // ///
-    // /// This is an advanced method that allows customisation of the XML writing.
-    // ///
-    // /// If there are missing namespace prefixes, this errors. You can automatically
-    // /// add missing prefixes by invoking [`Xot::create_missing_prefixes`] before
-    // /// serialization to avoid this error.
-    // pub fn serialize_with_writer(
-    //     &self,
-    //     node: Node,
-    //     serializer_writer: &mut impl SerializerWriter,
-    // ) -> Result<(), Error> {
-    //     let mut serializer = Serializer::new(self, serializer_writer);
-    //     serializer.serialize_node(node)
-    // }
+    pub fn serializer(&self, node: Node) -> Serializer {
+        Serializer::new(self, node)
+    }
+
+    pub fn pretty(&self) -> Pretty {
+        Pretty::new(self)
+    }
 }

@@ -111,8 +111,8 @@ pub(crate) struct XmlSerializer<'a> {
 }
 
 pub struct SerializationData {
-    space: bool,
-    text: String,
+    pub space: bool,
+    pub text: String,
 }
 
 impl<'a> XmlSerializer<'a> {
@@ -154,6 +154,7 @@ impl<'a> XmlSerializer<'a> {
         }
         Ok(())
     }
+
     pub(crate) fn serialize_node<W: io::Write>(
         &mut self,
         w: &mut W,
@@ -168,7 +169,7 @@ impl<'a> XmlSerializer<'a> {
         Ok(())
     }
 
-    fn render_token(
+    pub(crate) fn render_token(
         &mut self,
         node: Node,
         output_token: &OutputToken,
