@@ -60,7 +60,6 @@ mod pretty;
 #[cfg(feature = "proptest")]
 pub mod proptest;
 mod serialize;
-mod serializer;
 mod serializer2;
 mod serializer3;
 mod valueaccess;
@@ -73,7 +72,6 @@ pub use name::NameId;
 pub use namespace::NamespaceId;
 pub use prefix::PrefixId;
 pub use serialize::SerializeOptions;
-pub use serializer::{SerializerWriter, StringWriter};
 pub use xmlvalue::{
     Attributes, Comment, Element, ProcessingInstruction, Text, ToNamespace, Value, ValueType,
 };
