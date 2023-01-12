@@ -1,10 +1,8 @@
 use next_gen::prelude::*;
 use std::io::Write;
 
-use crate::pretty::serialize as serialize_pretty;
-use crate::serializer::{gen_tokens, get_extra_prefixes, serialize};
-
 use crate::error::Error;
+use crate::serializer::{gen_tokens, get_extra_prefixes, XmlSerializer};
 use crate::xotdata::{Node, Xot};
 
 /// Options to control serialization
@@ -24,10 +22,11 @@ impl<'a> WithSerializeOptions<'a> {
     pub fn write(&self, node: Node, w: &mut impl Write) -> Result<(), Error> {
         let extra_prefixes = get_extra_prefixes(self.xot, node);
         mk_gen!(let output_tokens = gen_tokens(self.xot, node, &extra_prefixes));
+        let mut xml_serializer = XmlSerializer::new(self.xot, &extra_prefixes);
         if self.options.pretty {
-            serialize_pretty(self.xot, w, output_tokens, &extra_prefixes)
+            xml_serializer.serialize_pretty(w, output_tokens)
         } else {
-            serialize(self.xot, w, output_tokens, &extra_prefixes)
+            xml_serializer.serialize(w, output_tokens)
         }
     }
 

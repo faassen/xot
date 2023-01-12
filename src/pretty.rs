@@ -1,8 +1,5 @@
-use std::io;
-
-use crate::error::Error;
-use crate::serializer::{serialize_node, OutputToken, XmlSerializer};
-use crate::xmlvalue::{ToNamespace, ValueType};
+use crate::serializer::OutputToken;
+use crate::xmlvalue::ValueType;
 use crate::xotdata::{Node, Xot};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -60,7 +57,7 @@ impl<'a> Pretty<'a> {
             .any(|child| self.xot.value_type(child) == ValueType::Text)
     }
 
-    fn prettify(&mut self, node: Node, output_token: &OutputToken) -> (usize, bool) {
+    pub(crate) fn prettify(&mut self, node: Node, output_token: &OutputToken) -> (usize, bool) {
         use OutputToken::*;
         match output_token {
             StartTagOpen(_) => (self.get_indentation(), false),
@@ -96,27 +93,6 @@ impl<'a> Pretty<'a> {
             _ => (0, false),
         }
     }
-}
-
-pub(crate) fn serialize<'a, W: io::Write>(
-    xot: &'a Xot<'a>,
-    w: &mut W,
-    output_tokens: impl Iterator<Item = (Node, OutputToken<'a>)>,
-    extra_prefixes: &ToNamespace,
-) -> Result<(), Error> {
-    let mut xml_serializer = XmlSerializer::new(xot, extra_prefixes);
-    let mut pretty = Pretty::new(xot);
-    for (node, output_token) in output_tokens {
-        let (indentation, newline) = pretty.prettify(node, &output_token);
-        if indentation > 0 {
-            w.write_all(" ".repeat(indentation * 2).as_bytes())?;
-        }
-        serialize_node(&mut xml_serializer, w, node, output_token)?;
-        if newline {
-            w.write_all(b"\n")?;
-        }
-    }
-    Ok(())
 }
 
 #[cfg(test)]

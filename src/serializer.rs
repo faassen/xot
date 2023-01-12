@@ -8,6 +8,7 @@ use crate::fullname::FullnameSerializer;
 use crate::name::NameId;
 use crate::namespace::NamespaceId;
 use crate::prefix::PrefixId;
+use crate::pretty::Pretty;
 use crate::xmlvalue::{Element, ToNamespace};
 use crate::xmlvalue::{Value, ValueType};
 use crate::xotdata::{Node, Xot};
@@ -124,7 +125,50 @@ impl<'a> XmlSerializer<'a> {
         }
     }
 
-    pub(crate) fn serialize(
+    pub(crate) fn serialize<W: io::Write>(
+        &mut self,
+        w: &mut W,
+        output_tokens: impl Iterator<Item = (Node, OutputToken<'a>)>,
+    ) -> Result<(), Error> {
+        for (node, output_token) in output_tokens {
+            self.serialize_node(w, node, output_token)?;
+        }
+        Ok(())
+    }
+
+    pub(crate) fn serialize_pretty<W: io::Write>(
+        &mut self,
+        w: &mut W,
+        output_tokens: impl Iterator<Item = (Node, OutputToken<'a>)>,
+    ) -> Result<(), Error> {
+        let mut pretty = Pretty::new(self.xot);
+        for (node, output_token) in output_tokens {
+            let (indentation, newline) = pretty.prettify(node, &output_token);
+            if indentation > 0 {
+                w.write_all(" ".repeat(indentation * 2).as_bytes())?;
+            }
+            self.serialize_node(w, node, output_token)?;
+            if newline {
+                w.write_all(b"\n")?;
+            }
+        }
+        Ok(())
+    }
+    pub(crate) fn serialize_node<W: io::Write>(
+        &mut self,
+        w: &mut W,
+        node: Node,
+        output_token: OutputToken,
+    ) -> Result<(), Error> {
+        let data = self.render_token(node, &output_token)?;
+        if data.space {
+            w.write_all(b" ").unwrap();
+        }
+        w.write_all(data.text.as_bytes()).unwrap();
+        Ok(())
+    }
+
+    fn render_token(
         &mut self,
         node: Node,
         output_token: &OutputToken,
@@ -228,33 +272,6 @@ impl<'a> XmlSerializer<'a> {
         };
         Ok(r)
     }
-}
-
-pub(crate) fn serialize<'a, W: io::Write>(
-    xot: &'a Xot<'a>,
-    w: &mut W,
-    output_tokens: impl Iterator<Item = (Node, OutputToken<'a>)>,
-    extra_prefixes: &ToNamespace,
-) -> Result<(), Error> {
-    let mut serializer = XmlSerializer::new(xot, extra_prefixes);
-    for (node, output_token) in output_tokens {
-        serialize_node(&mut serializer, w, node, output_token)?;
-    }
-    Ok(())
-}
-
-pub(crate) fn serialize_node<W: io::Write>(
-    serializer: &mut XmlSerializer,
-    w: &mut W,
-    node: Node,
-    output_token: OutputToken,
-) -> Result<(), Error> {
-    let data = serializer.serialize(node, &output_token)?;
-    if data.space {
-        w.write_all(b" ").unwrap();
-    }
-    w.write_all(data.text.as_bytes()).unwrap();
-    Ok(())
 }
 
 pub(crate) fn get_extra_prefixes(xot: &Xot, node: Node) -> ToNamespace {
