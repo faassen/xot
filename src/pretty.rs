@@ -2,7 +2,7 @@ use std::io;
 
 use crate::error::Error;
 
-use crate::serializer2::{serialize_node, OutputToken, XmlSerializer};
+use crate::serializer::{serialize_node, OutputToken, XmlSerializer};
 use crate::xmlvalue::{ToNamespace, ValueType};
 use crate::xotdata::{Node, Xot};
 

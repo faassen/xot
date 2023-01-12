@@ -95,6 +95,7 @@ fn gen_edge_start<'a>(xot: &'a Xot<'a>, top_node: Node, node: Node, extra_prefix
         }
     }
 }
+
 #[generator(yield(OutputToken<'a>))]
 fn gen_edge_end<'a>(xot: &'a Xot<'a>, node: Node) {
     let value = xot.value(node);

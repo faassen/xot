@@ -2,7 +2,7 @@ use next_gen::prelude::*;
 use std::io::Write;
 
 use crate::pretty::serialize as serialize_pretty;
-use crate::serializer2::{gen_tokens, get_extra_prefixes, serialize};
+use crate::serializer::{gen_tokens, get_extra_prefixes, serialize};
 
 use crate::error::Error;
 use crate::xotdata::{Node, Xot};
