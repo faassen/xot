@@ -1,14 +1,9 @@
 use std::io;
-use std::sync::Arc;
 
 use crate::error::Error;
-use crate::name::NameId;
-use crate::namespace::NamespaceId;
-use crate::prefix::PrefixId;
-use crate::serialize::SerializeOptions;
-use crate::serializer2::ToBeSerializedIterator;
-use crate::serializer2::{serialize_node, SerializationData, ToBeSerialized, XmlSerializer};
-use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text, ToNamespace, ValueType};
+
+use crate::serializer2::{serialize_node, ToBeSerialized, XmlSerializer};
+use crate::xmlvalue::{ToNamespace, ValueType};
 use crate::xotdata::{Node, Xot};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -131,18 +126,7 @@ mod tests {
     use insta::assert_snapshot;
     use rstest::rstest;
 
-    #[test]
-    fn test_pretty() {
-        let mut xot = Xot::new();
-        let root = xot.parse(r#"<a><b/></a>"#).unwrap();
-        let extra_prefixes = ToNamespace::new();
-        let iter = ToBeSerializedIterator::new(&xot, root, &extra_prefixes);
-        let mut buf = Vec::new();
-        let extra_prefixes = ToNamespace::new();
-        serialize(&xot, &mut buf, iter, &extra_prefixes).unwrap();
-        let s = String::from_utf8(buf).unwrap();
-        assert_eq!(s, "<a>\n  <b/>\n</a>\n")
-    }
+    use crate::serialize::SerializeOptions;
 
     #[rstest]
     fn pretty(
