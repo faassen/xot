@@ -2,7 +2,7 @@ use std::io;
 
 use crate::error::Error;
 
-use crate::serializer2::{serialize_node, ToBeSerialized, XmlSerializer};
+use crate::serializer2::{serialize_node, OutputToken, XmlSerializer};
 use crate::xmlvalue::{ToNamespace, ValueType};
 use crate::xotdata::{Node, Xot};
 
@@ -61,9 +61,9 @@ impl<'a> PrettySerializer<'a> {
             .any(|child| self.xot.value_type(child) == ValueType::Text)
     }
 
-    fn serialize(&mut self, node: Node, to_be_serialized: &ToBeSerialized) -> (usize, bool) {
-        use ToBeSerialized::*;
-        match to_be_serialized {
+    fn serialize(&mut self, node: Node, output_token: &OutputToken) -> (usize, bool) {
+        use OutputToken::*;
+        match output_token {
             StartTagOpen(_) => (self.get_indentation(), false),
             Comment(_) | ProcessingInstruction(..) => (self.get_indentation(), self.get_newline()),
             StartTagClose(..) => {
@@ -102,17 +102,17 @@ impl<'a> PrettySerializer<'a> {
 pub(crate) fn serialize<'a, W: io::Write>(
     xot: &'a Xot<'a>,
     w: &mut W,
-    to_be_serializeds: impl Iterator<Item = (Node, ToBeSerialized<'a>)>,
+    to_be_serializeds: impl Iterator<Item = (Node, OutputToken<'a>)>,
     extra_prefixes: &ToNamespace,
 ) -> Result<(), Error> {
     let mut xml_serializer = XmlSerializer::new(xot, extra_prefixes);
     let mut pretty_serializer = PrettySerializer::new(xot);
-    for (node, to_be_serialized) in to_be_serializeds {
-        let (indentation, newline) = pretty_serializer.serialize(node, &to_be_serialized);
+    for (node, output_token) in to_be_serializeds {
+        let (indentation, newline) = pretty_serializer.serialize(node, &output_token);
         if indentation > 0 {
             w.write_all(" ".repeat(indentation * 2).as_bytes())?;
         }
-        serialize_node(&mut xml_serializer, w, node, to_be_serialized)?;
+        serialize_node(&mut xml_serializer, w, node, output_token)?;
         if newline {
             w.write_all(b"\n")?;
         }

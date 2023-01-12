@@ -23,11 +23,11 @@ impl<'a> WithSerializeOptions<'a> {
     /// Write node as XML.
     pub fn write(&self, node: Node, w: &mut impl Write) -> Result<(), Error> {
         let extra_prefixes = get_extra_prefixes(self.xot, node);
-        mk_gen!(let to_be_serializeds = to_tokens(self.xot, node, &extra_prefixes));
+        mk_gen!(let output_tokens = to_tokens(self.xot, node, &extra_prefixes));
         if self.options.pretty {
-            serialize_pretty(self.xot, w, to_be_serializeds, &extra_prefixes)
+            serialize_pretty(self.xot, w, output_tokens, &extra_prefixes)
         } else {
-            serialize(self.xot, w, to_be_serializeds, &extra_prefixes)
+            serialize(self.xot, w, output_tokens, &extra_prefixes)
         }
     }
 
