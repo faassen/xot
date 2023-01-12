@@ -2,8 +2,7 @@ use next_gen::prelude::*;
 use std::io::Write;
 
 use crate::pretty::serialize as serialize_pretty;
-use crate::serializer2::serialize;
-use crate::serializer3::{get_extra_prefixes, serialize_node};
+use crate::serializer2::{get_extra_prefixes, serialize, to_tokens};
 
 use crate::error::Error;
 use crate::xotdata::{Node, Xot};
@@ -24,7 +23,7 @@ impl<'a> WithSerializeOptions<'a> {
     /// Write node as XML.
     pub fn write(&self, node: Node, w: &mut impl Write) -> Result<(), Error> {
         let extra_prefixes = get_extra_prefixes(self.xot, node);
-        mk_gen!(let to_be_serializeds = serialize_node(self.xot, node, &extra_prefixes));
+        mk_gen!(let to_be_serializeds = to_tokens(self.xot, node, &extra_prefixes));
         if self.options.pretty {
             serialize_pretty(self.xot, w, to_be_serializeds, &extra_prefixes)
         } else {
