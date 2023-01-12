@@ -192,130 +192,130 @@ mod tests {
     use super::*;
     use insta::assert_snapshot;
 
-    #[test]
-    fn test_only_elements() {
-        let mut xot = Xot::new();
+    // #[test]
+    // fn test_only_elements() {
+    //     let mut xot = Xot::new();
 
-        let doc = xot.parse(r#"<doc><a><b/></a></doc>"#).unwrap();
+    //     let doc = xot.parse(r#"<doc><a><b/></a></doc>"#).unwrap();
 
-        let mut buf = Vec::new();
-        let mut writer = PrettyWriter::new(&xot, &mut buf);
-        xot.serialize_with_writer(doc, &mut writer).unwrap();
-        let s = String::from_utf8(buf).unwrap();
-        assert_snapshot!(s);
-    }
+    //     let mut buf = Vec::new();
+    //     let mut writer = PrettyWriter::new(&xot, &mut buf);
+    //     xot.serialize_with_writer(doc, &mut writer).unwrap();
+    //     let s = String::from_utf8(buf).unwrap();
+    //     assert_snapshot!(s);
+    // }
 
-    #[test]
-    fn test_only_elements_multi() {
-        let mut xot = Xot::new();
+    // #[test]
+    // fn test_only_elements_multi() {
+    //     let mut xot = Xot::new();
 
-        let doc = xot
-            .parse(r#"<doc><a><b/></a><a><b/><b/></a></doc>"#)
-            .unwrap();
+    //     let doc = xot
+    //         .parse(r#"<doc><a><b/></a><a><b/><b/></a></doc>"#)
+    //         .unwrap();
 
-        let mut buf = Vec::new();
-        let mut writer = PrettyWriter::new(&xot, &mut buf);
-        xot.serialize_with_writer(doc, &mut writer).unwrap();
-        let s = String::from_utf8(buf).unwrap();
-        assert_snapshot!(s);
-    }
+    //     let mut buf = Vec::new();
+    //     let mut writer = PrettyWriter::new(&xot, &mut buf);
+    //     xot.serialize_with_writer(doc, &mut writer).unwrap();
+    //     let s = String::from_utf8(buf).unwrap();
+    //     assert_snapshot!(s);
+    // }
 
-    #[test]
-    fn test_text() {
-        let mut xot = Xot::new();
+    // #[test]
+    // fn test_text() {
+    //     let mut xot = Xot::new();
 
-        let doc = xot.parse(r#"<doc><a>text</a><a>text 2</a></doc>"#).unwrap();
+    //     let doc = xot.parse(r#"<doc><a>text</a><a>text 2</a></doc>"#).unwrap();
 
-        let mut buf = Vec::new();
-        let mut writer = PrettyWriter::new(&xot, &mut buf);
-        xot.serialize_with_writer(doc, &mut writer).unwrap();
-        let s = String::from_utf8(buf).unwrap();
-        assert_snapshot!(s);
-    }
+    //     let mut buf = Vec::new();
+    //     let mut writer = PrettyWriter::new(&xot, &mut buf);
+    //     xot.serialize_with_writer(doc, &mut writer).unwrap();
+    //     let s = String::from_utf8(buf).unwrap();
+    //     assert_snapshot!(s);
+    // }
 
-    #[test]
-    fn test_text_mixed_element() {
-        let mut xot = Xot::new();
+    // #[test]
+    // fn test_text_mixed_element() {
+    //     let mut xot = Xot::new();
 
-        let doc = xot
-            .parse(r#"<doc><p>Hello <em>world</em>!</p></doc>"#)
-            .unwrap();
+    //     let doc = xot
+    //         .parse(r#"<doc><p>Hello <em>world</em>!</p></doc>"#)
+    //         .unwrap();
 
-        let mut buf = Vec::new();
-        let mut writer = PrettyWriter::new(&xot, &mut buf);
-        xot.serialize_with_writer(doc, &mut writer).unwrap();
-        let s = String::from_utf8(buf).unwrap();
-        assert_snapshot!(s);
-    }
+    //     let mut buf = Vec::new();
+    //     let mut writer = PrettyWriter::new(&xot, &mut buf);
+    //     xot.serialize_with_writer(doc, &mut writer).unwrap();
+    //     let s = String::from_utf8(buf).unwrap();
+    //     assert_snapshot!(s);
+    // }
 
-    #[test]
-    fn test_text_mixed_element_nested() {
-        let mut xot = Xot::new();
+    // #[test]
+    // fn test_text_mixed_element_nested() {
+    //     let mut xot = Xot::new();
 
-        let doc = xot
-            .parse(r#"<doc><p>Hello <em><strong>world</strong></em>!</p></doc>"#)
-            .unwrap();
+    //     let doc = xot
+    //         .parse(r#"<doc><p>Hello <em><strong>world</strong></em>!</p></doc>"#)
+    //         .unwrap();
 
-        let mut buf = Vec::new();
-        let mut writer = PrettyWriter::new(&xot, &mut buf);
-        xot.serialize_with_writer(doc, &mut writer).unwrap();
-        let s = String::from_utf8(buf).unwrap();
-        assert_snapshot!(s);
-    }
+    //     let mut buf = Vec::new();
+    //     let mut writer = PrettyWriter::new(&xot, &mut buf);
+    //     xot.serialize_with_writer(doc, &mut writer).unwrap();
+    //     let s = String::from_utf8(buf).unwrap();
+    //     assert_snapshot!(s);
+    // }
 
-    #[test]
-    fn test_multiple_mixed() {
-        let mut xot = Xot::new();
+    // #[test]
+    // fn test_multiple_mixed() {
+    //     let mut xot = Xot::new();
 
-        let doc = xot
-            .parse(r#"<doc><p>Hello <em>world</em>!</p><p>Greetings, <strong>universe</strong>!</p></doc>"#)
-            .unwrap();
+    //     let doc = xot
+    //         .parse(r#"<doc><p>Hello <em>world</em>!</p><p>Greetings, <strong>universe</strong>!</p></doc>"#)
+    //         .unwrap();
 
-        let mut buf = Vec::new();
-        let mut writer = PrettyWriter::new(&xot, &mut buf);
-        xot.serialize_with_writer(doc, &mut writer).unwrap();
-        let s = String::from_utf8(buf).unwrap();
-        assert_snapshot!(s);
-    }
+    //     let mut buf = Vec::new();
+    //     let mut writer = PrettyWriter::new(&xot, &mut buf);
+    //     xot.serialize_with_writer(doc, &mut writer).unwrap();
+    //     let s = String::from_utf8(buf).unwrap();
+    //     assert_snapshot!(s);
+    // }
 
-    #[test]
-    fn test_comment() {
-        let mut xot = Xot::new();
+    // #[test]
+    // fn test_comment() {
+    //     let mut xot = Xot::new();
 
-        let doc = xot
-            .parse(r#"<doc><a><!--hello--><!--world--></a></doc>"#)
-            .unwrap();
+    //     let doc = xot
+    //         .parse(r#"<doc><a><!--hello--><!--world--></a></doc>"#)
+    //         .unwrap();
 
-        let mut buf = Vec::new();
-        let mut writer = PrettyWriter::new(&xot, &mut buf);
-        xot.serialize_with_writer(doc, &mut writer).unwrap();
-        let s = String::from_utf8(buf).unwrap();
-        assert_snapshot!(s);
-    }
+    //     let mut buf = Vec::new();
+    //     let mut writer = PrettyWriter::new(&xot, &mut buf);
+    //     xot.serialize_with_writer(doc, &mut writer).unwrap();
+    //     let s = String::from_utf8(buf).unwrap();
+    //     assert_snapshot!(s);
+    // }
 
-    #[test]
-    fn test_text_mixed_comment() {
-        let mut xot = Xot::new();
+    // #[test]
+    // fn test_text_mixed_comment() {
+    //     let mut xot = Xot::new();
 
-        let doc = xot
-            .parse(r#"<doc><p>Hello <!--world-->!</p></doc>"#)
-            .unwrap();
+    //     let doc = xot
+    //         .parse(r#"<doc><p>Hello <!--world-->!</p></doc>"#)
+    //         .unwrap();
 
-        let mut buf = Vec::new();
-        let mut writer = PrettyWriter::new(&xot, &mut buf);
-        xot.serialize_with_writer(doc, &mut writer).unwrap();
-        let s = String::from_utf8(buf).unwrap();
-        assert_snapshot!(s);
-    }
+    //     let mut buf = Vec::new();
+    //     let mut writer = PrettyWriter::new(&xot, &mut buf);
+    //     xot.serialize_with_writer(doc, &mut writer).unwrap();
+    //     let s = String::from_utf8(buf).unwrap();
+    //     assert_snapshot!(s);
+    // }
 
-    #[test]
-    fn test_pi() {
-        let mut xot = Xot::new();
-        let doc = xot.parse(r#"<doc><a><?pi?><?pi?></a></doc>"#).unwrap();
-        let mut buf = Vec::new();
-        let mut writer = PrettyWriter::new(&xot, &mut buf);
-        xot.serialize_with_writer(doc, &mut writer).unwrap();
-        let s = String::from_utf8(buf).unwrap();
-        assert_snapshot!(s);
-    }
+    // #[test]
+    // fn test_pi() {
+    //     let mut xot = Xot::new();
+    //     let doc = xot.parse(r#"<doc><a><?pi?><?pi?></a></doc>"#).unwrap();
+    //     let mut buf = Vec::new();
+    //     let mut writer = PrettyWriter::new(&xot, &mut buf);
+    //     xot.serialize_with_writer(doc, &mut writer).unwrap();
+    //     let s = String::from_utf8(buf).unwrap();
+    //     assert_snapshot!(s);
+    // }
 }

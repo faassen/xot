@@ -228,8 +228,9 @@ pub struct SerializationData {
 }
 
 impl<'a> XmlSerializer<'a> {
-    pub(crate) fn new(xot: &'a Xot<'a>) -> Self {
-        let fullname_serializer = FullnameSerializer::new(xot);
+    pub(crate) fn new(xot: &'a Xot<'a>, extra_prefixes: &ToNamespace) -> Self {
+        let mut fullname_serializer = FullnameSerializer::new(xot);
+        fullname_serializer.push(extra_prefixes);
         Self {
             xot,
             fullname_serializer,
@@ -237,19 +238,23 @@ impl<'a> XmlSerializer<'a> {
     }
 
     pub(crate) fn serialize(
-        &self,
+        &mut self,
         node: Node,
         to_be_serialized: &ToBeSerialized,
     ) -> Result<SerializationData, Error> {
         use ToBeSerialized::*;
         let r = match to_be_serialized {
-            StartTagOpen(element) => SerializationData {
-                space: false,
-                text: format!(
-                    "<{}",
-                    self.fullname_serializer.fullname_or_err(element.name_id)?
-                ),
-            },
+            StartTagOpen(element) => {
+                self.fullname_serializer
+                    .push(&element.namespace_info.to_namespace);
+                SerializationData {
+                    space: false,
+                    text: format!(
+                        "<{}",
+                        self.fullname_serializer.fullname_or_err(element.name_id)?
+                    ),
+                }
+            }
             StartTagClose(_element) => {
                 if self.xot.first_child(node).is_none() {
                     SerializationData {
@@ -264,7 +269,7 @@ impl<'a> XmlSerializer<'a> {
                 }
             }
             EndTag(element) => {
-                if self.xot.first_child(node).is_some() {
+                let r = if self.xot.first_child(node).is_some() {
                     SerializationData {
                         space: false,
                         text: format!(
@@ -277,7 +282,10 @@ impl<'a> XmlSerializer<'a> {
                         space: false,
                         text: "".to_string(),
                     }
-                }
+                };
+                self.fullname_serializer
+                    .pop(&element.namespace_info.to_namespace);
+                r
             }
             NamespaceDeclaration(_element, prefix_id, namespace_id) => {
                 let namespace = self.xot.namespace_str(*namespace_id);
@@ -335,20 +343,21 @@ impl<'a> XmlSerializer<'a> {
     }
 }
 
-fn serialize<'a, W: io::Write>(
+pub(crate) fn serialize<'a, W: io::Write>(
     xot: &'a Xot<'a>,
     w: &mut W,
     to_be_serializeds: impl Iterator<Item = (Node, ToBeSerialized<'a>)>,
+    extra_prefixes: &ToNamespace,
 ) -> Result<(), Error> {
-    let serializer = XmlSerializer::new(xot);
+    let mut serializer = XmlSerializer::new(xot, extra_prefixes);
     for (node, to_be_serialized) in to_be_serializeds {
-        serialize_node(&serializer, w, node, to_be_serialized)?;
+        serialize_node(&mut serializer, w, node, to_be_serialized)?;
     }
     Ok(())
 }
 
-pub(crate) fn serialize_node<'a, W: io::Write>(
-    serializer: &XmlSerializer,
+pub(crate) fn serialize_node<W: io::Write>(
+    serializer: &mut XmlSerializer,
     w: &mut W,
     node: Node,
     to_be_serialized: ToBeSerialized,
@@ -399,7 +408,8 @@ mod tests {
         let extra_prefixes = ToNamespace::new();
         let iter = ToBeSerializedIterator::new(&xot, root, &extra_prefixes);
         let mut buf = Vec::new();
-        serialize(&xot, &mut buf, iter).unwrap();
+        let extra_prefixes = ToNamespace::new();
+        serialize(&xot, &mut buf, iter, &extra_prefixes).unwrap();
         let s = String::from_utf8(buf).unwrap();
         assert_eq!(s, r#"<doc a="A">Text</doc>"#);
     }

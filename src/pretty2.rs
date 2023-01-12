@@ -5,6 +5,7 @@ use crate::error::Error;
 use crate::name::NameId;
 use crate::namespace::NamespaceId;
 use crate::prefix::PrefixId;
+use crate::serialize::SerializeOptions;
 use crate::serializer2::ToBeSerializedIterator;
 use crate::serializer2::{serialize_node, SerializationData, ToBeSerialized, XmlSerializer};
 use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text, ToNamespace, ValueType};
@@ -46,6 +47,9 @@ impl<'a> PrettySerializer<'a> {
     }
 
     fn get_indentation(&self) -> usize {
+        if self.in_mixed() {
+            return 0;
+        }
         self.stack
             .iter()
             .filter(|e| **e == StackEntry::Unmixed)
@@ -62,27 +66,24 @@ impl<'a> PrettySerializer<'a> {
             .any(|child| self.xot.value_type(child) == ValueType::Text)
     }
 
-    fn indentation_newline(&mut self, node: Node) -> (usize, bool) {
-        let newline = if self.xot.first_child(node).is_some() {
-            if !self.has_text_child(node) {
-                self.unmixed();
-                self.get_newline()
-            } else {
-                self.mixed();
-                false
-            }
-        } else {
-            false
-        };
-        (0, newline)
-    }
-
     fn serialize(&mut self, node: Node, to_be_serialized: &ToBeSerialized) -> (usize, bool) {
         use ToBeSerialized::*;
         match to_be_serialized {
             StartTagOpen(_) => (self.get_indentation(), false),
-            StartTagClose(..) | Comment(..) | ProcessingInstruction(..) => {
-                self.indentation_newline(node)
+            Comment(_) | ProcessingInstruction(..) => (self.get_indentation(), self.get_newline()),
+            StartTagClose(..) => {
+                let newline = if self.xot.first_child(node).is_some() {
+                    if !self.has_text_child(node) {
+                        self.unmixed();
+                        self.get_newline()
+                    } else {
+                        self.mixed();
+                        false
+                    }
+                } else {
+                    false
+                };
+                (0, newline)
             }
             EndTag(_) => {
                 let indentation = if self.xot.first_child(node).is_some() {
@@ -103,19 +104,20 @@ impl<'a> PrettySerializer<'a> {
     }
 }
 
-fn serialize<'a, W: io::Write>(
+pub(crate) fn serialize<'a, W: io::Write>(
     xot: &'a Xot<'a>,
     w: &mut W,
     to_be_serializeds: impl Iterator<Item = (Node, ToBeSerialized<'a>)>,
+    extra_prefixes: &ToNamespace,
 ) -> Result<(), Error> {
-    let xml_serializer = XmlSerializer::new(xot);
+    let mut xml_serializer = XmlSerializer::new(xot, extra_prefixes);
     let mut pretty_serializer = PrettySerializer::new(xot);
     for (node, to_be_serialized) in to_be_serializeds {
         let (indentation, newline) = pretty_serializer.serialize(node, &to_be_serialized);
         if indentation > 0 {
             w.write_all(" ".repeat(indentation * 2).as_bytes())?;
         }
-        serialize_node(&xml_serializer, w, node, to_be_serialized)?;
+        serialize_node(&mut xml_serializer, w, node, to_be_serialized)?;
         if newline {
             w.write_all(b"\n")?;
         }
@@ -126,6 +128,8 @@ fn serialize<'a, W: io::Write>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use insta::assert_snapshot;
+    use rstest::rstest;
 
     #[test]
     fn test_pretty() {
@@ -134,8 +138,36 @@ mod tests {
         let extra_prefixes = ToNamespace::new();
         let iter = ToBeSerializedIterator::new(&xot, root, &extra_prefixes);
         let mut buf = Vec::new();
-        serialize(&xot, &mut buf, iter).unwrap();
+        let extra_prefixes = ToNamespace::new();
+        serialize(&xot, &mut buf, iter, &extra_prefixes).unwrap();
         let s = String::from_utf8(buf).unwrap();
         assert_eq!(s, "<a>\n  <b/>\n</a>\n")
+    }
+
+    #[rstest]
+    fn pretty(
+        #[values(
+            r#"<doc><a><b/></a></doc>"#,
+            r#"<doc><a><b/></a><a><b/><b/></a></doc>"#,
+            r#"<doc><a>text</a><a>text 2</a></doc>"#,
+            r#"<doc><p>Hello <em>world</em>!</p></doc>"#,
+            r#"<doc><p>Hello <em><strong>world</strong></em>!</p></doc>"#,
+            r#"<doc><p>Hello <em>world</em>!</p><p>Greetings, <strong>universe</strong>!</p></doc>"#,
+            r#"<doc><a><!--hello--><!--world--></a></doc>"#,
+            r#"<doc><p>Hello <!--world-->!</p></doc>"#,
+            r#"<doc><a><?pi?><?pi?></a></doc>"#
+        )]
+        xml: &str,
+    ) {
+        let mut xot = Xot::new();
+        let root = xot.parse(xml).unwrap();
+        let output_xml = xot
+            .serialize_options(SerializeOptions {
+                pretty: true,
+                ..SerializeOptions::default()
+            })
+            .to_string(root)
+            .unwrap();
+        assert_snapshot!(xml, output_xml);
     }
 }

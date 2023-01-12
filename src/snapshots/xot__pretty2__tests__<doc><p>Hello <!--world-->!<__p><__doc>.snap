@@ -1,6 +1,6 @@
 ---
-source: src/pretty.rs
-expression: s
+source: src/pretty2.rs
+expression: output_xml
 ---
 <doc>
   <p>Hello <!--world-->!</p>

@@ -23,6 +23,7 @@ indextree = "4.5.0"
 vector-map = "1.0.1"
 xmlparser = "0.13.5"
 proptest = { version = "1.0.0", optional = true }
+next-gen = "0.1.1"
 
 [dev-dependencies]
 insta = { version = "1.21.2" }

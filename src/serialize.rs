@@ -1,7 +1,9 @@
+use next_gen::prelude::*;
 use std::io::Write;
 
-use crate::pretty::PrettyWriter;
-use crate::serializer::{Serializer, SerializerWriter, XmlSerializerWriter};
+use crate::pretty2::serialize as serialize_pretty;
+use crate::serializer2::serialize;
+use crate::serializer3::{get_extra_prefixes, serialize_node};
 
 use crate::error::Error;
 use crate::xotdata::{Node, Xot};
@@ -21,14 +23,12 @@ pub struct WithSerializeOptions<'a> {
 impl<'a> WithSerializeOptions<'a> {
     /// Write node as XML.
     pub fn write(&self, node: Node, w: &mut impl Write) -> Result<(), Error> {
+        let extra_prefixes = get_extra_prefixes(self.xot, node);
+        mk_gen!(let to_be_serializeds = serialize_node(self.xot, node, &extra_prefixes));
         if self.options.pretty {
-            let mut serializer_writer = PrettyWriter::new(self.xot, w);
-            let mut serializer = Serializer::new(self.xot, &mut serializer_writer);
-            serializer.serialize_node(node)
+            serialize_pretty(self.xot, w, to_be_serializeds, &extra_prefixes)
         } else {
-            let mut serializer_writer = XmlSerializerWriter::new(self.xot, w);
-            let mut serializer = Serializer::new(self.xot, &mut serializer_writer);
-            serializer.serialize_node(node)
+            serialize(self.xot, w, to_be_serializeds, &extra_prefixes)
         }
     }
 
@@ -114,19 +114,19 @@ impl<'a> Xot<'a> {
         WithSerializeOptions { xot: self, options }
     }
 
-    /// Serialize node with a custom serializer writer.
-    ///
-    /// This is an advanced method that allows customisation of the XML writing.
-    ///
-    /// If there are missing namespace prefixes, this errors. You can automatically
-    /// add missing prefixes by invoking [`Xot::create_missing_prefixes`] before
-    /// serialization to avoid this error.
-    pub fn serialize_with_writer(
-        &self,
-        node: Node,
-        serializer_writer: &mut impl SerializerWriter,
-    ) -> Result<(), Error> {
-        let mut serializer = Serializer::new(self, serializer_writer);
-        serializer.serialize_node(node)
-    }
+    // /// Serialize node with a custom serializer writer.
+    // ///
+    // /// This is an advanced method that allows customisation of the XML writing.
+    // ///
+    // /// If there are missing namespace prefixes, this errors. You can automatically
+    // /// add missing prefixes by invoking [`Xot::create_missing_prefixes`] before
+    // /// serialization to avoid this error.
+    // pub fn serialize_with_writer(
+    //     &self,
+    //     node: Node,
+    //     serializer_writer: &mut impl SerializerWriter,
+    // ) -> Result<(), Error> {
+    //     let mut serializer = Serializer::new(self, serializer_writer);
+    //     serializer.serialize_node(node)
+    // }
 }

@@ -63,6 +63,7 @@ pub mod proptest;
 mod serialize;
 mod serializer;
 mod serializer2;
+mod serializer3;
 mod valueaccess;
 mod xmlvalue;
 mod xotdata;
