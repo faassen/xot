@@ -448,14 +448,14 @@ impl<'a> Xot<'a> {
             // that is an element
             if self.children(node).count() != 1 {
                 return Err(Error::InvalidOperation(
-                    "Cann only unwrap document element if it has exactly 1 element child node"
+                    "Can only unwrap document element if it has exactly 1 element child node"
                         .to_string(),
                 ));
             }
             // we now know there is 1 child
             if !self.is_element(self.first_child(node).unwrap()) {
                 return Err(Error::InvalidOperation(
-                    "Cann only unwrap document element if it has exactly 1 element child node"
+                    "Can only unwrap document element if it has exactly 1 element child node"
                         .to_string(),
                 ));
             }
