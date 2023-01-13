@@ -106,24 +106,25 @@ mod tests {
     #[rstest]
     fn pretty(
         #[values(
-            r#"<doc><a><b/></a></doc>"#,
-            r#"<doc><a><b/></a><a><b/><b/></a></doc>"#,
-            r#"<doc><a>text</a><a>text 2</a></doc>"#,
-            r#"<doc><p>Hello <em>world</em>!</p></doc>"#,
-            r#"<doc><p>Hello <em><strong>world</strong></em>!</p></doc>"#,
-            r#"<doc><p>Hello <em>world</em>!</p><p>Greetings, <strong>universe</strong>!</p></doc>"#,
-            r#"<doc><a><!--hello--><!--world--></a></doc>"#,
-            r#"<doc><p>Hello <!--world-->!</p></doc>"#,
-            r#"<doc><a><?pi?><?pi?></a></doc>"#
+            ("elements", r#"<doc><a><b/></a></doc>"#),
+            ("more elements", r#"<doc><a><b/></a><a><b/><b/></a></doc>"#),
+            ("text", r#"<doc><a>text</a><a>text 2</a></doc>"#),
+            ("mixed", r#"<doc><p>Hello <em>world</em>!</p></doc>"#),
+            ("mixed, nested", r#"<doc><p>Hello <em><strong>world</strong></em>!</p></doc>"#),
+            ("mixed, multi", r#"<doc><p>Hello <em>world</em>!</p><p>Greetings, <strong>universe</strong>!</p></doc>"#),
+            ("comment", r#"<doc><a><!--hello--><!--world--></a></doc>"#),
+            ("mixed, comment", r#"<doc><p>Hello <!--world-->!</p></doc>"#),
+            ("multi pi", r#"<doc><a><?pi?><?pi?></a></doc>"#)
         )]
-        xml: &str,
+        value: (&str, &str),
     ) {
+        let (name, xml) = value;
         let mut xot = Xot::new();
         let root = xot.parse(xml).unwrap();
         let output_xml = xot
             .with_serialize_options(SerializeOptions { pretty: true })
             .to_string(root)
             .unwrap();
-        assert_snapshot!(xml, output_xml);
+        assert_snapshot!(name, output_xml, xml);
     }
 }

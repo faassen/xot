@@ -1,6 +1,6 @@
 ---
 source: src/pretty.rs
-expression: output_xml
+expression: "<doc><a><?pi?><?pi?></a></doc>"
 ---
 <doc>
   <a>
