@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.11.1] - 2023-01-13
+
 ## Added
 
 - Added the ability to turn off text node consolidation. Use
@@ -231,8 +233,9 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.11.1...HEAD
 
-[unreleased]: https://github.com/faassen/xot/compare/v0.11.0...HEAD
+[unreleased]: https://github.com/faassen/xot/compare/v0.11.0...v0.11.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.10.3...v0.11.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.10.2...v0.10.3
 [unreleased]: https://github.com/faassen/xot/compare/v0.10.1...v0.10.2
