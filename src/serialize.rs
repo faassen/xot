@@ -3,7 +3,7 @@ use std::io::Write;
 
 use crate::error::Error;
 use crate::pretty::Pretty;
-use crate::serializer::{gen_tokens, OutputToken, Rendered, XmlSerializer};
+use crate::serializer::{gen_outputs, Output, Token, XmlSerializer};
 
 use crate::xotdata::{Node, Xot};
 
@@ -19,7 +19,7 @@ pub struct WithSerializeOptions<'a> {
     options: SerializeOptions,
 }
 
-pub struct PrettyRendered {
+pub struct PrettyToken {
     pub indentation: usize,
     pub space: bool,
     pub text: String,
@@ -29,12 +29,12 @@ pub struct PrettyRendered {
 impl<'a> WithSerializeOptions<'a> {
     /// Write node as XML.
     pub fn write(&self, node: Node, w: &mut impl Write) -> Result<(), Error> {
-        mk_gen!(let output_tokens = gen_tokens(self.xot, node));
+        mk_gen!(let outputs = gen_outputs(self.xot, node));
         let mut serializer = XmlSerializer::new(self.xot, node);
         if self.options.pretty {
-            serializer.serialize_pretty(w, output_tokens)
+            serializer.serialize_pretty(w, outputs)
         } else {
-            serializer.serialize(w, output_tokens)
+            serializer.serialize(w, outputs)
         }
     }
 
@@ -120,14 +120,11 @@ impl<'a> Xot<'a> {
         WithSerializeOptions { xot: self, options }
     }
 
-    pub fn tokens(
-        &'a self,
-        node: Node,
-    ) -> impl Iterator<Item = (Node, OutputToken<'a>, Rendered)> + '_ {
-        mk_gen!(let output_tokens = box gen_tokens(self, node));
+    pub fn tokens(&'a self, node: Node) -> impl Iterator<Item = (Node, Output<'a>, Token)> + '_ {
+        mk_gen!(let outputs = box gen_outputs(self, node));
         let mut serializer = XmlSerializer::new(self, node);
-        output_tokens.map(move |(node, output)| {
-            let rendered = serializer.render_token(node, &output).unwrap();
+        outputs.map(move |(node, output)| {
+            let rendered = serializer.render_output(node, &output).unwrap();
             (node, output, rendered)
         })
     }
@@ -135,17 +132,17 @@ impl<'a> Xot<'a> {
     pub fn pretty_tokens(
         &'a self,
         node: Node,
-    ) -> impl Iterator<Item = (Node, OutputToken<'a>, PrettyRendered)> + '_ {
-        mk_gen!(let output_tokens = box gen_tokens(self, node));
+    ) -> impl Iterator<Item = (Node, Output<'a>, PrettyToken)> + '_ {
+        mk_gen!(let outputs = box gen_outputs(self, node));
         let mut serializer = XmlSerializer::new(self, node);
         let mut pretty = Pretty::new(self);
-        output_tokens.map(move |(node, output)| {
+        outputs.map(move |(node, output)| {
             let (indentation, newline) = pretty.prettify(node, &output);
-            let rendered = serializer.render_token(node, &output).unwrap();
+            let rendered = serializer.render_output(node, &output).unwrap();
             (
                 node,
                 output,
-                PrettyRendered {
+                PrettyToken {
                     text: rendered.text,
                     space: rendered.space,
                     indentation,

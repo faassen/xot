@@ -1,4 +1,4 @@
-use crate::serializer::OutputToken;
+use crate::serializer::Output;
 use crate::xmlvalue::ValueType;
 use crate::xotdata::{Node, Xot};
 
@@ -8,7 +8,7 @@ enum StackEntry {
     Mixed,
 }
 
-pub struct Pretty<'a> {
+pub(crate) struct Pretty<'a> {
     xot: &'a Xot<'a>,
     stack: Vec<StackEntry>,
 }
@@ -57,8 +57,8 @@ impl<'a> Pretty<'a> {
             .any(|child| self.xot.value_type(child) == ValueType::Text)
     }
 
-    pub fn prettify(&mut self, node: Node, output_token: &OutputToken) -> (usize, bool) {
-        use OutputToken::*;
+    pub(crate) fn prettify(&mut self, node: Node, output_token: &Output) -> (usize, bool) {
+        use Output::*;
         match output_token {
             StartTagOpen(_) => (self.get_indentation(), false),
             Comment(_) | ProcessingInstruction(..) => (self.get_indentation(), self.get_newline()),

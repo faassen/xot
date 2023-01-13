@@ -1,4 +1,4 @@
-use xot::{Error, OutputToken, Xot};
+use xot::{Error, Output, Xot};
 
 #[test]
 fn test_style() -> Result<(), Error> {
@@ -87,7 +87,7 @@ fn test_style_element() -> Result<(), Error> {
             result.push(Style::Text(" ".to_string()));
         }
         if node == b {
-            if let OutputToken::StartTagOpen(_) = output {
+            if let Output::StartTagOpen(_) = output {
                 result.push(Style::Start);
             }
         }
@@ -95,7 +95,7 @@ fn test_style_element() -> Result<(), Error> {
         result.push(Style::Text(rendered.text));
 
         if node == b {
-            if let OutputToken::EndTag(_) = output {
+            if let Output::EndTag(_) = output {
                 result.push(Style::End);
             }
         }
