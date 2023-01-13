@@ -111,7 +111,7 @@ pub(crate) struct XmlSerializer<'a> {
     fullname_serializer: FullnameSerializer<'a>,
 }
 
-pub struct Token {
+pub struct OutputToken {
     pub space: bool,
     pub text: String,
 }
@@ -175,12 +175,12 @@ impl<'a> XmlSerializer<'a> {
         &mut self,
         node: Node,
         output: &Output<'a>,
-    ) -> Result<Token, Error> {
+    ) -> Result<OutputToken, Error> {
         use Output::*;
         let r = match output {
             StartTagOpen(element) => {
                 self.fullname_serializer.push(&element.prefixes);
-                Token {
+                OutputToken {
                     space: false,
                     text: format!(
                         "<{}",
@@ -190,12 +190,12 @@ impl<'a> XmlSerializer<'a> {
             }
             StartTagClose(_element) => {
                 if self.xot.first_child(node).is_none() {
-                    Token {
+                    OutputToken {
                         space: false,
                         text: "/>".to_string(),
                     }
                 } else {
-                    Token {
+                    OutputToken {
                         space: false,
                         text: ">".to_string(),
                     }
@@ -203,7 +203,7 @@ impl<'a> XmlSerializer<'a> {
             }
             EndTag(element) => {
                 let r = if self.xot.first_child(node).is_some() {
-                    Token {
+                    OutputToken {
                         space: false,
                         text: format!(
                             "</{}>",
@@ -211,7 +211,7 @@ impl<'a> XmlSerializer<'a> {
                         ),
                     }
                 } else {
-                    Token {
+                    OutputToken {
                         space: false,
                         text: "".to_string(),
                     }
@@ -222,49 +222,49 @@ impl<'a> XmlSerializer<'a> {
             NamespaceDeclaration(_element, prefix_id, namespace_id) => {
                 let namespace = self.xot.namespace_str(*namespace_id);
                 if *prefix_id == self.xot.empty_prefix_id {
-                    Token {
+                    OutputToken {
                         space: true,
                         text: format!("xmlns=\"{}\"", namespace),
                     }
                 } else {
                     let prefix = self.xot.prefix_str(*prefix_id);
-                    Token {
+                    OutputToken {
                         space: true,
                         text: format!("xmlns:{}=\"{}\"", prefix, namespace),
                     }
                 }
             }
-            NamespacesFinished(_element) => Token {
+            NamespacesFinished(_element) => OutputToken {
                 space: false,
                 text: "".to_string(),
             },
             Attribute(_element, name_id, value) => {
                 let fullname = self.fullname_serializer.fullname_attr_or_err(*name_id)?;
-                Token {
+                OutputToken {
                     space: true,
                     text: format!("{}=\"{}\"", fullname, serialize_attribute((*value).into())),
                 }
             }
-            AttributesFinished(_element) => Token {
+            AttributesFinished(_element) => OutputToken {
                 space: false,
                 text: "".to_string(),
             },
-            Text(text) => Token {
+            Text(text) => OutputToken {
                 space: false,
                 text: serialize_text((*text).into()).to_string(),
             },
-            Comment(text) => Token {
+            Comment(text) => OutputToken {
                 space: false,
                 text: format!("<!--{}-->", text),
             },
             ProcessingInstruction(target, data) => {
                 if let Some(data) = data {
-                    Token {
+                    OutputToken {
                         space: false,
                         text: format!("<?{} {}?>", target, data),
                     }
                 } else {
-                    Token {
+                    OutputToken {
                         space: false,
                         text: format!("<?{}?>", target),
                     }
