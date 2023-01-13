@@ -19,13 +19,29 @@ fn test_style() -> Result<(), Error> {
     // we currently determine text content by using the xot structure, but
     // we should instead peek ahead in the stream to determine a text node
     // so the stream should be ahead by all children of the current node
+    // But the problem with that is that it expands the full tree, because
+    // descendants are children too. We could peek until the first text node
+    // is encountered each time (that's not a descendant). In the worst case
+    // this is a huge deal of nodes, though.
     // This way Pretty doesn't need access to xot anymore.
     let name_style = xot.add_name("style");
 
     let mut serializer = xot.serializer(root);
-    let extra_prefixes = xot::Prefixes::new();
-    let output_tokens = xot.output_tokens(root, &extra_prefixes);
+    let output_tokens = xot.output_tokens(root);
     let mut pretty = xot.pretty();
+
+    // we want to go through the tokens and display them in an indented way
+    // but we can't do it correctly as prettier uses tree structure to determine
+    // indentation. We'd like prettier to only use the stream of actual output
+    // tokens to determine indentation. We could produce the stream of final output
+    // tokens as well as marking which parts of them we want to handle with special
+    // style. We can uniquely identify using a combination of node and attribute to
+    // identify attributes, just node to identify other nodes.
+    // We create a stream of output tokens with indentation information, and then
+    // use the markings during a final rendering pass.
+    // The prettier indenter would work in terms of an iterator of output tokens
+    // only: it can do this by maintaining a stack and running ahead to determine
+    // whether an element is mixed and thus shouldn't have indentation.
 
     #[derive(Debug, PartialEq, Eq)]
     enum Style {

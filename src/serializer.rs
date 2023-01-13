@@ -28,11 +28,12 @@ pub enum OutputToken<'a> {
 }
 
 #[generator(yield((Node, OutputToken<'a>)))]
-pub(crate) fn gen_tokens<'a>(xot: &'a Xot<'a>, node: Node, extra_prefixes: &Prefixes) {
+pub(crate) fn gen_tokens<'a>(xot: &'a Xot<'a>, node: Node) {
+    let extra_prefixes = get_extra_prefixes(xot, node);
     for edge in xot.traverse(node) {
         match edge {
             NodeEdge::Start(current_node) => {
-                mk_gen!(let gen = gen_edge_start(xot, node, current_node, extra_prefixes));
+                mk_gen!(let gen = gen_edge_start(xot, node, current_node, &extra_prefixes));
                 for output_token in gen {
                     yield_!((current_node, output_token));
                 }
@@ -116,9 +117,10 @@ pub struct SerializationData {
 }
 
 impl<'a> XmlSerializer<'a> {
-    pub(crate) fn new(xot: &'a Xot<'a>, extra_prefixes: &Prefixes) -> Self {
+    pub(crate) fn new(xot: &'a Xot<'a>, node: Node) -> Self {
+        let extra_prefixes = get_extra_prefixes(xot, node);
         let mut fullname_serializer = FullnameSerializer::new(xot);
-        fullname_serializer.push(extra_prefixes);
+        fullname_serializer.push(&extra_prefixes);
         Self {
             xot,
             fullname_serializer,
@@ -297,8 +299,7 @@ mod tests {
         let a_id = xot.add_name("a");
         let doc = xot.document_element(root).unwrap();
         let doc_el = xot.element(doc).unwrap();
-        let extra_prefixes = Prefixes::new();
-        mk_gen!(let mut iter = gen_tokens(&xot, doc, &extra_prefixes));
+        mk_gen!(let mut iter = gen_tokens(&xot, doc));
 
         let v = iter.next().unwrap().1;
         assert_eq!(v, OutputToken::StartTagOpen(doc_el));

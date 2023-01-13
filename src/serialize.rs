@@ -22,27 +22,13 @@ pub struct WithSerializeOptions<'a> {
 }
 
 pub struct Serializer<'a> {
-    xot: &'a Xot<'a>,
-    node: Node,
     xml_serializer: XmlSerializer<'a>,
-    extra_prefixes: Prefixes,
 }
 
 impl<'a> Serializer<'a> {
     pub fn new(xot: &'a Xot<'a>, node: Node) -> Self {
-        let extra_prefixes = get_extra_prefixes(xot, node);
-        let xml_serializer = XmlSerializer::new(xot, &extra_prefixes);
-        Self {
-            xot,
-            node,
-            xml_serializer,
-            extra_prefixes,
-        }
-    }
-
-    pub fn output_tokens(&self) -> impl Iterator<Item = (Node, OutputToken<'a>)> + '_ {
-        mk_gen!(let output_tokens = box gen_tokens(self.xot, self.node, &self.extra_prefixes));
-        output_tokens
+        let xml_serializer = XmlSerializer::new(xot, node);
+        Self { xml_serializer }
     }
 
     pub fn render(
@@ -57,9 +43,8 @@ impl<'a> Serializer<'a> {
 impl<'a> WithSerializeOptions<'a> {
     /// Write node as XML.
     pub fn write(&self, node: Node, w: &mut impl Write) -> Result<(), Error> {
-        let extra_prefixes = get_extra_prefixes(self.xot, node);
-        mk_gen!(let output_tokens = gen_tokens(self.xot, node, &extra_prefixes));
-        let mut serializer = XmlSerializer::new(self.xot, &extra_prefixes);
+        mk_gen!(let output_tokens = gen_tokens(self.xot, node));
+        let mut serializer = XmlSerializer::new(self.xot, node);
         if self.options.pretty {
             serializer.serialize_pretty(w, output_tokens)
         } else {
@@ -160,9 +145,8 @@ impl<'a> Xot<'a> {
     pub fn output_tokens(
         &'a self,
         node: Node,
-        extra_prefixes: &'a Prefixes,
     ) -> impl Iterator<Item = (Node, OutputToken<'a>)> + '_ {
-        mk_gen!(let output_tokens = box gen_tokens(self, node, extra_prefixes));
+        mk_gen!(let output_tokens = box gen_tokens(self, node));
         output_tokens
     }
 
