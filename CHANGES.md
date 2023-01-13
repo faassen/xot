@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.11.0] - 2023-01-13
+
 ### Added
 
 - Add pretty printing support. You can use `Xot::with_serialize_options()` to
@@ -224,8 +226,9 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.11.0...HEAD
 
-[unreleased]: https://github.com/faassen/xot/compare/v0.10.3...HEAD
+[unreleased]: https://github.com/faassen/xot/compare/v0.10.3...v0.11.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.10.2...v0.10.3
 [unreleased]: https://github.com/faassen/xot/compare/v0.10.1...v0.10.2
 [unreleased]: https://github.com/faassen/xot/compare/v0.10.0...v0.10.1
