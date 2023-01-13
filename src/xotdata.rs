@@ -30,6 +30,16 @@ impl Node {
 ///
 /// Xot is implemented in several sections focusing on different aspects
 /// of accessing and manipulating XML data.
+///
+/// The Xot structure documentation has different sections:
+///
+/// * [Read-only access](#read-only-access)
+/// * [Creation](#creation)
+/// * [Manipulation](#manipulation)
+/// * [Names, namespaces and prefixces](#names-namespaces-and-prefixes)
+/// * [Parsing](#parsing)
+/// * [Serialization](#serialization)
+/// * [Value and type access](#value-and-type-access)
 pub struct Xot<'a> {
     pub(crate) arena: XmlArena,
     pub(crate) namespace_lookup: NamespaceLookup,

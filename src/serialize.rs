@@ -7,6 +7,23 @@ use crate::serializer::{gen_outputs, Output, OutputToken, XmlSerializer};
 
 use crate::xotdata::{Node, Xot};
 
+/// Pretty output token
+///
+/// Like [`OutputToken`](`crate::OutputToken`) but with extra information for
+/// pretty printing.
+pub struct PrettyOutputToken {
+    /// indentation level.
+    pub indentation: usize,
+    /// Whether the token is prefixed by a space character.
+    pub space: bool,
+    /// The token
+    ///
+    /// This is a fragment of XML like `"<p"`, `a="A"` or `"</p>"`.
+    pub text: String,
+    /// Whether the token is suffixed by a newline character.
+    pub newline: bool,
+}
+
 /// Options to control serialization
 #[derive(Debug, Default)]
 pub struct SerializeOptions {
@@ -14,16 +31,10 @@ pub struct SerializeOptions {
     pub pretty: bool,
 }
 
+/// Configurable serialization
 pub struct WithSerializeOptions<'a> {
     xot: &'a Xot<'a>,
     options: SerializeOptions,
-}
-
-pub struct PrettyOutputToken {
-    pub indentation: usize,
-    pub space: bool,
-    pub text: String,
-    pub newline: bool,
 }
 
 impl<'a> WithSerializeOptions<'a> {
@@ -50,7 +61,7 @@ impl<'a> WithSerializeOptions<'a> {
 impl<'a> Xot<'a> {
     /// Write node as XML.
     ///
-    /// You can control output options by using [`Xot::serialize_options`] first,
+    /// You can control output options by using [`Xot::with_serialize_options`] first,
     /// and calling `write` on that.
     ///
     /// If there are missing namespace prefixes, this errors. You can
@@ -71,14 +82,14 @@ impl<'a> Xot<'a> {
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn write(&self, node: Node, w: &mut impl Write) -> Result<(), Error> {
-        self.serialize_options(SerializeOptions::default())
+        self.with_serialize_options(SerializeOptions::default())
             .write(node, w)
     }
 
     /// Serialize node as XML string.
     ///
-    /// You can control output options by using [`Xot::serialize_options`] first,
-    /// and calling `serialize` on that.
+    /// You can control output options by using [`Xot::with_serialize_options`] first,
+    /// and calling `to_string` on that.
     ///
     /// If there are missing namespace prefixes, this errors. You can automatically
     /// add missing prefixes by invoking [`Xot::create_missing_prefixes`] before
@@ -96,14 +107,14 @@ impl<'a> Xot<'a> {
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn to_string(&self, node: Node) -> Result<String, Error> {
-        self.serialize_options(SerializeOptions::default())
+        self.with_serialize_options(SerializeOptions::default())
             .to_string(node)
     }
 
     /// Control XML serialization
     ///
-    /// You can control the serialization before invoking [`WithSerializationOptions::write`] or
-    /// [`WithSerializationOptions::to_string`] by passing in options.
+    /// You can control the serialization before invoking [`WithSerializeOptions::write`] or
+    /// [`WithSerializeOptions::to_string`] by passing in options.
     ///
     /// ```rust
     /// use xot::{Xot, SerializeOptions};
@@ -111,15 +122,20 @@ impl<'a> Xot<'a> {
     /// let mut xot = Xot::new();
     /// let root = xot.parse("<a><b/></a>")?;
     ///
-    /// let buf = xot.serialize_options(SerializeOptions { pretty: true, ..SerializeOptions::default() }).to_string(root)?;
+    /// let buf = xot.with_serialize_options(SerializeOptions { pretty: true, ..SerializeOptions::default() }).to_string(root)?;
     ///
     /// assert_eq!(buf, "<a>\n  <b/>\n</a>\n");
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn serialize_options(&self, options: SerializeOptions) -> WithSerializeOptions {
+    pub fn with_serialize_options(&self, options: SerializeOptions) -> WithSerializeOptions {
         WithSerializeOptions { xot: self, options }
     }
 
+    /// Serialize node into outputs and tokens.
+    ///
+    /// This creates an iterator that represents the serialized XML. You
+    /// can use this to write custom renderers that serialize the XML in
+    /// a different way, for instance with inline styling.
     pub fn tokens(
         &'a self,
         node: Node,
@@ -132,6 +148,11 @@ impl<'a> Xot<'a> {
         })
     }
 
+    /// Serialize node into outputs and pretty printed tokens.
+    ///
+    /// This creates an iterator that represents the serialized XML. You
+    /// can use this to write custom renderers that serialize the XML in
+    /// a different way, for instance with inline styling.
     pub fn pretty_tokens(
         &'a self,
         node: Node,

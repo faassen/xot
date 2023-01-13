@@ -215,7 +215,7 @@ impl Element {
     /// Remove namespace prefix and associated namespace.
     ///
     /// This may result in documents with missing prefixes. This can be safely
-    /// serialized if you call [`Xot::create_missing_prefixes`] before serialization.
+    /// serialized if you call [`Xot::create_missing_prefixes`](`crate::Xot::create_missing_prefixes`) before serialization.
     pub fn remove_prefix(&mut self, prefix_id: PrefixId) {
         self.prefixes.remove(&prefix_id);
     }
@@ -223,7 +223,7 @@ impl Element {
     /// Remove prefixs by namespace.
     ///
     /// This may result in documents with missing prefixes. This can be safely
-    /// serialized if you call [`Xot::create_missing_prefixes`] before
+    /// serialized if you call [`Xot::create_missing_prefixes`](`crate::Xot::create_missing_prefixes`) before
     /// serialization.
     pub fn remove_namespace(&mut self, namespace_id: NamespaceId) {
         self.prefixes.retain(|_, v| *v != namespace_id);

@@ -13,17 +13,34 @@ use crate::xmlvalue::{Element, Prefixes};
 use crate::xmlvalue::{Value, ValueType};
 use crate::xotdata::{Node, Xot};
 
+/// Output of serialization
+///
+/// Given an [`OutputToken`] or
+/// [`PrettyOutputToken`](`crate::serialize::PrettyOutputToken`), this enum
+/// represents what the token represents in the XML tree.
+///
+/// You can use this information for customized serialization.
 #[derive(Debug, PartialEq)]
 pub enum Output<'a> {
+    /// Start tag open, i.e `<foo` or `<ns:foo`
     StartTagOpen(&'a Element),
+    /// Start tag close, either `>` or `/>`
     StartTagClose(&'a Element),
+    /// End tag, i.e. `</foo>` or `</ns:foo>`
     EndTag(&'a Element),
-    NamespaceDeclaration(&'a Element, PrefixId, NamespaceId),
-    NamespacesFinished(&'a Element),
+    /// Namespace declaration, i.e. `xmlns:foo="http://example.com"`
+    Prefix(&'a Element, PrefixId, NamespaceId),
+    /// Namespace declarations finished
+    PrefixesFinished(&'a Element),
+    /// Attribute, i.e. `foo="bar"`
     Attribute(&'a Element, NameId, &'a str),
+    /// Attributes finished
     AttributesFinished(&'a Element),
+    /// Text, i.e. `foo`
     Text(&'a str),
+    /// Comment, i.e. `<!-- foo -->`
     Comment(&'a str),
+    /// Processing instruction, i.e. `<?foo bar?>`
     ProcessingInstruction(&'a str, Option<&'a str>),
 }
 
@@ -61,23 +78,15 @@ fn gen_edge_start<'a>(xot: &'a Xot<'a>, top_node: Node, node: Node, extra_prefix
             if node == top_node {
                 for (prefix_id, namespace_id) in extra_prefixes {
                     if !element.prefixes.contains_key(prefix_id) {
-                        yield_!(Output::NamespaceDeclaration(
-                            element,
-                            *prefix_id,
-                            *namespace_id,
-                        ));
+                        yield_!(Output::Prefix(element, *prefix_id, *namespace_id,));
                     }
                 }
             }
 
             for (prefix_id, namespace_id) in element.prefixes() {
-                yield_!(Output::NamespaceDeclaration(
-                    element,
-                    *prefix_id,
-                    *namespace_id,
-                ));
+                yield_!(Output::Prefix(element, *prefix_id, *namespace_id,));
             }
-            yield_!(Output::NamespacesFinished(element));
+            yield_!(Output::PrefixesFinished(element));
 
             for (name_id, value) in element.attributes() {
                 yield_!(Output::Attribute(element, *name_id, value));
@@ -111,8 +120,15 @@ pub(crate) struct XmlSerializer<'a> {
     fullname_serializer: FullnameSerializer<'a>,
 }
 
+/// Output token
+///
+/// This represents an [`Output`] as a rendered output token.
 pub struct OutputToken {
+    /// Whether the token is prefixed by a space character.
     pub space: bool,
+    /// The token.
+    ///
+    /// This is a fragment of XML like `<foo` or `a="A"` or `/>`, etc.
     pub text: String,
 }
 
@@ -219,7 +235,7 @@ impl<'a> XmlSerializer<'a> {
                 self.fullname_serializer.pop(&element.prefixes);
                 r
             }
-            NamespaceDeclaration(_element, prefix_id, namespace_id) => {
+            Prefix(_element, prefix_id, namespace_id) => {
                 let namespace = self.xot.namespace_str(*namespace_id);
                 if *prefix_id == self.xot.empty_prefix_id {
                     OutputToken {
@@ -234,7 +250,7 @@ impl<'a> XmlSerializer<'a> {
                     }
                 }
             }
-            NamespacesFinished(_element) => OutputToken {
+            PrefixesFinished(_element) => OutputToken {
                 space: false,
                 text: "".to_string(),
             },
@@ -304,7 +320,7 @@ mod tests {
         let v = iter.next().unwrap().1;
         assert_eq!(v, Output::StartTagOpen(doc_el));
         let v = iter.next().unwrap().1;
-        assert_eq!(v, Output::NamespacesFinished(doc_el));
+        assert_eq!(v, Output::PrefixesFinished(doc_el));
         let v = iter.next().unwrap().1;
         assert_eq!(v, Output::Attribute(doc_el, a_id, "A"));
         let v = iter.next().unwrap().1;

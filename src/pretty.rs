@@ -121,7 +121,7 @@ mod tests {
         let mut xot = Xot::new();
         let root = xot.parse(xml).unwrap();
         let output_xml = xot
-            .serialize_options(SerializeOptions { pretty: true })
+            .with_serialize_options(SerializeOptions { pretty: true })
             .to_string(root)
             .unwrap();
         assert_snapshot!(xml, output_xml);
