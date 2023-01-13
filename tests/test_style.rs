@@ -26,7 +26,7 @@ fn test_style() -> Result<(), Error> {
 
     let mut result = Vec::new();
 
-    for (node, output, token) in pretty_tokens {
+    for (node, _output, token) in pretty_tokens {
         if token.indentation > 0 {
             result.push(Style::Text(" ".repeat(token.indentation * 2)));
         }
@@ -117,3 +117,65 @@ fn test_style_element() -> Result<(), Error> {
     assert_eq!(result, "<a>\n  <span><b>foo</b></span>\n</a>\n");
     Ok(())
 }
+
+#[test]
+fn test_style_attribute() -> Result<(), Error> {
+    let mut xot = Xot::new();
+
+    let root = xot.parse(r#"<doc a="A" b="B"/>"#)?;
+    let name_a = xot.add_name("a");
+
+    let pretty_tokens = xot.pretty_tokens(root);
+
+    #[derive(Debug, PartialEq, Eq)]
+    enum Style {
+        Start,
+        End,
+        Text(String),
+    }
+
+    let mut result = Vec::new();
+
+    for (_node, output, rendered) in pretty_tokens {
+        if rendered.indentation > 0 {
+            result.push(Style::Text(" ".repeat(rendered.indentation * 2)));
+        }
+        if rendered.space {
+            result.push(Style::Text(" ".to_string()));
+        }
+
+        if let Output::Attribute(_element, name, _value) = output {
+            if name == name_a {
+                result.push(Style::Start);
+            }
+        }
+        result.push(Style::Text(rendered.text));
+        if let Output::Attribute(_element, name, _value) = output {
+            if name == name_a {
+                result.push(Style::End);
+            }
+        }
+
+        if rendered.newline {
+            result.push(Style::Text("\n".to_string()));
+        }
+    }
+
+    let result = result
+        .iter()
+        .map(|style| match style {
+            Style::Start => "<span>".to_string(),
+            Style::End => "</span>".to_string(),
+            Style::Text(text) => text.to_string(),
+        })
+        .collect::<Vec<_>>()
+        .join("");
+
+    assert_eq!(
+        result,
+        r#"<doc <span>a="A"</span> b="B"/>
+"#
+    );
+    Ok(())
+}
+
