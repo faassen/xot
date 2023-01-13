@@ -14,15 +14,18 @@ use crate::xmlvalue::{Prefixes, Value, ValueType};
 ///   comments and processing instructions.
 /// - You cannot add a node to a node that is not an element or the root node.
 ///
-/// It also ensures that text nodes are consolidated: two text nodes never
-/// appear consecutively. If you add a text node after or before another text
-/// node, the text is appended to the existing text node, and the added text
-/// node is removed. This also happens if you remove a node causing two text
-/// nodes to be adjacent; the second text node is removed.
-///
 /// Note that you can use these manipulation methods to move nodes between
 /// trees -- if you append a node that's in another tree, that node is first
 /// detached from the other tree before it's inserted into the new location.
+///
+/// If text consolidation is enabled (the default), then also ensures that text
+/// nodes are consolidated: two text nodes never appear consecutively. If you
+/// add a text node after or before another text node, the text is appended to
+/// the existing text node, and the added text node is removed. This also
+/// happens if you remove a node causing two text nodes to be adjacent; the
+/// second text node is removed.
+///
+/// You can disable and enable text consolidation using [`Xot::set_text_consolidation`].
 ///
 /// Text node consolidation example:
 /// ```rust
@@ -597,6 +600,14 @@ impl<'a> Xot<'a> {
         Ok(())
     }
 
+    /// Set text consolidation
+    ///
+    /// By default, text nodes are consolidated when possible. You can turn
+    /// off this behavior so text nodes are never merged by calling this.
+    pub fn set_text_consolidation(&mut self, consolidate: bool) {
+        self.text_consolidation = consolidate;
+    }
+
     fn add_structure_check(&self, parent: Option<Node>, child: Node) -> Result<(), Error> {
         let parent = parent.ok_or_else(|| {
             Error::InvalidOperation("Cannot create siblings for document root".into())
@@ -668,6 +679,9 @@ impl<'a> Xot<'a> {
         prev_node: Option<Node>,
         next_node: Option<Node>,
     ) -> bool {
+        if !self.text_consolidation {
+            return false;
+        }
         let added_text = if let Value::Text(t) = self.value(node) {
             Some(t.get().to_string())
         } else {
@@ -712,6 +726,9 @@ impl<'a> Xot<'a> {
         prev_node: Option<Node>,
         next_node: Option<Node>,
     ) -> bool {
+        if !self.text_consolidation {
+            return false;
+        }
         if prev_node.is_none() {
             return false;
         }

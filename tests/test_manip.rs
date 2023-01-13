@@ -155,6 +155,20 @@ fn test_append_text_after_text_consolidates_nodes() {
 }
 
 #[test]
+fn test_append_text_after_text_no_consolidates_nodes() {
+    let mut xot = Xot::new();
+    xot.set_text_consolidation(false);
+    let doc = xot.parse(r#"<doc/>"#).unwrap();
+    let el_id = xot.document_element(doc).unwrap();
+    xot.append_text(el_id, "Alpha").unwrap();
+    xot.append_text(el_id, "Beta").unwrap();
+    let mut children = xot.children(el_id);
+    assert_eq!(xot.text_str(children.next().unwrap()).unwrap(), "Alpha");
+    assert_eq!(xot.text_str(children.next().unwrap()).unwrap(), "Beta");
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc>AlphaBeta</doc>"#);
+}
+
+#[test]
 fn test_append_text_after_text_consolidates_nodes_direct_append() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<doc/>"#).unwrap();
@@ -167,6 +181,22 @@ fn test_append_text_after_text_consolidates_nodes_direct_append() {
         Value::Text(node) => assert_eq!(node.get(), "AlphaBeta"),
         _ => panic!("Expected text node"),
     }
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc>AlphaBeta</doc>"#);
+}
+
+#[test]
+fn test_append_text_after_text_no_consolidates_nodes_direct_append() {
+    let mut xot = Xot::new();
+    xot.set_text_consolidation(false);
+    let doc = xot.parse(r#"<doc/>"#).unwrap();
+    let el_id = xot.document_element(doc).unwrap();
+    let txt1 = xot.new_text("Alpha");
+    let txt2 = xot.new_text("Beta");
+    xot.append(el_id, txt1).unwrap();
+    xot.append(el_id, txt2).unwrap();
+    let mut children = xot.children(el_id);
+    assert_eq!(xot.text_str(children.next().unwrap()).unwrap(), "Alpha");
+    assert_eq!(xot.text_str(children.next().unwrap()).unwrap(), "Beta");
     assert_eq!(xot.to_string(doc).unwrap(), r#"<doc>AlphaBeta</doc>"#);
 }
 
@@ -246,6 +276,27 @@ fn test_remove_text_consolidation() {
     // we should have a single text node
     let text_el_id = xot.first_child(xot.document_element(doc).unwrap()).unwrap();
     assert_eq!(xot.text_str(text_el_id), Some("AlphaBeta"));
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc>AlphaBeta</doc>"#);
+}
+
+#[test]
+fn test_remove_text_no_consolidation() {
+    let mut xot = Xot::new();
+    xot.set_text_consolidation(false);
+    let doc = xot.parse(r#"<doc>Alpha<a/>Beta</doc>"#).unwrap();
+    let el_id = xot
+        .children(xot.document_element(doc).unwrap())
+        .nth(1)
+        .unwrap();
+    // we found the a element
+    let a = xot.name("a").unwrap();
+    assert_eq!(xot.element(el_id).unwrap().name(), a);
+    // now we remove it
+    xot.remove(el_id).unwrap();
+    // we have two children
+    let mut children = xot.children(xot.document_element(doc).unwrap());
+    assert_eq!(xot.text_str(children.next().unwrap()).unwrap(), "Alpha");
+    assert_eq!(xot.text_str(children.next().unwrap()).unwrap(), "Beta");
     assert_eq!(xot.to_string(doc).unwrap(), r#"<doc>AlphaBeta</doc>"#);
 }
 
