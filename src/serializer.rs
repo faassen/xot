@@ -111,9 +111,15 @@ pub(crate) struct XmlSerializer<'a> {
     fullname_serializer: FullnameSerializer<'a>,
 }
 
-pub struct SerializationData {
+pub struct Rendered {
     pub space: bool,
     pub text: String,
+}
+
+pub struct RenderedPretty {
+    pub indentation: usize,
+    pub newline: bool,
+    pub rendered: Rendered,
 }
 
 impl<'a> XmlSerializer<'a> {
@@ -163,7 +169,7 @@ impl<'a> XmlSerializer<'a> {
         node: Node,
         output_token: OutputToken<'a>,
     ) -> Result<(), Error> {
-        let data = self.render_token(node, output_token)?;
+        let data = self.render_token(node, &output_token)?;
         if data.space {
             w.write_all(b" ").unwrap();
         }
@@ -174,13 +180,13 @@ impl<'a> XmlSerializer<'a> {
     pub(crate) fn render_token(
         &mut self,
         node: Node,
-        output_token: OutputToken<'a>,
-    ) -> Result<SerializationData, Error> {
+        output_token: &OutputToken<'a>,
+    ) -> Result<Rendered, Error> {
         use OutputToken::*;
         let r = match output_token {
             StartTagOpen(element) => {
                 self.fullname_serializer.push(&element.prefixes);
-                SerializationData {
+                Rendered {
                     space: false,
                     text: format!(
                         "<{}",
@@ -190,12 +196,12 @@ impl<'a> XmlSerializer<'a> {
             }
             StartTagClose(_element) => {
                 if self.xot.first_child(node).is_none() {
-                    SerializationData {
+                    Rendered {
                         space: false,
                         text: "/>".to_string(),
                     }
                 } else {
-                    SerializationData {
+                    Rendered {
                         space: false,
                         text: ">".to_string(),
                     }
@@ -203,7 +209,7 @@ impl<'a> XmlSerializer<'a> {
             }
             EndTag(element) => {
                 let r = if self.xot.first_child(node).is_some() {
-                    SerializationData {
+                    Rendered {
                         space: false,
                         text: format!(
                             "</{}>",
@@ -211,7 +217,7 @@ impl<'a> XmlSerializer<'a> {
                         ),
                     }
                 } else {
-                    SerializationData {
+                    Rendered {
                         space: false,
                         text: "".to_string(),
                     }
@@ -220,51 +226,51 @@ impl<'a> XmlSerializer<'a> {
                 r
             }
             NamespaceDeclaration(_element, prefix_id, namespace_id) => {
-                let namespace = self.xot.namespace_str(namespace_id);
-                if prefix_id == self.xot.empty_prefix_id {
-                    SerializationData {
+                let namespace = self.xot.namespace_str(*namespace_id);
+                if *prefix_id == self.xot.empty_prefix_id {
+                    Rendered {
                         space: true,
                         text: format!("xmlns=\"{}\"", namespace),
                     }
                 } else {
-                    let prefix = self.xot.prefix_str(prefix_id);
-                    SerializationData {
+                    let prefix = self.xot.prefix_str(*prefix_id);
+                    Rendered {
                         space: true,
                         text: format!("xmlns:{}=\"{}\"", prefix, namespace),
                     }
                 }
             }
-            NamespacesFinished(_element) => SerializationData {
+            NamespacesFinished(_element) => Rendered {
                 space: false,
                 text: "".to_string(),
             },
             Attribute(_element, name_id, value) => {
-                let fullname = self.fullname_serializer.fullname_attr_or_err(name_id)?;
-                SerializationData {
+                let fullname = self.fullname_serializer.fullname_attr_or_err(*name_id)?;
+                Rendered {
                     space: true,
                     text: format!("{}=\"{}\"", fullname, serialize_attribute((*value).into())),
                 }
             }
-            AttributesFinished(_element) => SerializationData {
+            AttributesFinished(_element) => Rendered {
                 space: false,
                 text: "".to_string(),
             },
-            Text(text) => SerializationData {
+            Text(text) => Rendered {
                 space: false,
                 text: serialize_text((*text).into()).to_string(),
             },
-            Comment(text) => SerializationData {
+            Comment(text) => Rendered {
                 space: false,
                 text: format!("<!--{}-->", text),
             },
             ProcessingInstruction(target, data) => {
                 if let Some(data) = data {
-                    SerializationData {
+                    Rendered {
                         space: false,
                         text: format!("<?{} {}?>", target, data),
                     }
                 } else {
-                    SerializationData {
+                    Rendered {
                         space: false,
                         text: format!("<?{}?>", target),
                     }
@@ -299,6 +305,7 @@ mod tests {
         let a_id = xot.add_name("a");
         let doc = xot.document_element(root).unwrap();
         let doc_el = xot.element(doc).unwrap();
+        let extra_prefixes = Prefixes::new();
         mk_gen!(let mut iter = gen_tokens(&xot, doc));
 
         let v = iter.next().unwrap().1;

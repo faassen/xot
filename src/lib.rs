@@ -70,9 +70,8 @@ pub use error::Error;
 pub use name::NameId;
 pub use namespace::NamespaceId;
 pub use prefix::PrefixId;
-pub use pretty::Pretty;
-pub use serialize::{SerializeOptions, Serializer};
-pub use serializer::{OutputToken, SerializationData};
+pub use serialize::{PrettyRendered, SerializeOptions};
+pub use serializer::{OutputToken, Rendered};
 pub use xmlvalue::{
     Attributes, Comment, Element, Prefixes, ProcessingInstruction, Text, Value, ValueType,
 };
