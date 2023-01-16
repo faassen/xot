@@ -34,7 +34,7 @@ pub enum ValueType {
 ///
 /// Access it using [`Xot::value`](crate::xotdata::Xot::value) or
 /// mutably using [`Xot::value_mut`](crate::xotdata::Xot::value_mut).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum Value {
     /// Document root that holds everything. Note that this not the same as the document
     /// element.
@@ -70,11 +70,35 @@ pub type Prefixes = VecMap<PrefixId, NamespaceId>;
 /// XML element value.
 ///
 /// Example: `<foo/>` or `<foo bar="baz"/>`.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Element {
     pub(crate) name_id: NameId,
     pub(crate) prefixes: Prefixes,
     pub(crate) attributes: Attributes,
+}
+
+impl PartialEq for Element {
+    fn eq(&self, other: &Self) -> bool {
+        self.name_id == other.name_id
+            && self.prefixes == other.prefixes
+            && self.attributes == other.attributes
+    }
+}
+
+impl Eq for Element {}
+
+use std::hash::Hash;
+
+impl Hash for Element {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name_id.hash(state);
+        let mut prefixes = self.prefixes.iter().collect::<Vec<_>>();
+        prefixes.sort();
+        prefixes.hash(state);
+        let mut attributes = self.attributes.iter().collect::<Vec<_>>();
+        attributes.sort();
+        attributes.hash(state);
+    }
 }
 
 impl Element {
@@ -248,7 +272,7 @@ impl Element {
 /// XML text value.
 ///
 /// Example: `Bar` in `<foo>Bar</foo>`, or `hello` and `world` in `<greeting>hello<sep/>world</greeting>`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Text {
     pub(crate) text: String,
 }
@@ -290,7 +314,7 @@ impl Text {
 /// XML comment.
 ///
 /// Example: `<!-- foo -->`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Comment {
     pub(crate) text: String,
 }
@@ -321,7 +345,7 @@ impl Comment {
 /// XML processing instruction value.
 ///
 /// Example: `<?foo?>` or `<?foo bar?>`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct ProcessingInstruction {
     pub(crate) target: String,
     pub(crate) data: Option<String>,
@@ -371,5 +395,122 @@ impl ProcessingInstruction {
             }
         }
         self.data = None;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::xotdata::Xot;
+
+    #[test]
+    fn test_element_hashable_name() {
+        let mut xot = Xot::new();
+        let a = xot.add_name("a");
+        let b = xot.add_name("b");
+
+        let alpha = Element {
+            name_id: a,
+            prefixes: Prefixes::new(),
+            attributes: Attributes::new(),
+        };
+        let beta = Element {
+            name_id: a,
+            prefixes: Prefixes::new(),
+            attributes: Attributes::new(),
+        };
+        let gamma = Element {
+            name_id: b,
+            prefixes: Prefixes::new(),
+            attributes: Attributes::new(),
+        };
+
+        let hash_builder = ahash::RandomState::with_seed(42);
+        let alpha_hash = hash_builder.hash_one(&alpha);
+        let beta_hash = hash_builder.hash_one(&beta);
+        let gamma_hash = hash_builder.hash_one(&gamma);
+        assert_eq!(alpha_hash, beta_hash);
+        assert_ne!(alpha_hash, gamma_hash);
+    }
+
+    #[test]
+    fn test_element_hashable_attributes_different_value() {
+        let mut xot = Xot::new();
+        let a = xot.add_name("a");
+        let b = xot.add_name("b");
+
+        let mut alpha_attributes = Attributes::new();
+        alpha_attributes.insert(b, "foo".to_string());
+
+        let mut beta_attributes = Attributes::new();
+        beta_attributes.insert(b, "foo".to_string());
+
+        let mut gamma_attributes = Attributes::new();
+        gamma_attributes.insert(b, "bar".to_string());
+
+        let alpha = Element {
+            name_id: a,
+            prefixes: Prefixes::new(),
+            attributes: alpha_attributes,
+        };
+        let beta = Element {
+            name_id: a,
+            prefixes: Prefixes::new(),
+            attributes: beta_attributes,
+        };
+        let gamma = Element {
+            name_id: a,
+            prefixes: Prefixes::new(),
+            attributes: gamma_attributes,
+        };
+
+        let hash_builder = ahash::RandomState::with_seed(42);
+        let alpha_hash = hash_builder.hash_one(&alpha);
+        let beta_hash = hash_builder.hash_one(&beta);
+        let gamma_hash = hash_builder.hash_one(&gamma);
+        assert_eq!(alpha_hash, beta_hash);
+        assert_ne!(alpha_hash, gamma_hash);
+    }
+
+    #[test]
+    fn test_element_hashable_attributes_different_order() {
+        let mut xot = Xot::new();
+        let a = xot.add_name("a");
+        let b = xot.add_name("b");
+        let c = xot.add_name("c");
+
+        let mut alpha_attributes = Attributes::new();
+        alpha_attributes.insert(b, "foo".to_string());
+        alpha_attributes.insert(c, "bar".to_string());
+
+        let mut beta_attributes = Attributes::new();
+        beta_attributes.insert(c, "bar".to_string());
+        beta_attributes.insert(b, "foo".to_string());
+
+        let mut gamma_attributes = Attributes::new();
+        gamma_attributes.insert(c, "bar".to_string());
+
+        let alpha = Element {
+            name_id: a,
+            prefixes: Prefixes::new(),
+            attributes: alpha_attributes,
+        };
+        let beta = Element {
+            name_id: a,
+            prefixes: Prefixes::new(),
+            attributes: beta_attributes,
+        };
+        let gamma = Element {
+            name_id: a,
+            prefixes: Prefixes::new(),
+            attributes: gamma_attributes,
+        };
+
+        let hash_builder = ahash::RandomState::with_seed(42);
+        let alpha_hash = hash_builder.hash_one(&alpha);
+        let beta_hash = hash_builder.hash_one(&beta);
+        let gamma_hash = hash_builder.hash_one(&gamma);
+        assert_eq!(alpha_hash, beta_hash);
+        assert_ne!(alpha_hash, gamma_hash);
     }
 }
