@@ -555,7 +555,7 @@ impl<'a> Xot<'a> {
         }
     }
 
-    /// Replace a node with another one in the tree.
+    /// Replace a node with another one.
     ///
     /// The replaced node and all its descendants are removed.
     ///
