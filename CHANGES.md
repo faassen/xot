@@ -4,6 +4,11 @@
 
 ## [0.11.2] - 2023-01-16
 
+### Added
+
+- Make `xot::Value` hashable. This means `Element`, `Text`, `Comment`, etc are
+  now hashable too.
+
 ## [0.11.1] - 2023-01-13
 
 ### Added
@@ -235,8 +240,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.11.2...HEAD
 
+[unreleased]: https://github.com/faassen/xot/compare/v0.11.2...HEAD
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.1...v0.11.2
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.0...v0.11.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.10.3...v0.11.0
