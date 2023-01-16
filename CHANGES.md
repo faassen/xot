@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.11.2] - 2023-01-16
+
 ## [0.11.1] - 2023-01-13
 
 ### Added
@@ -233,8 +235,9 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.11.2...HEAD
 
-[unreleased]: https://github.com/faassen/xot/compare/v0.11.1...HEAD
+[unreleased]: https://github.com/faassen/xot/compare/v0.11.1...v0.11.2
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.0...v0.11.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.10.3...v0.11.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.10.2...v0.10.3
