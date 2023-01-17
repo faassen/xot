@@ -391,6 +391,34 @@ fn test_clone_root() {
 }
 
 #[test]
+fn test_clone_root_after_insert() {
+    let mut xot = Xot::new();
+    let root = xot.parse("<doc>hello <i>world</i>!</doc>").unwrap();
+    let doc = xot.document_element(root).unwrap();
+    let txt = xot.first_child(doc).unwrap();
+    let i = xot.next_sibling(txt).unwrap();
+    let new_node = xot.new_text("?");
+    xot.insert_after(i, new_node).unwrap();
+    let root_clone = xot.clone(root);
+    assert_eq!(
+        xot.to_string(root_clone).unwrap(),
+        "<doc>hello <i>world</i>?!</doc>"
+    );
+}
+
+#[test]
+fn test_insert_after_consolidation() {
+    let mut xot = Xot::new();
+    let root = xot.parse("<doc>hello <i>world</i>!</doc>").unwrap();
+    let doc = xot.document_element(root).unwrap();
+    let txt = xot.first_child(doc).unwrap();
+    let i = xot.next_sibling(txt).unwrap();
+    let new_node = xot.new_text("?");
+    xot.insert_after(i, new_node).unwrap();
+    assert_eq!(xot.children(doc).count(), 3);
+}
+
+#[test]
 fn test_clone_with_namespaces() {
     let mut xot = Xot::new();
     let root = xot

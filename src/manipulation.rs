@@ -692,9 +692,9 @@ impl<'a> Xot<'a> {
         }
         let added_text = added_text.unwrap();
 
-        // due to consolidation, two text nodes can never be adjacent,
-        // so consolidate with the previous node or next node is fine
-        if let Some(prev_node) = prev_node {
+        // if consolidation is turned off, then we could have two adjacent
+        // text nodes. Prefer to consolidate with the previous node.
+        let consolidated = if let Some(prev_node) = prev_node {
             if let Value::Text(prev) = self.value_mut(prev_node) {
                 let mut s = prev.get().to_string();
                 s.push_str(&added_text);
@@ -705,7 +705,15 @@ impl<'a> Xot<'a> {
             } else {
                 false
             }
-        } else if let Some(next_node) = next_node {
+        } else {
+            false
+        };
+        if consolidated {
+            return true;
+        }
+        // we couldn't consolidate with the previous node, try to consolidate
+        // with the next node
+        if let Some(next_node) = next_node {
             if let Value::Text(next) = self.value_mut(next_node) {
                 let mut s = added_text;
                 s.push_str(next.get());

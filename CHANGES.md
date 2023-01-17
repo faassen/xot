@@ -2,6 +2,11 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+- Fixed a bug with text node consolidation. In some cases when using insert
+  before or insert after, a node was not properly consolidated.
+
 ## [0.11.2] - 2023-01-16
 
 ### Added
