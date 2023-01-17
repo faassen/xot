@@ -72,7 +72,7 @@ impl<'a> Xot<'a> {
     /// Check whether a node has been removed.
     ///
     /// This can happen because you removed it explicitly, or because you held
-    /// on to a reference and the node was replaced using [`Xot::replace`]. or
+    /// on to a reference and the node was replaced using [`Xot::replace`], or
     /// unwrapped using [`Xot::element_unwrap`].
     ///
     /// ```rust
