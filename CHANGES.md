@@ -2,6 +2,11 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+- Fixed another bug with text node consolidation; `xot.clone` is now robust
+  against text node consolidation.
+
 ## [0.11.3] - 2023-01-17
 
 ### Fixed
@@ -247,8 +252,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.11.3...HEAD
 
+[unreleased]: https://github.com/faassen/xot/compare/v0.11.3...HEAD
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.2...v0.11.3
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.1...v0.11.2
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.0...v0.11.1

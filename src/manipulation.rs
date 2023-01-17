@@ -345,15 +345,18 @@ impl<'a> Xot<'a> {
             match open_close {
                 NodeEdge::Start(node) => {
                     let value = self.value(node);
-                    if value.value_type() == ValueType::Root {
+                    let value_type = value.value_type();
+                    if value_type == ValueType::Root {
                         continue;
                     }
                     let new_node = self.new_node(value.clone());
                     self.append(current, new_node).unwrap();
-                    current = new_node;
+                    if value_type == ValueType::Element {
+                        current = new_node;
+                    }
                 }
                 NodeEdge::End(node) => {
-                    if self.value_type(node) == ValueType::Root {
+                    if self.value_type(node) != ValueType::Element {
                         continue;
                     }
                     current = self.parent(current).unwrap();

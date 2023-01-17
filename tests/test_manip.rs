@@ -407,6 +407,42 @@ fn test_clone_root_after_insert() {
 }
 
 #[test]
+fn test_clone_root_after_insert_no_consolidation() {
+    let mut xot = Xot::new();
+    xot.set_text_consolidation(false);
+    let root = xot.parse("<doc>hello <i>world</i>!</doc>").unwrap();
+    let doc = xot.document_element(root).unwrap();
+    let txt = xot.first_child(doc).unwrap();
+    let i = xot.next_sibling(txt).unwrap();
+    let new_node = xot.new_text("?");
+    xot.insert_after(i, new_node).unwrap();
+    let root_clone = xot.clone(root);
+    xot.set_text_consolidation(true);
+    assert_eq!(
+        xot.to_string(root_clone).unwrap(),
+        "<doc>hello <i>world</i>?!</doc>"
+    );
+}
+
+#[test]
+fn test_clone_root_after_insert_no_consolidation_for_insert_consolidation_for_clone() {
+    let mut xot = Xot::new();
+    xot.set_text_consolidation(false);
+    let root = xot.parse("<doc>hello <i>world</i>!</doc>").unwrap();
+    let doc = xot.document_element(root).unwrap();
+    let txt = xot.first_child(doc).unwrap();
+    let i = xot.next_sibling(txt).unwrap();
+    let new_node = xot.new_text("?");
+    xot.insert_after(i, new_node).unwrap();
+    xot.set_text_consolidation(true);
+    let root_clone = xot.clone(root);
+    assert_eq!(
+        xot.to_string(root_clone).unwrap(),
+        "<doc>hello <i>world</i>?!</doc>"
+    );
+}
+
+#[test]
 fn test_insert_after_consolidation() {
     let mut xot = Xot::new();
     let root = xot.parse("<doc>hello <i>world</i>!</doc>").unwrap();
