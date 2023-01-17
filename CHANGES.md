@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.11.3] - 2023-01-17
+
 ### Fixed
 
 - Fixed a bug with text node consolidation. In some cases when using insert
@@ -245,8 +247,9 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.11.3...HEAD
 
-[unreleased]: https://github.com/faassen/xot/compare/v0.11.2...HEAD
+[unreleased]: https://github.com/faassen/xot/compare/v0.11.2...v0.11.3
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.1...v0.11.2
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.0...v0.11.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.10.3...v0.11.0

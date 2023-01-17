@@ -657,7 +657,7 @@ checksum = "4d25c75bf9ea12c4040a97f829154768bbbce366287e2dc044af160cd79a13fd"
 
 [[package]]
 name = "xot"
-version = "0.11.2"
+version = "0.11.3"
 dependencies = [
  "ahash",
  "indextree",
