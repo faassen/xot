@@ -588,6 +588,26 @@ impl<'a> Xot<'a> {
         true
     }
 
+    /// Compare the children of two nodes
+    ///
+    /// If the children are the same semantically, return true. It ignores
+    /// the name and attributes of the `a` and `b` nodes themselves.
+    pub fn compare_children(&self, a: Node, b: Node) -> bool {
+        let mut b_children = self.children(b);
+        for a_child in self.children(a) {
+            if let Some(b_child) = b_children.next() {
+                // if the child is different, the element is different
+                if !self.compare(a_child, b_child) {
+                    return false;
+                }
+            } else {
+                // we cannot find a b child for an a child
+                return false;
+            }
+        }
+        b_children.next().is_none()
+    }
+
     pub(crate) fn compare_value(&self, a: Node, b: Node) -> bool {
         let a_value = self.value(a);
         let b_value = self.value(b);

@@ -8,6 +8,9 @@
   allows you to compare two elements semantically, with the option to ignore
   some attributes during the comparison.
 
+- Added `xot.compare_children`. This allows you to compare the children of
+  two element nodes, even though they may have different names or attributes.
+
 ## [0.11.4] - 2023-01-17
 
 ### Fixed

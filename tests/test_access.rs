@@ -99,3 +99,20 @@ fn test_compare_value_the_same_structure_different() {
     let doc2 = xot.parse(r#"<article><body><sec id="1"><sec id="2"><title>T1</title><p>P1</p><p>P2</p></sec><sec id="3"><title>T2</title><p>P3</p></sec></sec></body></article>"#).unwrap();
     assert!(!xot.compare(doc1, doc2));
 }
+
+#[test]
+fn test_compare_children() {
+    let mut xot = Xot::new();
+    let root1 = xot
+        .parse(r#"<a><b z="Y">Alpha<x/>Gamma</b><b>Alpha<x/></b></a>"#)
+        .unwrap();
+    let root2 = xot.parse(r#"<a><b z="Z">Alpha<x/>Gamma</b></a>"#).unwrap();
+    let doc1 = xot.document_element(root1).unwrap();
+    let doc2 = xot.document_element(root2).unwrap();
+    let doc1_b0 = xot.first_child(doc1).unwrap();
+    let doc1_b1 = xot.next_sibling(doc1_b0).unwrap();
+    let doc2_b0 = xot.first_child(doc2).unwrap();
+
+    assert!(xot.compare_children(doc1_b0, doc2_b0));
+    assert!(!xot.compare_children(doc1_b1, doc2_b0));
+}
