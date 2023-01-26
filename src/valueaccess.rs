@@ -593,23 +593,7 @@ impl<'a> Xot<'a> {
         let b_value = self.value(b);
         match (a_value, b_value) {
             (Value::Root, Value::Root) => true,
-            (Value::Element(a), Value::Element(b)) => {
-                if a.name() != b.name() {
-                    return false;
-                }
-                if a.attributes().len() != b.attributes().len() {
-                    return false;
-                }
-                // if we can't find a value for a key in a in b, then we
-                // know they aren't the same, given we already compared the length
-                for (key, value_a) in a.attributes() {
-                    let value_b = b.attributes().get(key);
-                    if Some(value_a) != value_b {
-                        return false;
-                    }
-                }
-                true
-            }
+            (Value::Element(a), Value::Element(b)) => a.compare(b),
             (Value::Text(a), Value::Text(b)) => a.get() == b.get(),
             (Value::Comment(a), Value::Comment(b)) => a.get() == b.get(),
             (Value::ProcessingInstruction(a), Value::ProcessingInstruction(b)) => {

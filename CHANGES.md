@@ -2,6 +2,12 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- Added `compare` and `compare_ignore_attributes to the `Element` API. This
+  allows you to compare two elements semantically, with the option to ignore
+  some attributes during the comparison.
+
 ## [0.11.4] - 2023-01-17
 
 ### Fixed
@@ -254,8 +260,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.11.4...HEAD
 
+[unreleased]: https://github.com/faassen/xot/compare/v0.11.4...HEAD
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.3...v0.11.4
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.2...v0.11.3
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.1...v0.11.2
