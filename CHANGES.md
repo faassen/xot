@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.11.5] - 2023-01-26
+
 ### Added
 
 - Added `compare` and `compare_ignore_attributes to the `Element` API. This
@@ -263,8 +265,9 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.11.5...HEAD
 
-[unreleased]: https://github.com/faassen/xot/compare/v0.11.4...HEAD
+[unreleased]: https://github.com/faassen/xot/compare/v0.11.4...v0.11.5
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.3...v0.11.4
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.2...v0.11.3
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.1...v0.11.2
