@@ -2,6 +2,14 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- Added `is_prefix_defined` to the `Xot` API to check whether a prefix is
+  defined in the context of a node.
+
+- Added `prefix_for_namespace` to the `Xot` API to get a defined prefix for
+  that namespace in the context of a node, or `None` if it isn't defined.
+
 ## [0.11.6] - 2023-02-01
 
 ### Added
@@ -275,8 +283,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.11.6...HEAD
 
+[unreleased]: https://github.com/faassen/xot/compare/v0.11.6...HEAD
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.5...v0.11.6
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.4...v0.11.5
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.3...v0.11.4

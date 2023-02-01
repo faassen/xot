@@ -123,3 +123,49 @@ fn test_unresolved_namespaces_resolved_deeper() {
 
     assert_eq!(xot.unresolved_namespaces(p_el), [a_ns]);
 }
+
+#[test]
+fn test_is_prefix_defined() {
+    let mut xot = Xot::new();
+    let doc = xot
+        .parse(r#"<doc xmlns:a="http://example.com/a"><a:p/></doc>"#)
+        .unwrap();
+    let root_id = xot.document_element(doc).unwrap();
+    let a_prefix = xot.add_prefix("a");
+    let b_prefix = xot.add_prefix("b");
+    let xml_prefix = xot.add_prefix("xml");
+    let p0 = xot.first_child(root_id).unwrap();
+    // let b_ns = xot.add_namespace("http://example.com/b");
+    // let p1_name = xot.add_name_ns("p", b_ns);
+    // xot.append_element(root_id, p1_name).unwrap();
+
+    assert!(xot.is_prefix_defined(root_id, a_prefix));
+    assert!(xot.is_prefix_defined(p0, a_prefix));
+    assert!(!xot.is_prefix_defined(p0, b_prefix));
+    assert!(xot.is_prefix_defined(root_id, xml_prefix));
+}
+
+#[test]
+fn test_prefix_for_namespace() {
+    let mut xot = Xot::new();
+    let doc = xot
+        .parse(r#"<doc xmlns:a="http://example.com/a"><a:p/></doc>"#)
+        .unwrap();
+    let root_id = xot.document_element(doc).unwrap();
+    let a_prefix = xot.add_prefix("a");
+    let a_ns = xot.add_namespace("http://example.com/a");
+    let b_ns = xot.add_namespace("http://example.com/b");
+    let xml_prefix = xot.add_prefix("xml");
+    let xml_ns = xot.add_namespace("http://www.w3.org/XML/1998/namespace");
+    let p0 = xot.first_child(root_id).unwrap();
+    // add a p1 that doesn't have a prefix
+    let p1_name = xot.add_name_ns("p", b_ns);
+    xot.append_element(root_id, p1_name).unwrap();
+    let p1 = xot.next_sibling(p0).unwrap();
+
+    assert_eq!(xot.prefix_for_namespace(root_id, a_ns), Some(a_prefix));
+    assert_eq!(xot.prefix_for_namespace(p0, a_ns), Some(a_prefix));
+    assert_eq!(xot.prefix_for_namespace(p0, b_ns), None);
+    assert_eq!(xot.prefix_for_namespace(p1, b_ns), None);
+    assert_eq!(xot.prefix_for_namespace(p0, xml_ns), Some(xml_prefix));
+}

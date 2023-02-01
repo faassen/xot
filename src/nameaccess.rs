@@ -249,6 +249,42 @@ impl<'a> Xot<'a> {
         self.name_lookup.get_value(name).namespace_id
     }
 
+    /// Check whether a prefix is defined in node or its ancestors.
+    pub fn is_prefix_defined(&self, node: Node, prefix: PrefixId) -> bool {
+        for ancestor in self.ancestors(node) {
+            if let Some(element) = self.element(ancestor) {
+                if element.prefixes().contains_key(&prefix) {
+                    return true;
+                }
+            }
+        }
+        if self.base_prefixes().contains_key(&prefix) {
+            return true;
+        }
+        false
+    }
+
+    /// Find prefix for a namespace in node or ancestors.
+    ///
+    /// Returns `None` if no prefix is defined for the namespace.
+    pub fn prefix_for_namespace(&self, node: Node, namespace: NamespaceId) -> Option<PrefixId> {
+        for ancestor in self.ancestors(node) {
+            if let Some(element) = self.element(ancestor) {
+                for (key, value) in element.prefixes() {
+                    if *value == namespace {
+                        return Some(*key);
+                    }
+                }
+            }
+        }
+        for (key, value) in self.base_prefixes() {
+            if value == namespace {
+                return Some(key);
+            }
+        }
+        None
+    }
+
     /// Creating missing prefixes.
     ///
     /// Due to creation or moving subtrees you can end up with XML elements or
