@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.11.6] - 2023-02-01
+
 ### Added
 
 - Added `unresolved_namespaces` to the `Xot` API. This gives namespaces that
@@ -273,8 +275,9 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.11.6...HEAD
 
-[unreleased]: https://github.com/faassen/xot/compare/v0.11.5...HEAD
+[unreleased]: https://github.com/faassen/xot/compare/v0.11.5...v0.11.6
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.4...v0.11.5
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.3...v0.11.4
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.2...v0.11.3
