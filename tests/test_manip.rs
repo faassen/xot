@@ -488,20 +488,20 @@ fn test_clone_with_prefixes() {
     );
 }
 
-// #[test]
-// fn test_clone_with_prefixes_only_necessary_ones() {
-//     let mut xot = Xot::new();
-//     let root = xot
-//         .parse(r#"<doc xmlns:a="http://example.com/a" xmlns:b="http://example.com/b"><a:p>Hello!</a:p></doc>"#)
-//         .unwrap();
-//     let doc_id = xot.document_element(root).unwrap();
-//     let a_id = xot.first_child(doc_id).unwrap();
-//     let a_id_clone = xot.clone_with_prefixes(a_id);
-//     assert_eq!(
-//         xot.to_string(a_id_clone).unwrap(),
-//         r#"<a:p xmlns:a="http://example.com/a">Hello!</a:p>"#
-//     );
-// }
+#[test]
+fn test_clone_with_prefixes_only_necessary_ones() {
+    let mut xot = Xot::new();
+    let root = xot
+        .parse(r#"<doc xmlns:a="http://example.com/a" xmlns:b="http://example.com/b"><a:p>Hello!</a:p></doc>"#)
+        .unwrap();
+    let doc_id = xot.document_element(root).unwrap();
+    let a_id = xot.first_child(doc_id).unwrap();
+    let a_id_clone = xot.clone_with_prefixes(a_id);
+    assert_eq!(
+        xot.to_string(a_id_clone).unwrap(),
+        r#"<a:p xmlns:a="http://example.com/a">Hello!</a:p>"#
+    );
+}
 
 #[test]
 fn test_element_unwrap() {

@@ -2,6 +2,14 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- Added `unresolved_namespaces` to the `Xot` API. This gives namespaces that
+  aren't defined by prefixes within the given node or its descendants.
+
+- Changed the behavior of `clone_with_prefixes` to be more accurate: it only
+  includes prefixes for unresolved namespaces, not any additional ones.
+
 ## [0.11.5] - 2023-01-26
 
 ### Added
@@ -265,8 +273,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.11.5...HEAD
 
+[unreleased]: https://github.com/faassen/xot/compare/v0.11.5...HEAD
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.4...v0.11.5
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.3...v0.11.4
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.2...v0.11.3

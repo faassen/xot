@@ -85,3 +85,41 @@ fn test_create_missing_prefixes() {
         r#"<doc xmlns:n0="http://example.com"><n0:a/></doc>"#
     );
 }
+
+#[test]
+fn test_unresolved_namespaces() {
+    let mut xot = Xot::new();
+    let doc = xot
+        .parse(r#"<doc xmlns:a="http://example.com/a"><a:p/></doc>"#)
+        .unwrap();
+    let root_id = xot.document_element(doc).unwrap();
+    let p_el = xot.first_child(root_id).unwrap();
+    let a_ns = xot.add_namespace("http://example.com/a");
+
+    assert_eq!(xot.unresolved_namespaces(p_el), [a_ns]);
+}
+
+#[test]
+fn test_unresolved_namespaces_resolved() {
+    let mut xot = Xot::new();
+    let doc = xot
+        .parse(r#"<doc xmlns:a="http://example.com/a"><a:p xmlns:a="http://example.com/b"/></doc>"#)
+        .unwrap();
+    let root_id = xot.document_element(doc).unwrap();
+    let p_el = xot.first_child(root_id).unwrap();
+
+    assert_eq!(xot.unresolved_namespaces(p_el), []);
+}
+
+#[test]
+fn test_unresolved_namespaces_resolved_deeper() {
+    let mut xot = Xot::new();
+    let doc = xot
+        .parse(r#"<doc xmlns:a="http://example.com/a"><a:p><b:x xmlns:b="http://example.com/x"/></a:p></doc>"#)
+        .unwrap();
+    let root_id = xot.document_element(doc).unwrap();
+    let p_el = xot.first_child(root_id).unwrap();
+    let a_ns = xot.add_namespace("http://example.com/a");
+
+    assert_eq!(xot.unresolved_namespaces(p_el), [a_ns]);
+}

@@ -1,4 +1,7 @@
+use ahash::HashSet;
+
 use crate::xotdata::{Node, Xot};
+use crate::NamespaceId;
 
 use crate::access::NodeEdge;
 use crate::error::Error;
@@ -376,7 +379,8 @@ impl<'a> Xot<'a> {
     /// Clone a node and its descendants into a new fragment
     ///
     /// If the cloned node is an element, required namespace prefixes that are
-    /// in scope are added to the cloned node.
+    /// in scope are added to the cloned node. Only those namespaces that
+    /// are in fact in use in the node or descendants are added.
     ///
     /// ```rust
     /// use xot::Xot;
@@ -404,6 +408,13 @@ impl<'a> Xot<'a> {
         } else {
             Prefixes::new()
         };
+        // now filter these by namespaces actually required
+        let unresolved_namespaces = HashSet::from_iter(self.unresolved_namespaces(node));
+        let prefixes = prefixes
+            .into_iter()
+            .filter(|(_, ns)| unresolved_namespaces.contains(ns))
+            .collect::<Prefixes>();
+
         let clone = self.clone(node);
         // add any prefixes from outer scope we may need
         if let Some(element) = self.element_mut(clone) {

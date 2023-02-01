@@ -423,6 +423,42 @@ impl<'a> Xot<'a> {
         prefixes
     }
 
+    /// Get namespaces without prefix within node or its descendants.
+    ///
+    /// Any elements or attribute with namespaces that don't have a prefix
+    /// defined for them in the context of the node are reported.
+    pub fn unresolved_namespaces(&self, node: Node) -> Vec<NamespaceId> {
+        let mut namespaces = Vec::new();
+        let mut fullname_serializer = FullnameSerializer::new(self);
+        for edge in self.traverse(node) {
+            match edge {
+                NodeEdge::Start(node) => {
+                    let element = self.element(node);
+                    if let Some(element) = element {
+                        fullname_serializer.push(&element.prefixes);
+                        let namespace_id = self.namespace_for_name(element.name());
+                        if !fullname_serializer.is_namespace_known(namespace_id) {
+                            namespaces.push(namespace_id);
+                        }
+                        for name in element.attributes().keys() {
+                            let namespace_id = self.namespace_for_name(*name);
+                            if !fullname_serializer.is_namespace_known(namespace_id) {
+                                namespaces.push(namespace_id);
+                            }
+                        }
+                    }
+                }
+                NodeEdge::End(node) => {
+                    let element = self.element(node);
+                    if let Some(element) = element {
+                        fullname_serializer.pop(&element.prefixes);
+                    }
+                }
+            }
+        }
+        namespaces
+    }
+
     pub(crate) fn base_prefixes(&self) -> Prefixes {
         let mut prefixes = Prefixes::new();
         prefixes.insert(self.xml_prefix_id, self.xml_namespace_id);
