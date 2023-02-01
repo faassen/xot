@@ -1,7 +1,6 @@
 use ahash::HashSet;
 
 use crate::xotdata::{Node, Xot};
-use crate::NamespaceId;
 
 use crate::access::NodeEdge;
 use crate::error::Error;
