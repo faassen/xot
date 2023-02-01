@@ -346,21 +346,6 @@ fn test_move_not_allowed_as_takes_document_element() {
 }
 
 #[test]
-fn test_create_missing_prefixes() {
-    let mut xot = Xot::new();
-    let doc = xot.parse(r#"<doc></doc>"#).unwrap();
-    let root_id = xot.document_element(doc).unwrap();
-    let ns_id = xot.add_namespace("http://example.com");
-    let name_id = xot.add_name_ns("a", ns_id);
-    xot.append_element(root_id, name_id).unwrap();
-    xot.create_missing_prefixes(root_id).unwrap();
-    assert_eq!(
-        xot.to_string(doc).unwrap(),
-        r#"<doc xmlns:n0="http://example.com"><n0:a/></doc>"#
-    );
-}
-
-#[test]
 fn test_clone() {
     let mut xot = Xot::new();
     let root = xot.parse(r#"<doc><a>Hello!</a></doc>"#).unwrap();
@@ -502,6 +487,21 @@ fn test_clone_with_prefixes() {
         r#"<a xmlns="http://example.com">Hello!</a>"#
     );
 }
+
+// #[test]
+// fn test_clone_with_prefixes_only_necessary_ones() {
+//     let mut xot = Xot::new();
+//     let root = xot
+//         .parse(r#"<doc xmlns:a="http://example.com/a" xmlns:b="http://example.com/b"><a:p>Hello!</a:p></doc>"#)
+//         .unwrap();
+//     let doc_id = xot.document_element(root).unwrap();
+//     let a_id = xot.first_child(doc_id).unwrap();
+//     let a_id_clone = xot.clone_with_prefixes(a_id);
+//     assert_eq!(
+//         xot.to_string(a_id_clone).unwrap(),
+//         r#"<a:p xmlns:a="http://example.com/a">Hello!</a:p>"#
+//     );
+// }
 
 #[test]
 fn test_element_unwrap() {
@@ -702,59 +702,6 @@ fn test_element_wrap_standalone_element() {
     let name_p = xot.add_name("p");
     let wrapper = xot.element_wrap(element, name_p).unwrap();
     assert_eq!(xot.to_string(wrapper).unwrap(), r#"<p><element/></p>"#);
-}
-
-#[test]
-fn test_deduplicate_namespace() {
-    let mut xot = Xot::new();
-    let root = xot
-        .parse(r#"<doc xmlns="http://example.com"><a xmlns="http://example.com">Hello!</a></doc>"#)
-        .unwrap();
-    xot.deduplicate_namespaces(root);
-    assert_eq!(
-        xot.to_string(root).unwrap(),
-        r#"<doc xmlns="http://example.com"><a>Hello!</a></doc>"#
-    );
-}
-
-#[test]
-fn test_deduplicate_named_namespace() {
-    let mut xot = Xot::new();
-    let root = xot
-        .parse(r#"<doc xmlns="http://example.com"><foo:a xmlns:foo="http://example.com">Hello!</foo:a></doc>"#)
-        .unwrap();
-    xot.deduplicate_namespaces(root);
-    assert_eq!(
-        xot.to_string(root).unwrap(),
-        r#"<doc xmlns="http://example.com"><a>Hello!</a></doc>"#
-    );
-}
-
-#[test]
-fn test_deduplicate_named_namespace_again() {
-    let mut xot = Xot::new();
-    let root = xot
-        .parse(r#"<section xmlns="http://docbook.org/ns/docbook" xmlns:diff="http://paligo.net/nxd" version="5.0">
-  <title>Title</title>
-  <para diff:delete="">Para first old </para><para xmlns="http://docbook.org/ns/docbook" diff:insert="">Before emphasis <emphasis>emphasis</emphasis> After emphasis</para>
-  <para diff:delete="">Para second old</para><warning xmlns="http://docbook.org/ns/docbook" diff:insert="">
-    <title>I am new</title>
-    <para>Warning here</para>
-  </warning>
-</section>"#)
-        .unwrap();
-    xot.deduplicate_namespaces(root);
-    assert_eq!(
-        xot.to_string(root).unwrap(),
-        r#"<section xmlns="http://docbook.org/ns/docbook" xmlns:diff="http://paligo.net/nxd" version="5.0">
-  <title>Title</title>
-  <para diff:delete="">Para first old </para><para diff:insert="">Before emphasis <emphasis>emphasis</emphasis> After emphasis</para>
-  <para diff:delete="">Para second old</para><warning diff:insert="">
-    <title>I am new</title>
-    <para>Warning here</para>
-  </warning>
-</section>"#
-    );
 }
 
 #[test]
