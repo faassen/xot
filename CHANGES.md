@@ -2,6 +2,11 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- Added `remove_insigificant_whitespace` to the `Xot` API. This removes
+  insignificant whitespace nodes from the tree.
+
 ## [0.11.7] - 2023-02-01
 
 ### Added
@@ -285,8 +290,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.11.7...HEAD
 
+[unreleased]: https://github.com/faassen/xot/compare/v0.11.7...HEAD
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.6...v0.11.7
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.5...v0.11.6
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.4...v0.11.5
