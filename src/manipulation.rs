@@ -1,5 +1,6 @@
 use ahash::HashSet;
 
+use crate::unpretty::remove_insignificant_whitespace;
 use crate::xotdata::{Node, Xot};
 
 use crate::access::NodeEdge;
@@ -684,6 +685,16 @@ impl<'a> Xot<'a> {
             }
         }
         Ok(())
+    }
+
+    /// Remove insignificant whitespace
+    ///
+    /// XML officially does not have a notion of insignificant whitespace, but
+    /// here we employ the following one: a text node can be removed if
+    /// it contains only whitespace and has no text sibling that contains
+    /// non-whitespace text.
+    pub fn remove_insignificant_whitespace(&mut self, node: Node) {
+        remove_insignificant_whitespace(self, node);
     }
 
     fn add_consolidate_text_nodes(

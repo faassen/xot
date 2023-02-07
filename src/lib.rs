@@ -61,6 +61,7 @@ mod pretty;
 pub mod proptest;
 mod serialize;
 mod serializer;
+mod unpretty;
 mod valueaccess;
 mod xmlvalue;
 mod xotdata;
