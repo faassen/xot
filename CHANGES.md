@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.11.8] - 2023-02-07
+
 ### Added
 
 - Added `remove_insigificant_whitespace` to the `Xot` API. This removes
@@ -290,8 +292,9 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.11.8...HEAD
 
-[unreleased]: https://github.com/faassen/xot/compare/v0.11.7...HEAD
+[unreleased]: https://github.com/faassen/xot/compare/v0.11.7...v0.11.8
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.6...v0.11.7
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.5...v0.11.6
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.4...v0.11.5
