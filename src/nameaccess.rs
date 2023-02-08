@@ -172,6 +172,38 @@ impl<'a> Xot<'a> {
         self.prefix_lookup.get_id_mut(prefix)
     }
 
+    /// No namespace
+    ///
+    /// Returns the namespace id used when an element or attribute
+    /// isn't in any namespace.
+    pub fn no_namespace(&self) -> NamespaceId {
+        self.no_namespace_id
+    }
+
+    /// Empty prefix
+    ///
+    /// Returns the prefix id used when an element or attribute
+    /// doesn't have a prefix.
+    pub fn empty_prefix(&self) -> PrefixId {
+        self.empty_prefix_id
+    }
+
+    /// XML prefix
+    ///
+    /// The prefix `xml` used for the XML namespace.
+    pub fn xml_prefix(&self) -> PrefixId {
+        self.xml_prefix_id
+    }
+
+    /// XML namespace
+    ///
+    /// Returns the namespace id used for the XML namespace.
+    ///
+    /// Also known as http://wwww.w3.org/XML/1998/namespace
+    pub fn xml_namespace(&self) -> NamespaceId {
+        self.xml_namespace_id
+    }
+
     /// Look up localname, namespace uri for name id
     ///
     /// If this name id is not in a namespace, the namespace uri is the
