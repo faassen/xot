@@ -9,12 +9,12 @@ enum StackEntry {
 }
 
 pub(crate) struct Pretty<'a> {
-    xot: &'a Xot<'a>,
+    xot: &'a Xot,
     stack: Vec<StackEntry>,
 }
 
 impl<'a> Pretty<'a> {
-    pub(crate) fn new(xot: &'a Xot<'a>) -> Pretty<'a> {
+    pub(crate) fn new(xot: &'a Xot) -> Pretty<'a> {
         Pretty {
             xot,
             stack: Vec::new(),

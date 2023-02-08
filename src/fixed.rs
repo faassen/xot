@@ -47,7 +47,7 @@ pub(crate) enum FixedRootContent {
 
 impl FixedRoot {
     /// Turn a fixed root into a Xot node
-    pub fn xotify<'a>(&'a self, xot: &mut Xot<'a>) -> Node {
+    pub fn xotify(&self, xot: &mut Xot) -> Node {
         let child = self.document_element.xotify(xot);
         let root = xot.new_root(child).unwrap();
         for content in &self.before {
@@ -63,7 +63,7 @@ impl FixedRoot {
 }
 
 impl FixedElement {
-    fn xotify<'a>(&'a self, xot: &mut Xot<'a>) -> Node {
+    fn xotify(&self, xot: &mut Xot) -> Node {
         let ns = xot.add_namespace(&self.namespace);
         let name = xot.add_name_ns(&self.name, ns);
         let prefixes = self
@@ -108,7 +108,7 @@ impl FixedElement {
 }
 
 impl FixedContent {
-    fn xotify<'a>(&'a self, xot: &mut Xot<'a>) -> Node {
+    fn xotify(&self, xot: &mut Xot) -> Node {
         match self {
             FixedContent::Text(text) => xot.new_text(text),
             FixedContent::Comment(comment) => xot.new_comment(comment),

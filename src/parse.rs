@@ -272,7 +272,7 @@ impl NameIdBuilder {
 }
 
 /// ## Parsing
-impl<'a> Xot<'a> {
+impl Xot {
     /// Parse a string containing XML into a node.
     ///
     /// The returned node is the root node of the

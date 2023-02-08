@@ -40,11 +40,11 @@ impl Node {
 /// * [Parsing](#parsing)
 /// * [Serialization](#serialization)
 /// * [Value and type access](#value-and-type-access)
-pub struct Xot<'a> {
+pub struct Xot {
     pub(crate) arena: XmlArena,
     pub(crate) namespace_lookup: NamespaceLookup,
     pub(crate) prefix_lookup: PrefixLookup,
-    pub(crate) name_lookup: NameLookup<'a>,
+    pub(crate) name_lookup: NameLookup,
     pub(crate) no_namespace_id: NamespaceId,
     pub(crate) empty_prefix_id: PrefixId,
     pub(crate) xml_namespace_id: NamespaceId,
@@ -53,7 +53,7 @@ pub struct Xot<'a> {
     pub(crate) text_consolidation: bool,
 }
 
-impl<'a> Xot<'a> {
+impl Xot {
     /// Create a new `Xot` instance.
     pub fn new() -> Self {
         let mut namespace_lookup = NamespaceLookup::new();
@@ -87,7 +87,7 @@ impl<'a> Xot<'a> {
     }
 }
 
-impl<'a> Default for Xot<'a> {
+impl Default for Xot {
     fn default() -> Self {
         Self::new()
     }

@@ -2,6 +2,20 @@
 
 ## [Unreleased] - ReleaseDate
 
+## Added
+
+- Expose `no_namespace`, `empty_prefix`, `xml_namepace` and `xml_prefix`
+  methods.
+
+## Changed
+
+- Xot doesn't take a lifetime specifier anymore.
+
+- The lifetime restriction on `Xot.add_name` and `Xot.add_name_ns` has been
+  lifted; you can now pass in more short-lived names. Internally `Cow` was
+  previously in use to store names, but that was a minor optimization far more
+  trouble than it was worth.
+
 ## [0.11.8] - 2023-02-07
 
 ### Added
@@ -292,8 +306,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.11.8...HEAD
 
+[unreleased]: https://github.com/faassen/xot/compare/v0.11.8...HEAD
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.7...v0.11.8
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.6...v0.11.7
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.5...v0.11.6

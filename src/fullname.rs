@@ -22,7 +22,7 @@ fn inverse_prefixes(prefixes: &Prefixes) -> ToPrefixes {
 }
 
 pub(crate) struct FullnameSerializer<'a> {
-    xot: &'a Xot<'a>,
+    xot: &'a Xot,
     prefix_stack: Vec<(Prefixes, ToPrefixes)>,
 }
 

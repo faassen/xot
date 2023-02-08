@@ -34,7 +34,7 @@ use crate::xotdata::{Node, Xot};
 /// prefix or namepace. This drawback may be an advantage at times, as typical
 /// code needs to use a single name, namespace or prefix multiple times, so
 /// assigning to a variable is more convenient than repeating strings.
-impl<'a> Xot<'a> {
+impl Xot {
     /// Look up name without a namespace.
     ///
     /// This is the immutable version of [`Xot::add_name`]; it returns
@@ -75,7 +75,7 @@ impl<'a> Xot<'a> {
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn add_name(&mut self, name: &'a str) -> NameId {
+    pub fn add_name(&mut self, name: &str) -> NameId {
         self.add_name_ns(name, self.no_namespace_id)
     }
 
@@ -138,7 +138,7 @@ impl<'a> Xot<'a> {
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn add_name_ns(&mut self, name: &'a str, namespace_id: NamespaceId) -> NameId {
+    pub fn add_name_ns(&mut self, name: &str, namespace_id: NamespaceId) -> NameId {
         self.name_lookup.get_id_mut(&Name::new(name, namespace_id))
     }
 

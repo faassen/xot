@@ -33,7 +33,7 @@ pub struct SerializeOptions {
 
 /// Configurable serialization
 pub struct WithSerializeOptions<'a> {
-    xot: &'a Xot<'a>,
+    xot: &'a Xot,
     options: SerializeOptions,
 }
 
@@ -58,7 +58,7 @@ impl<'a> WithSerializeOptions<'a> {
 }
 
 /// ## Serialization
-impl<'a> Xot<'a> {
+impl Xot {
     /// Write node as XML.
     ///
     /// You can control output options by using [`Xot::with_serialize_options`] first,
@@ -136,10 +136,7 @@ impl<'a> Xot<'a> {
     /// This creates an iterator that represents the serialized XML. You
     /// can use this to write custom renderers that serialize the XML in
     /// a different way, for instance with inline styling.
-    pub fn tokens(
-        &'a self,
-        node: Node,
-    ) -> impl Iterator<Item = (Node, Output<'a>, OutputToken)> + '_ {
+    pub fn tokens(&self, node: Node) -> impl Iterator<Item = (Node, Output, OutputToken)> + '_ {
         mk_gen!(let outputs = box gen_outputs(self, node));
         let mut serializer = XmlSerializer::new(self, node);
         outputs.map(move |(node, output)| {
@@ -154,9 +151,9 @@ impl<'a> Xot<'a> {
     /// can use this to write custom renderers that serialize the XML in
     /// a different way, for instance with inline styling.
     pub fn pretty_tokens(
-        &'a self,
+        &self,
         node: Node,
-    ) -> impl Iterator<Item = (Node, Output<'a>, PrettyOutputToken)> + '_ {
+    ) -> impl Iterator<Item = (Node, Output, PrettyOutputToken)> + '_ {
         mk_gen!(let outputs = box gen_outputs(self, node));
         let mut serializer = XmlSerializer::new(self, node);
         let mut pretty = Pretty::new(self);

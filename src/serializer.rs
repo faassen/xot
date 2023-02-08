@@ -45,7 +45,7 @@ pub enum Output<'a> {
 }
 
 #[generator(yield((Node, Output<'a>)))]
-pub(crate) fn gen_outputs<'a>(xot: &'a Xot<'a>, node: Node) {
+pub(crate) fn gen_outputs<'a>(xot: &'a Xot, node: Node) {
     let extra_prefixes = get_extra_prefixes(xot, node);
     for edge in xot.traverse(node) {
         match edge {
@@ -66,7 +66,7 @@ pub(crate) fn gen_outputs<'a>(xot: &'a Xot<'a>, node: Node) {
 }
 
 #[generator(yield(Output<'a>))]
-fn gen_edge_start<'a>(xot: &'a Xot<'a>, top_node: Node, node: Node, extra_prefixes: &Prefixes) {
+fn gen_edge_start<'a>(xot: &'a Xot, top_node: Node, node: Node, extra_prefixes: &Prefixes) {
     let value = xot.value(node);
     match value {
         Value::Root => {}
@@ -108,7 +108,7 @@ fn gen_edge_start<'a>(xot: &'a Xot<'a>, top_node: Node, node: Node, extra_prefix
 }
 
 #[generator(yield(Output<'a>))]
-fn gen_edge_end<'a>(xot: &'a Xot<'a>, node: Node) {
+fn gen_edge_end<'a>(xot: &'a Xot, node: Node) {
     let value = xot.value(node);
     if let Value::Element(element) = value {
         yield_!(Output::EndTag(element));
@@ -116,7 +116,7 @@ fn gen_edge_end<'a>(xot: &'a Xot<'a>, node: Node) {
 }
 
 pub(crate) struct XmlSerializer<'a> {
-    xot: &'a Xot<'a>,
+    xot: &'a Xot,
     fullname_serializer: FullnameSerializer<'a>,
 }
 
@@ -133,7 +133,7 @@ pub struct OutputToken {
 }
 
 impl<'a> XmlSerializer<'a> {
-    pub(crate) fn new(xot: &'a Xot<'a>, node: Node) -> Self {
+    pub(crate) fn new(xot: &'a Xot, node: Node) -> Self {
         let extra_prefixes = get_extra_prefixes(xot, node);
         let mut fullname_serializer = FullnameSerializer::new(xot);
         fullname_serializer.push(&extra_prefixes);

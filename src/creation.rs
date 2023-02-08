@@ -6,7 +6,7 @@ use crate::xotdata::{Node, Xot};
 /// ## Creation
 /// See also the convenience manipulation methods like [`Xot::append_element`]
 /// in the manipulation section.
-impl<'a> Xot<'a> {
+impl Xot {
     pub(crate) fn new_node(&mut self, value: Value) -> Node {
         Node::new(self.arena.new_node(value))
     }

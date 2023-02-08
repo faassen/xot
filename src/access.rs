@@ -22,7 +22,7 @@ pub enum NodeEdge {
 }
 
 /// ## Read-only access
-impl<'a> Xot<'a> {
+impl Xot {
     /// Obtain the root element from the document root.
     /// Returns [`Error::NotRoot`](`crate::error::Error::NotRoot`) error if
     /// this is not the document root.

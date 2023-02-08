@@ -55,7 +55,7 @@ use crate::xmlvalue::{Prefixes, Value, ValueType};
 ///
 /// # Ok::<(), xot::Error>(())
 /// ```
-impl<'a> Xot<'a> {
+impl Xot {
     /// Append a child to the end of the children of the given parent.
     ///
     /// It is now the new last node of the parent.
