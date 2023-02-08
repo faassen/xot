@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.12.0] - 2023-02-08
+
 ## Added
 
 - Expose `no_namespace`, `empty_prefix`, `xml_namepace` and `xml_prefix`
@@ -306,8 +308,9 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.12.0...HEAD
 
-[unreleased]: https://github.com/faassen/xot/compare/v0.11.8...HEAD
+[unreleased]: https://github.com/faassen/xot/compare/v0.11.8...v0.12.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.7...v0.11.8
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.6...v0.11.7
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.5...v0.11.6
