@@ -24,7 +24,7 @@ const PREFIXES: &[&str] = &["", "x", "y"];
 const ELEMENT_NAMES: &[&str] = &["a", "b", "c", "d", "e"];
 const ATTRIBUTE_NAMES: &[&str] = &["q", "r", "s"];
 const PI_NAMES: &[&str] = &["pi1", "pi2", "pi3", "pi4", "pi5"];
-const XML_STRING: &str = "[\u{000a}\u{0009}\u{000D}][\u{0020}-\u{D7FF}][\u{E000}-\u{FFFD}]*";
+const XML_STRING: &str = "[\u{000a}\u{0009}][\u{0020}-\u{D7FF}][\u{E000}-\u{FFFD}]*";
 const XML_STRING_WITHOUT_WHITESPACE: &str = "[\u{0020}-\u{D7FF}][\u{E000}-\u{FFFD}]*";
 
 fn arb_attribute() -> impl Strategy<Value = ((String, String), String)> {
