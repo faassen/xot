@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.12.1] - 2023-02-15
+
 ## Changed
 
 - Proptest won't create carriage return as text content anymore, as
@@ -313,8 +315,9 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.12.1...HEAD
 
-[unreleased]: https://github.com/faassen/xot/compare/v0.12.0...HEAD
+[unreleased]: https://github.com/faassen/xot/compare/v0.12.0...v0.12.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.8...v0.12.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.7...v0.11.8
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.6...v0.11.7
