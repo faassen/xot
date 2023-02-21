@@ -11,6 +11,8 @@
 
 - `remove_insignificant_whitespace` now respects `xml:space="preserve"`.
 
+- Pretty printing now also respects `xml:space="preserve"`.
+
 ## [0.12.1] - 2023-02-15
 
 ### Changed

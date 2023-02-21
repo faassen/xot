@@ -1,0 +1,10 @@
+---
+source: src/pretty.rs
+expression: "<doc xml:space=\"preserve\"><p xml:space=\"default\"><foo><bar/></foo></p></doc>"
+---
+<doc xml:space="preserve"><p xml:space="default">
+  <foo>
+    <bar/>
+  </foo>
+</p></doc>
+

@@ -3,8 +3,15 @@ use crate::xmlvalue::ValueType;
 use crate::xotdata::{Node, Xot};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Space {
+    Empty,
+    Default,
+    Preserve,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum StackEntry {
-    Unmixed,
+    Unmixed(Space),
     Mixed,
 }
 
@@ -21,8 +28,8 @@ impl<'a> Pretty<'a> {
         }
     }
 
-    fn unmixed(&mut self) {
-        self.stack.push(StackEntry::Unmixed);
+    fn unmixed(&mut self, space: Space) {
+        self.stack.push(StackEntry::Unmixed(space));
     }
 
     fn mixed(&mut self) {
@@ -33,6 +40,18 @@ impl<'a> Pretty<'a> {
         self.stack.iter().any(|e| *e == StackEntry::Mixed)
     }
 
+    fn in_space_preserve(&self) -> bool {
+        for entry in self.stack.iter().rev() {
+            match entry {
+                StackEntry::Unmixed(Space::Preserve) => return true,
+                StackEntry::Unmixed(Space::Default) => return false,
+                StackEntry::Unmixed(Space::Empty) => (),
+                StackEntry::Mixed => return false,
+            }
+        }
+        false
+    }
+
     fn pop(&mut self) {
         self.stack.pop();
     }
@@ -41,14 +60,28 @@ impl<'a> Pretty<'a> {
         if self.in_mixed() {
             return 0;
         }
-        self.stack
-            .iter()
-            .filter(|e| **e == StackEntry::Unmixed)
-            .count()
+        let mut count = 0;
+        let mut in_preserve = false;
+        for entry in self.stack.iter() {
+            match entry {
+                StackEntry::Unmixed(Space::Default) => {
+                    in_preserve = false;
+                    count += 1
+                }
+                StackEntry::Unmixed(Space::Preserve) => in_preserve = true,
+                StackEntry::Unmixed(Space::Empty) => {
+                    if !in_preserve {
+                        count += 1
+                    }
+                }
+                StackEntry::Mixed => (),
+            }
+        }
+        count
     }
 
     fn get_newline(&self) -> bool {
-        !self.in_mixed()
+        !self.in_mixed() && !self.in_space_preserve()
     }
 
     fn has_text_child(&self, node: Node) -> bool {
@@ -62,10 +95,15 @@ impl<'a> Pretty<'a> {
         match output_token {
             StartTagOpen(_) => (self.get_indentation(), false),
             Comment(_) | ProcessingInstruction(..) => (self.get_indentation(), self.get_newline()),
-            StartTagClose(..) => {
+            StartTagClose(element) => {
                 let newline = if self.xot.first_child(node).is_some() {
                     if !self.has_text_child(node) {
-                        self.unmixed();
+                        let space = element.get_attribute(self.xot.xml_space_name());
+                        match space {
+                            Some("preserve") => self.unmixed(Space::Preserve),
+                            Some("default") => self.unmixed(Space::Default),
+                            _ => self.unmixed(Space::Empty),
+                        }
                         self.get_newline()
                     } else {
                         self.mixed();
@@ -114,7 +152,10 @@ mod tests {
             ("mixed, multi", r#"<doc><p>Hello <em>world</em>!</p><p>Greetings, <strong>universe</strong>!</p></doc>"#),
             ("comment", r#"<doc><a><!--hello--><!--world--></a></doc>"#),
             ("mixed, comment", r#"<doc><p>Hello <!--world-->!</p></doc>"#),
-            ("multi pi", r#"<doc><a><?pi?><?pi?></a></doc>"#)
+            ("multi pi", r#"<doc><a><?pi?><?pi?></a></doc>"#),
+            ("preserve", r#"<doc xml:space="preserve"><p>Hello</p></doc>"#),
+            ("preserve_nested", r#"<doc xml:space="preserve">  <p><foo>  </foo></p></doc>"#),
+            ("preserve_back_to_default", r#"<doc xml:space="preserve"><p xml:space="default"><foo><bar/></foo></p></doc>"#)
         )]
         value: (&str, &str),
     ) {
