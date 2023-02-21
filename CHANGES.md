@@ -2,21 +2,30 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- New `xot.xml_space_name()` to access the `NameId` of the
+  `xml:space` attribute.
+
+### Changed
+
+- `remove_insignificant_whitespace` now respects `xml:space="preserve"`.
+
 ## [0.12.1] - 2023-02-15
 
-## Changed
+### Changed
 
 - Proptest won't create carriage return as text content anymore, as
   that is supposed to be normalized by XML anyway.
 
 ## [0.12.0] - 2023-02-08
 
-## Added
+### Added
 
 - Expose `no_namespace`, `empty_prefix`, `xml_namepace` and `xml_prefix`
   methods.
 
-## Changed
+### Changed
 
 - Xot doesn't take a lifetime specifier anymore.
 
@@ -315,8 +324,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.12.1...HEAD
 
+[unreleased]: https://github.com/faassen/xot/compare/v0.12.1...HEAD
 [unreleased]: https://github.com/faassen/xot/compare/v0.12.0...v0.12.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.8...v0.12.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.7...v0.11.8

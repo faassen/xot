@@ -24,8 +24,23 @@ fn is_significant_text_node(xot: &Xot, node: Node) -> bool {
     }
 }
 
+fn in_preserve_space(xot: &Xot, node: Node) -> bool {
+    let space = xot.xml_space_name();
+    for ancestor in xot.ancestors(node) {
+        if let Some(element) = xot.element(ancestor) {
+            if let Some(value) = element.get_attribute(space) {
+                return value == "preserve";
+            }
+        }
+    }
+    false
+}
+
 fn is_insignificant_whitespace(xot: &Xot, node: Node) -> bool {
     if let Some(text) = xot.text_str(node) {
+        if in_preserve_space(xot, node) {
+            return false;
+        }
         if !is_whitespace(text) {
             return false;
         }
@@ -67,6 +82,43 @@ mod tests {
         assert_eq!(
             xot.to_string(root).unwrap(),
             "<doc><p>hello <i>world</i>  </p></doc>"
+        );
+    }
+
+    #[test]
+    fn test_unpretty_xml_space_preserve() {
+        let mut xot = Xot::new();
+        let root = xot.parse(r#"<doc xml:space="preserve">   </doc>"#).unwrap();
+        remove_insignificant_whitespace(&mut xot, root);
+        assert_eq!(
+            xot.to_string(root).unwrap(),
+            r#"<doc xml:space="preserve">   </doc>"#
+        );
+    }
+
+    #[test]
+    fn test_unpretty_xml_space_preserve_nested() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse(r#"<doc xml:space="preserve"><p>   </p></doc>"#)
+            .unwrap();
+        remove_insignificant_whitespace(&mut xot, root);
+        assert_eq!(
+            xot.to_string(root).unwrap(),
+            r#"<doc xml:space="preserve"><p>   </p></doc>"#
+        );
+    }
+
+    #[test]
+    fn test_unpretty_xml_space_preserve_reset() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse(r#"<doc xml:space="preserve">  <p xml:space="default">   </p></doc>"#)
+            .unwrap();
+        remove_insignificant_whitespace(&mut xot, root);
+        assert_eq!(
+            xot.to_string(root).unwrap(),
+            r#"<doc xml:space="preserve">  <p xml:space="default"/></doc>"#
         );
     }
 }

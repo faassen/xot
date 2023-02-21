@@ -204,6 +204,13 @@ impl Xot {
         self.xml_namespace_id
     }
 
+    /// xml:space
+    ///
+    /// Returns the name id used for the `xml:space` attribute.
+    pub fn xml_space_name(&self) -> NameId {
+        self.xml_space_id
+    }
+
     /// Look up localname, namespace uri for name id
     ///
     /// If this name id is not in a namespace, the namespace uri is the

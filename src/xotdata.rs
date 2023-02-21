@@ -1,6 +1,6 @@
 use indextree::{Arena, NodeId};
 
-use crate::name::NameLookup;
+use crate::name::{Name, NameId, NameLookup};
 use crate::namespace::{NamespaceId, NamespaceLookup};
 use crate::prefix::{PrefixId, PrefixLookup};
 use crate::xmlvalue::Value;
@@ -49,6 +49,7 @@ pub struct Xot {
     pub(crate) empty_prefix_id: PrefixId,
     pub(crate) xml_namespace_id: NamespaceId,
     pub(crate) xml_prefix_id: PrefixId,
+    pub(crate) xml_space_id: NameId,
     pub(crate) xml_prefixes: [PrefixId; 1],
     pub(crate) text_consolidation: bool,
 }
@@ -62,15 +63,18 @@ impl Xot {
         let empty_prefix_id = prefix_lookup.get_id_mut("");
         let xml_namespace_id = namespace_lookup.get_id_mut("http://www.w3.org/XML/1998/namespace");
         let xml_prefix_id = prefix_lookup.get_id_mut("xml");
+        let mut name_lookup = NameLookup::new();
+        let xml_space_id = name_lookup.get_id_mut(&Name::new("space", xml_namespace_id));
         Xot {
             arena: XmlArena::new(),
             namespace_lookup,
             prefix_lookup,
-            name_lookup: NameLookup::new(),
+            name_lookup,
             no_namespace_id,
             empty_prefix_id,
             xml_namespace_id,
             xml_prefix_id,
+            xml_space_id,
             xml_prefixes: [xml_prefix_id],
             text_consolidation: true,
         }
