@@ -1,12 +1,10 @@
-use ahash::HashSet;
-
 use crate::unpretty::remove_insignificant_whitespace;
 use crate::xotdata::{Node, Xot};
 
 use crate::access::NodeEdge;
 use crate::error::Error;
 use crate::name::NameId;
-use crate::xmlvalue::{Prefixes, Value, ValueType};
+use crate::xmlvalue::{Value, ValueType};
 
 /// ## Manipulation
 ///
@@ -403,17 +401,7 @@ impl Xot {
     /// ```
     pub fn clone_with_prefixes(&mut self, node: Node) -> Node {
         // get all prefixes defined in scope
-        let prefixes = if let Some(node) = self.parent(node) {
-            self.prefixes_in_scope(node)
-        } else {
-            Prefixes::new()
-        };
-        // now filter these by namespaces actually required
-        let unresolved_namespaces = HashSet::from_iter(self.unresolved_namespaces(node));
-        let prefixes = prefixes
-            .into_iter()
-            .filter(|(_, ns)| unresolved_namespaces.contains(ns))
-            .collect::<Prefixes>();
+        let prefixes = self.inherited_prefixes(node);
 
         let clone = self.clone(node);
         // add any prefixes from outer scope we may need

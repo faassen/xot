@@ -303,6 +303,21 @@ impl Xot {
         false
     }
 
+    /// Find prefixes we inherit from ancestors and aren't defined locally
+    pub fn inherited_prefixes(&self, node: Node) -> Prefixes {
+        let prefixes = if let Some(node) = self.parent(node) {
+            self.prefixes_in_scope(node)
+        } else {
+            Prefixes::new()
+        };
+        // now filter these by namespaces actually required
+        let unresolved_namespaces = HashSet::from_iter(self.unresolved_namespaces(node));
+        prefixes
+            .into_iter()
+            .filter(|(_, ns)| unresolved_namespaces.contains(ns))
+            .collect::<Prefixes>()
+    }
+
     /// Find prefix for a namespace in node or ancestors.
     ///
     /// Returns `None` if no prefix is defined for the namespace.

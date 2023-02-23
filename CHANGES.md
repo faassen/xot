@@ -13,6 +13,9 @@
 
 - Pretty printing now also respects `xml:space="preserve"`.
 
+- Expose `inherited_prefixes` method which gets the prefixes that a node
+  inherits but does not define locally.
+
 ## [0.12.1] - 2023-02-15
 
 ### Changed
