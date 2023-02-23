@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.13.0] - 2023-02-23
+
 ### Added
 
 - New `xot.xml_space_name()` to access the `NameId` of the
@@ -329,8 +331,9 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.13.0...HEAD
 
-[unreleased]: https://github.com/faassen/xot/compare/v0.12.1...HEAD
+[unreleased]: https://github.com/faassen/xot/compare/v0.12.1...v0.13.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.12.0...v0.12.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.8...v0.12.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.7...v0.11.8
