@@ -50,6 +50,7 @@ mod error;
 pub mod fixed;
 mod fullname;
 mod idmap;
+mod magic;
 mod manipulation;
 mod name;
 mod nameaccess;
