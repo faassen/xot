@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.13.1] - 2023-03-23
+
 ### Added
 
 - New `xot.level_order()` method to traverse the tree in level order.
@@ -335,8 +337,9 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.13.1...HEAD
 
-[unreleased]: https://github.com/faassen/xot/compare/v0.13.0...HEAD
+[unreleased]: https://github.com/faassen/xot/compare/v0.13.0...v0.13.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.12.1...v0.13.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.12.0...v0.12.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.11.8...v0.12.0
