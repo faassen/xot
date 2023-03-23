@@ -50,6 +50,7 @@ mod error;
 pub mod fixed;
 mod fullname;
 mod idmap;
+mod levelorder;
 mod manipulation;
 mod name;
 mod nameaccess;
@@ -68,6 +69,7 @@ mod xotdata;
 
 pub use access::NodeEdge;
 pub use error::Error;
+pub use levelorder::LevelOrder;
 pub use name::NameId;
 pub use namespace::NamespaceId;
 pub use prefix::PrefixId;

@@ -1,6 +1,8 @@
 use indextree::NodeEdge as IndexTreeNodeEdge;
+use next_gen::prelude::*;
 
 use crate::error::Error;
+use crate::levelorder::{level_order_traverse, LevelOrder};
 use crate::xmlvalue::{Value, ValueType};
 use crate::xotdata::{Node, Xot};
 
@@ -233,18 +235,17 @@ impl Xot {
 
     /// Traverse over node edges.
     ///
-    /// This useful to traverse the tree in document order
-    /// iteratively without the need for recursion.
+    /// This can be used to traverse the tree in document order iteratively
+    /// without the need for recursion, while getting structure information
+    /// (unlike [`Xot::descendants`] which doesn't retain structure
+    /// information).
     ///
-    /// For the tree `<a><b/></a>` this generates
-    /// a [`NodeEdge::Start`] for `<a>`, then
-    /// a [`NodeEdge::Start`] for `<b>`, immediately
-    /// followed by a [`NodeEdge::End`] for `<b>`,
-    /// and finally a [`NodeEdge::End`] for `<a>`.
+    /// For the tree `<a><b/></a>` this generates a [`NodeEdge::Start`] for
+    /// `<a>`, then a [`NodeEdge::Start`] for `<b>`, immediately followed by a
+    /// [`NodeEdge::End`] for `<b>`, and finally a [`NodeEdge::End`] for `<a>`.
     ///
-    /// For value types other than element or root,
-    /// the start and end always come as pairs without
-    /// any intervening edges.
+    /// For value types other than element or root, the start and end always
+    /// come as pairs without any intervening edges.
     ///
     /// ```rust
     /// let mut xot = xot::Xot::new();
@@ -279,5 +280,46 @@ impl Xot {
                 IndexTreeNodeEdge::Start(node_id) => NodeEdge::Start(Node::new(node_id)),
                 IndexTreeNodeEdge::End(node_id) => NodeEdge::End(Node::new(node_id)),
             })
+    }
+
+    /// Traverse over nodes in level order.
+    ///
+    /// This is a breath first traversal, where each level is visited in turn.
+    /// Sequences of nodes with a different parent are separated by
+    /// [`LevelOrder::End`].
+    ///
+    /// For the tree `<a><b><d/></b><c><e/></c></a>` this generates a
+    /// [`LevelOrder::Node`] for `<a>`, then a [`LevelOrder::End`]. Next, a
+    /// [`LevelOrder::Node`] for `<b/>` and `</c>` are generated, again
+    /// followed by a [`LevelOrder::End`]. Then a [`LevelOrder::Node`] is
+    /// generated for `<d/>`, followed by a [`LevelOrder::End`]. Finally a
+    /// [`LevelOrder::Node`] is generated for `<e/>`, followed by a
+    /// [`LevelOrder::End`].
+    ///
+    /// ```rust
+    /// let mut xot = xot::Xot::new();
+    /// let root = xot.parse("<a><b><d/></b><c><e/></c></a>").unwrap();
+    /// let a = xot.document_element(root).unwrap();
+    /// let b = xot.first_child(a).unwrap();
+    /// let d = xot.first_child(b).unwrap();
+    /// let c = xot.next_sibling(b).unwrap();
+    /// let e = xot.first_child(c).unwrap();
+    ///
+    /// let levels = xot.level_order(a).collect::<Vec<_>>();
+    /// assert_eq!(levels, vec![
+    ///   xot::LevelOrder::Node(a),
+    ///   xot::LevelOrder::End,
+    ///   xot::LevelOrder::Node(b),
+    ///   xot::LevelOrder::Node(c),
+    ///   xot::LevelOrder::End,
+    ///   xot::LevelOrder::Node(d),
+    ///   xot::LevelOrder::End,
+    ///   xot::LevelOrder::Node(e),
+    ///   xot::LevelOrder::End,
+    /// ]);
+    /// ```
+    pub fn level_order(&self, node: Node) -> impl Iterator<Item = LevelOrder> + '_ {
+        mk_gen!(let outputs = box level_order_traverse(self, node));
+        outputs
     }
 }

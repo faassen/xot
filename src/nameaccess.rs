@@ -199,7 +199,7 @@ impl Xot {
     ///
     /// Returns the namespace id used for the XML namespace.
     ///
-    /// Also known as http://wwww.w3.org/XML/1998/namespace
+    /// Also known as `http://wwww.w3.org/XML/1998/namespace`
     pub fn xml_namespace(&self) -> NamespaceId {
         self.xml_namespace_id
     }
