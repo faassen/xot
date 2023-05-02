@@ -4,6 +4,10 @@
 
 ### Added
 
+- Make Xot a bit more generous about what encodings it supports: lowercase `utf-8` is
+  accepted, as well as `us-ascii`. Note that `us-ascii` at present is handled just
+  like `UTF-8`, and no invalid ASCII is detected by the parser.
+
 ## [0.13.1] - 2023-03-23
 
 ### Added

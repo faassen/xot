@@ -1,5 +1,7 @@
 use xot::{Error, Xot};
 
+const US_ASCII: &str = include_str!("fixtures/us-ascii.xml");
+
 #[test]
 fn test_unclosed_tag() {
     let mut xot = Xot::new();
@@ -47,6 +49,13 @@ fn test_parse_xml_declaration() {
 fn test_encoding_lowercase_utf8() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<?xml version="1.0" encoding="utf-8"?><a/>"#);
+    assert!(doc.is_ok());
+}
+
+#[test]
+fn test_encoding_us_ascii() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(US_ASCII);
     assert!(doc.is_ok());
 }
 
