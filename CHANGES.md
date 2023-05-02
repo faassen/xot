@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.13.2] - 2023-05-02
+
 ### Added
 
 - Make Xot a bit more generous about what encodings it supports: lowercase `utf-8` is
@@ -343,8 +345,9 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.13.2...HEAD
 
-[Unreleased]: https://github.com/faassen/xot/compare/v0.13.1...HEAD
+[0.13.2]: https://github.com/faassen/xot/compare/v0.13.1...v0.13.2
 [unreleased]: https://github.com/faassen/xot/compare/v0.13.0...v0.13.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.12.1...v0.13.0
 [unreleased]: https://github.com/faassen/xot/compare/v0.12.0...v0.12.1
