@@ -355,7 +355,7 @@ impl Xot {
                         return Err(Error::UnsupportedVersion(version.to_string()));
                     }
                     if let Some(encoding) = encoding {
-                        if encoding.as_str() != "UTF-8" {
+                        if encoding.as_str() != "UTF-8" && encoding.as_str() != "utf-8" {
                             return Err(Error::UnsupportedEncoding(encoding.to_string()));
                         }
                     }
