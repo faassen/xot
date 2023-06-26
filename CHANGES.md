@@ -2,6 +2,14 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+- We were incorrectly doing entity parsing inside CDATA sections. This caused
+  `&` to be rejected as incorrect in such a section, but it should be
+  acccepted. Now we accept the text in these sections as-is instead and don't
+  try to do any processing on them. Thanks to dsrich for the report! Fixes
+  https://github.com/faassen/xot/issues/3
+
 ## [0.13.2] - 2023-05-02
 
 ### Added
@@ -345,8 +353,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.13.2...HEAD
 
+[Unreleased]: https://github.com/faassen/xot/compare/v0.13.2...HEAD
 [0.13.2]: https://github.com/faassen/xot/compare/v0.13.1...v0.13.2
 [unreleased]: https://github.com/faassen/xot/compare/v0.13.0...v0.13.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.12.1...v0.13.0

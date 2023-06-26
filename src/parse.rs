@@ -135,6 +135,12 @@ impl DocumentBuilder {
         Ok(())
     }
 
+    fn cdata_text(&mut self, content: &str, xot: &mut Xot) -> Result<(), Error> {
+        println!("wot");
+        self.add(Value::Text(Text::new(content.to_string())), xot);
+        Ok(())
+    }
+
     fn close_element_immediate(&mut self, xot: &mut Xot) {
         let current_node = xot.arena.get(self.current_node_id).unwrap();
         if let Value::Element(element) = current_node.get() {
@@ -367,7 +373,7 @@ impl Xot {
                     }
                 }
                 Cdata { text, span: _ } => {
-                    builder.text(text.as_str(), self)?;
+                    builder.cdata_text(text.as_str(), self)?;
                 }
                 DtdStart { .. } => {
                     return Err(Error::DtdUnsupported);

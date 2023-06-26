@@ -88,3 +88,25 @@ fn test_parse_non_static() -> Result<(), Error> {
     assert_eq!(xot.name_ns_str(el.name()), ("a", ""));
     Ok(())
 }
+
+#[test]
+fn test_ampersand() -> Result<(), Error> {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<a>&</a>"#);
+    if let Err(err) = doc {
+        assert!(matches!(err, Error::UnclosedEntity(_)));
+    } else {
+        unreachable!();
+    }
+    Ok(())
+}
+
+#[test]
+fn test_ampersand_in_cdata() -> Result<(), Error> {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<a><![CDATA[&]]></a>"#)?;
+    let doc_el = xot.document_element(doc).unwrap();
+    let txt = xot.text_content_str(doc_el).unwrap();
+    assert_eq!(txt, "&");
+    Ok(())
+}
