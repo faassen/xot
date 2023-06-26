@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.13.3] - 2023-06-26
+
 ### Fixed
 
 - We were incorrectly doing entity parsing inside CDATA sections. This caused
@@ -353,8 +355,9 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.13.3...HEAD
 
-[Unreleased]: https://github.com/faassen/xot/compare/v0.13.2...HEAD
+[0.13.3]: https://github.com/faassen/xot/compare/v0.13.2...v0.13.3
 [0.13.2]: https://github.com/faassen/xot/compare/v0.13.1...v0.13.2
 [unreleased]: https://github.com/faassen/xot/compare/v0.13.0...v0.13.1
 [unreleased]: https://github.com/faassen/xot/compare/v0.12.1...v0.13.0
