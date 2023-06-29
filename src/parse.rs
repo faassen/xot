@@ -136,7 +136,6 @@ impl DocumentBuilder {
     }
 
     fn cdata_text(&mut self, content: &str, xot: &mut Xot) -> Result<(), Error> {
-        println!("wot");
         self.add(Value::Text(Text::new(content.to_string())), xot);
         Ok(())
     }

@@ -2,6 +2,11 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+- There was a stray debugging print that caused output when parsing CDATA.
+  This has been removed.
+
 ## [0.13.4] - 2023-06-29
 
 ### Fixed
@@ -365,8 +370,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.13.4...HEAD
 
+[Unreleased]: https://github.com/faassen/xot/compare/v0.13.4...HEAD
 [0.13.4]: https://github.com/faassen/xot/compare/v0.13.3...v0.13.4
 [0.13.3]: https://github.com/faassen/xot/compare/v0.13.2...v0.13.3
 [0.13.2]: https://github.com/faassen/xot/compare/v0.13.1...v0.13.2
