@@ -54,6 +54,68 @@ fn test_deduplicate_named_namespace_again() {
 }
 
 #[test]
+fn test_deduplicate_overlapping_namespace_attribute() {
+    let mut xot = Xot::new();
+
+    // we have a default namespace and an attribute in that namespace
+    // deduplicate should not clean up the overlapping n prefix in this
+    // case as it's in use by the attribute.
+    let doc = xot
+        .parse(r#"<a xmlns="N"><b xmlns:n="N" n:c="C"/></a>"#)
+        .unwrap();
+
+    xot.deduplicate_namespaces(doc);
+
+    // now serialize the doc; we haven't removed prefix n as it's in use by an
+    // attribute
+    assert_eq!(
+        xot.to_string(doc).unwrap(),
+        r#"<a xmlns="N"><b xmlns:n="N" n:c="C"/></a>"#
+    );
+}
+
+#[test]
+fn test_deduplicate_overlapping_namespace_element() {
+    let mut xot = Xot::new();
+
+    let doc = xot
+        .parse(r#"<a xmlns="N"><b xmlns:n="N"><n:c/></b></a>"#)
+        .unwrap();
+
+    xot.deduplicate_namespaces(doc);
+
+    // now serialize the doc; we have removed prefix n as it's in use by
+    // an element only
+    assert_eq!(
+        xot.to_string(doc).unwrap(),
+        r#"<a xmlns="N"><b><c/></b></a>"#
+    );
+}
+
+#[test]
+fn test_deduplicate_overlapping_namespace_deeper() {
+    let mut xot = Xot::new();
+
+    // we have a default namespace and an attribute in that namespace
+    // deduplicate should not clean up the overlapping n prefix in this
+    // case as it's in use by the attribute. Here we test the case
+    // where this attribute is deeper down the tree, away from where the
+    // prefix is initialized.
+    let doc = xot
+        .parse(r#"<a xmlns="N"><b xmlns:n="N"><sub n:c="C"/></b></a>"#)
+        .unwrap();
+
+    xot.deduplicate_namespaces(doc);
+
+    // now serialize the doc
+    // we haven't removed prefix n as it's in use by an attribute
+    assert_eq!(
+        xot.to_string(doc).unwrap(),
+        r#"<a xmlns="N"><b xmlns:n="N"><sub n:c="C"/></b></a>"#
+    );
+}
+
+#[test]
 fn test_name_ns_str_no_namespace() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<a/>"#).unwrap();

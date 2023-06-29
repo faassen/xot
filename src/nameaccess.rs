@@ -6,7 +6,7 @@ use crate::fullname::{Fullname, FullnameSerializer};
 use crate::name::{Name, NameId};
 use crate::namespace::NamespaceId;
 use crate::prefix::PrefixId;
-use crate::xmlvalue::Prefixes;
+use crate::xmlvalue::{Element, Prefixes};
 use crate::xotdata::{Node, Xot};
 
 /// ## Names, namespaces and prefixes.
@@ -402,9 +402,12 @@ impl Xot {
 
     /// Deduplicate namespaces.
     ///
-    /// Any namespace definition lower down that
-    /// defines a prefix for a namespace that is already known in an ancestor
-    /// is removed.
+    /// Any namespace definition lower down that defines a prefix for a
+    /// namespace that is already known in an ancestor is removed.
+    ///
+    /// There is a special rule for attributes, as they can only be in a
+    /// namespace if they have an explicit prefix; the prefix is not removed if
+    /// it overlaps with a default namespace.
     ///
     /// With default namespaces:
     ///
@@ -433,7 +436,8 @@ impl Xot {
     /// # Ok::<(), xot::Error>(())
     /// ```
     ///
-    /// This also works if you use different prefixes for the same namespace URI:
+    /// This also works if you use different prefixes for the same namespace
+    /// URI:
     ///
     /// ```rust
     /// use xot::Xot;
@@ -449,27 +453,20 @@ impl Xot {
     pub fn deduplicate_namespaces(&mut self, node: Node) {
         let mut fullname_serializer = FullnameSerializer::new(self);
         let mut fixup_nodes = Vec::new();
+        let mut deduplicate_tracker = DeduplicateTracker::new();
         // determine nodes we need to fix up
         for edge in self.traverse(node) {
             match edge {
                 NodeEdge::Start(node) => {
                     let element = self.element(node);
                     if let Some(element) = element {
-                        // if we already know a namespace, remove it
-                        let to_remove = element
-                            .prefixes()
-                            .iter()
-                            .filter_map(|(_, namespace_id)| {
-                                if fullname_serializer.is_namespace_known(*namespace_id) {
-                                    Some(*namespace_id)
-                                } else {
-                                    None
-                                }
-                            })
-                            .collect::<Vec<_>>();
-                        if !to_remove.is_empty() {
-                            fixup_nodes.push((node, to_remove.clone()));
-                        }
+                        // an attribute in a namespace *has* to have a non-empty
+                        // prefix. This means we cannot remove a prefix if that
+                        // prefix overlaps with a previously defined default
+                        // namespace: that's fine for elements which fall
+                        // in the default namespace, but not for attributes.
+                        // The tracker keeps track of all this.
+                        deduplicate_tracker.push(self, element);
                         // we don't need to remove the fixed up prefixes because
                         // as duplicates they will definitely exist.
                         // In fact if we remove them first the push will fail to create
@@ -483,6 +480,26 @@ impl Xot {
                         // to_prefix is only used to determine whether to pop
                         // so should be okay to send here
                         fullname_serializer.pop(&element.prefixes);
+                        deduplicate_tracker.pop();
+                        // if we already know a namespace, remove it
+                        // we do this at the end so the deduplicate tracker
+                        // has had a change to do its work for sub-elements
+                        let to_remove = element
+                            .prefixes()
+                            .iter()
+                            .filter_map(|(_, namespace_id)| {
+                                if fullname_serializer.is_namespace_known(*namespace_id)
+                                    && deduplicate_tracker.is_safe_to_remove(*namespace_id)
+                                {
+                                    Some(*namespace_id)
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect::<Vec<_>>();
+                        if !to_remove.is_empty() {
+                            fixup_nodes.push((node, to_remove.clone()));
+                        }
                     }
                 }
             }
@@ -553,6 +570,55 @@ impl Xot {
         let mut prefixes = Prefixes::new();
         prefixes.insert(self.xml_prefix_id, self.xml_namespace_id);
         prefixes
+    }
+}
+
+struct DeduplicateTracker {
+    stack: Vec<DeduplicateTrackerEntry>,
+}
+
+struct DeduplicateTrackerEntry {
+    default_namespace: Option<NamespaceId>,
+    in_use_by_attribute: bool,
+}
+
+impl DeduplicateTracker {
+    fn new() -> Self {
+        Self { stack: Vec::new() }
+    }
+
+    fn push(&mut self, xot: &Xot, element: &Element) {
+        let default_namespace = element.prefixes().get(&xot.empty_prefix());
+        self.stack.push(DeduplicateTrackerEntry {
+            default_namespace: default_namespace.copied(),
+            in_use_by_attribute: false,
+        });
+        for attribute_name in element.attributes().keys() {
+            self.attribute_name(xot, *attribute_name);
+        }
+    }
+
+    fn pop(&mut self) {
+        self.stack.pop();
+    }
+
+    fn attribute_name(&mut self, xot: &Xot, name: NameId) {
+        let namespace = xot.namespace_for_name(name);
+        for entry in self.stack.iter_mut().rev() {
+            if entry.default_namespace == Some(namespace) {
+                entry.in_use_by_attribute = true;
+                return;
+            }
+        }
+    }
+
+    fn is_safe_to_remove(&self, namespace: NamespaceId) -> bool {
+        for entry in self.stack.iter().rev() {
+            if entry.default_namespace == Some(namespace) {
+                return !entry.in_use_by_attribute;
+            }
+        }
+        true
     }
 }
 
