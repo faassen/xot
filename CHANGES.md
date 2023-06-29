@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.13.4] - 2023-06-29
+
 ### Fixed
 
 - `deduplicate_namespaces` had a bug. Attributes, unlike elements, can only be
@@ -363,8 +365,9 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.13.4...HEAD
 
-[Unreleased]: https://github.com/faassen/xot/compare/v0.13.3...HEAD
+[0.13.4]: https://github.com/faassen/xot/compare/v0.13.3...v0.13.4
 [0.13.3]: https://github.com/faassen/xot/compare/v0.13.2...v0.13.3
 [0.13.2]: https://github.com/faassen/xot/compare/v0.13.1...v0.13.2
 [unreleased]: https://github.com/faassen/xot/compare/v0.13.0...v0.13.1

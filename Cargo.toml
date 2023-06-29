@@ -1,6 +1,6 @@
 [package]
 name = "xot"
-version = "0.13.3"
+version = "0.13.4"
 edition = "2021"
 license = "MIT"
 description = "XML tree library for Rust"
