@@ -1,5 +1,5 @@
+use std::collections::BTreeMap;
 use std::fmt::Debug;
-use vector_map::VecMap;
 
 use crate::error::Error;
 use crate::name::NameId;
@@ -63,9 +63,9 @@ impl Value {
 }
 
 /// A map of NameId to String for attributes
-pub type Attributes = VecMap<NameId, String>;
+pub type Attributes = BTreeMap<NameId, String>;
 /// A map of PrefixId to NamespaceId for namespace declarations.
-pub type Prefixes = VecMap<PrefixId, NamespaceId>;
+pub type Prefixes = BTreeMap<PrefixId, NamespaceId>;
 
 /// XML element value.
 ///

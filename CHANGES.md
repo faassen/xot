@@ -2,6 +2,14 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Changes
+
+- Do not use `VecMap` anymore to store attributes and namespace prefixes.
+  Instead store attributes in a `std::collections::BTreeMap`, which should
+  behave similarily for small amounts of attributes. This is a potentially
+  breaking change when accessing `prefixes` or `attributes` on a XML value, but
+  the map API compatibility should in fact be improved.
+
 ## [0.13.5] - 2023-06-29
 
 ### Fixed
@@ -372,8 +380,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.13.5...HEAD
 
+[Unreleased]: https://github.com/faassen/xot/compare/v0.13.5...HEAD
 [0.13.5]: https://github.com/faassen/xot/compare/v0.13.4...v0.13.5
 [0.13.4]: https://github.com/faassen/xot/compare/v0.13.3...v0.13.4
 [0.13.3]: https://github.com/faassen/xot/compare/v0.13.2...v0.13.3

@@ -625,7 +625,7 @@ impl DeduplicateTracker {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vector_map::VecMap;
+    use std::collections::BTreeMap;
 
     #[test]
     fn test_prefixes_in_scope() {
@@ -645,14 +645,17 @@ mod tests {
 
         assert_eq!(
             xot.prefixes_in_scope(doc_el),
-            VecMap::from_iter(vec![(foo, ns)])
+            BTreeMap::from_iter(vec![(foo, ns)])
         );
 
-        assert_eq!(xot.prefixes_in_scope(a), VecMap::from_iter(vec![(foo, ns)]));
+        assert_eq!(
+            xot.prefixes_in_scope(a),
+            BTreeMap::from_iter(vec![(foo, ns)])
+        );
 
         assert_eq!(
             xot.prefixes_in_scope(b),
-            VecMap::from_iter(vec![(foo, ns_foo), (bar, ns_bar)])
+            BTreeMap::from_iter(vec![(foo, ns_foo), (bar, ns_bar)])
         );
     }
 }
