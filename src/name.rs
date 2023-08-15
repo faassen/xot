@@ -21,7 +21,7 @@ pub(crate) struct Name {
     pub(crate) namespace_id: NamespaceId,
 }
 
-impl<'a> Name {
+impl Name {
     pub(crate) fn new<S: Into<String>>(name: S, namespace_id: NamespaceId) -> Self {
         Self {
             name: name.into(),
