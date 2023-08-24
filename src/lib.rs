@@ -44,6 +44,7 @@
 
 mod access;
 mod creation;
+mod encoding;
 mod entity;
 mod error;
 #[cfg(feature = "proptest")]
