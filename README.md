@@ -21,11 +21,6 @@ There are the following limitations:
 
 - DTDs are not supported.
 
-- Only the UTF-8 encoding is supported.
-
-- `us-ascii` is interpreted as `UTF-8`. This is not strictly correct in that
-  non-ASCII UTF-8 is not rejected.
-
 ## Why another XML library for Rust?
 
 Use Xot if you need to be able to access XML as a tree, mutate it where

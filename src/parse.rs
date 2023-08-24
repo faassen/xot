@@ -1,6 +1,7 @@
 use indextree::NodeId;
 use xmlparser::{ElementEnd, Token, Tokenizer};
 
+use crate::encoding::decode;
 use crate::entity::{parse_attribute, parse_text};
 use crate::error::Error;
 use crate::name::{Name, NameId};
@@ -280,6 +281,10 @@ impl NameIdBuilder {
 impl Xot {
     /// Parse a string containing XML into a node.
     ///
+    /// Even though the encoding in the XML declaration may indicate otherwise,
+    /// the string is interpreted as a Rust string, i.e. UTF-8. If you need to
+    /// decode the string first, use [`Xot::parse_bytes`].
+    ///
     /// The returned node is the root node of the
     /// parsed XML document.
     ///
@@ -352,18 +357,12 @@ impl Xot {
                 )?,
                 Declaration {
                     version,
-                    encoding,
+                    encoding: _,
                     standalone,
                     span: _,
                 } => {
                     if version.as_str() != "1.0" {
                         return Err(Error::UnsupportedVersion(version.to_string()));
-                    }
-                    if let Some(encoding) = encoding {
-                        let encoding = encoding.as_str().to_lowercase();
-                        if encoding != "utf-8" && encoding != "us-ascii" {
-                            return Err(Error::UnsupportedEncoding(encoding));
-                        }
                     }
                     if let Some(standalone) = standalone {
                         if !standalone {
@@ -394,5 +393,40 @@ impl Xot {
         } else {
             Err(Error::UnclosedTag)
         }
+    }
+
+    /// Parse bytes containing XML into a node.
+    ///
+    /// This attempts to decode the data in the bytes into a Rust string
+    /// (UTF-8) first, then parses this string.
+    ///
+    /// If you already have a Rust string, use [`Xot::parse`].
+    ///
+    /// The returned node is the root node of the parsed XML document.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse_bytes(b"<hello/>")?;
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    ///
+    /// let root = xot.parse_bytes(b"<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><p>\xe9</p>")?;
+    ///
+    /// let doc_el = xot.document_element(root)?;
+    /// let txt_value = xot.text_content_str(doc_el).unwrap();
+    /// assert_eq!(txt_value, "é");
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    pub fn parse_bytes(&mut self, bytes: &[u8]) -> Result<Node, Error> {
+        let xml = decode(bytes, None);
+        self.parse(&xml)
     }
 }

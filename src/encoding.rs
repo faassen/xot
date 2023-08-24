@@ -1,7 +1,7 @@
 use encoding_rs::Encoding;
 use xhtmlchardet::detect;
 
-pub(crate) fn encoding(data: &[u8], hint: Option<String>) -> Option<&'static Encoding> {
+pub fn encoding(data: &[u8], hint: Option<String>) -> Option<&'static Encoding> {
     let mut cursor = std::io::Cursor::new(data);
     let charsets = detect(&mut cursor, hint).ok()?;
     // no encoding detected
@@ -11,6 +11,12 @@ pub(crate) fn encoding(data: &[u8], hint: Option<String>) -> Option<&'static Enc
         &charsets[0]
     };
     Encoding::for_label(label.as_bytes())
+}
+
+pub(crate) fn decode(data: &[u8], hint: Option<String>) -> String {
+    let enc = encoding(data, hint).unwrap();
+    let (s, _, _) = enc.decode(data);
+    s.into_owned()
 }
 
 #[cfg(test)]

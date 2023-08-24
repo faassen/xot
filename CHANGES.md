@@ -4,6 +4,8 @@
 
 ### Changes
 
+- Support for XML documents with other encodings than just UTF-8 and US-ASCII.
+
 - Do not use `VecMap` anymore to store attributes and namespace prefixes.
   Instead store attributes in a `std::collections::BTreeMap`, which should
   behave similarily for small amounts of attributes. This is a potentially
