@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.14.0] - 2023-08-24
+
 ### Changes
 
 - Support for XML documents with other encodings than just UTF-8 and US-ASCII.
@@ -388,8 +390,9 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.14.0...HEAD
 
-[Unreleased]: https://github.com/faassen/xot/compare/v0.13.5...HEAD
+[0.14.0]: https://github.com/faassen/xot/compare/v0.13.5...v0.14.0
 [0.13.5]: https://github.com/faassen/xot/compare/v0.13.4...v0.13.5
 [0.13.4]: https://github.com/faassen/xot/compare/v0.13.3...v0.13.4
 [0.13.3]: https://github.com/faassen/xot/compare/v0.13.2...v0.13.3
