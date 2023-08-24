@@ -8,9 +8,15 @@
 
 - Do not use `VecMap` anymore to store attributes and namespace prefixes.
   Instead store attributes in a `std::collections::BTreeMap`, which should
-  behave similarily for small amounts of attributes. This is a potentially
-  breaking change when accessing `prefixes` or `attributes` on a XML value, but
-  the map API compatibility should in fact be improved.
+  behave similarily for small amounts of attributes.
+
+  This is a potentially breaking change when accessing `prefixes` or
+  `attributes` on a XML value, but the map API compatibility should in fact be
+  improved.
+
+  This can also change the order in which attributes or namespace declarations
+  are serialized, which is not a semantic change of XML but may break certain
+  tests.
 
 ## [0.13.5] - 2023-06-29
 
