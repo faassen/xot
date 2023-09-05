@@ -8,6 +8,21 @@ tree which you can then manipulate, and serialize back out to XML.
 
 [API Documentation](https://docs.rs/xot)
 
+## Features
+
+- Extensive XML tree access and manipulation API.
+
+- Move nodes out of trees, into trees, into other trees with ease.
+
+- Access to the entire XML structure, including comments and processing
+  instructions.
+
+- Compact storage of XML data, with efficient traversal.
+
+- Parse XML into a tree, and serialize back to XML.
+
+- Pretty-printing. Removal of non-significant whitespace.
+
 ## Support
 
 Xot has well-rounded XML support. Supported are namespaces for both elements
