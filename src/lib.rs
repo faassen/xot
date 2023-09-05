@@ -61,6 +61,7 @@ mod prefix;
 mod pretty;
 #[cfg(feature = "proptest")]
 pub mod proptest;
+mod qname;
 mod serialize;
 mod serializer;
 mod unpretty;
