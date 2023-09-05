@@ -4,8 +4,11 @@
 
 ### Changes
 
-- Add `namespace_for_prefix` function to look up namespace in the context of a
-  node.
+- Add `xot.namespace_for_prefix()` function to look up namespace in the context
+  of a node.
+
+- Add `xot.namespaces()` function that returns an iterator that iterators over
+  non-overridden `(prefix, namespace)`` pairs in the scope of a node.
 
 ## [0.14.0] - 2023-08-24
 

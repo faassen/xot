@@ -257,3 +257,120 @@ fn test_namespace_for_prefix() {
     assert_eq!(xot.namespace_for_prefix(p1, b_prefix), None);
     assert_eq!(xot.namespace_for_prefix(p0, xml_prefix), Some(xml_ns));
 }
+
+#[test]
+fn test_namespaces() {
+    let mut xot = Xot::new();
+    let doc = xot
+        .parse(r#"<doc xmlns:a="http://example.com/a"><a:p/></doc>"#)
+        .unwrap();
+    let root_id = xot.document_element(doc).unwrap();
+    let a_prefix = xot.add_prefix("a");
+    let a_ns = xot.add_namespace("http://example.com/a");
+    let b_ns = xot.add_namespace("http://example.com/b");
+    let xml_prefix = xot.add_prefix("xml");
+    let xml_ns = xot.add_namespace("http://www.w3.org/XML/1998/namespace");
+    let p0 = xot.first_child(root_id).unwrap();
+    // add a p1 that doesn't have a prefix
+    let p1_name = xot.add_name_ns("p", b_ns);
+    xot.append_element(root_id, p1_name).unwrap();
+    let p1 = xot.next_sibling(p0).unwrap();
+
+    assert_eq!(
+        xot.namespaces(p0).collect::<Vec<_>>(),
+        [(a_prefix, a_ns), (xml_prefix, xml_ns)]
+    );
+    assert_eq!(
+        xot.namespaces(root_id).collect::<Vec<_>>(),
+        [(a_prefix, a_ns), (xml_prefix, xml_ns)]
+    );
+
+    assert_eq!(
+        xot.namespaces(p1).collect::<Vec<_>>(),
+        [(a_prefix, a_ns), (xml_prefix, xml_ns)]
+    );
+}
+
+#[test]
+fn test_namespaces2() {
+    let mut xot = Xot::new();
+    let doc = xot
+        .parse(r#"<doc xmlns="http://example.com/a"><p/></doc>"#)
+        .unwrap();
+    let root_id = xot.document_element(doc).unwrap();
+    let empty_prefix = xot.empty_prefix();
+    let a_ns = xot.add_namespace("http://example.com/a");
+    let b_ns = xot.add_namespace("http://example.com/b");
+    let xml_prefix = xot.add_prefix("xml");
+    let xml_ns = xot.add_namespace("http://www.w3.org/XML/1998/namespace");
+    let p0 = xot.first_child(root_id).unwrap();
+    // add a p1 that doesn't have a prefix
+    let p1_name = xot.add_name_ns("p", b_ns);
+    xot.append_element(root_id, p1_name).unwrap();
+    let p1 = xot.next_sibling(p0).unwrap();
+
+    assert_eq!(
+        xot.namespaces(p0).collect::<Vec<_>>(),
+        [(empty_prefix, a_ns), (xml_prefix, xml_ns)]
+    );
+    assert_eq!(
+        xot.namespaces(root_id).collect::<Vec<_>>(),
+        [(empty_prefix, a_ns), (xml_prefix, xml_ns)]
+    );
+
+    assert_eq!(
+        xot.namespaces(p1).collect::<Vec<_>>(),
+        [(empty_prefix, a_ns), (xml_prefix, xml_ns)]
+    );
+}
+
+#[test]
+fn test_namespaces_overrides() {
+    let mut xot = Xot::new();
+    let doc = xot
+        .parse(r#"<doc xmlns:a="http://example.com/a"><a:p xmlns:a="http://example.com/b"/></doc>"#)
+        .unwrap();
+    let root_id = xot.document_element(doc).unwrap();
+    let a_prefix = xot.add_prefix("a");
+    let a_ns = xot.add_namespace("http://example.com/a");
+    let b_ns = xot.add_namespace("http://example.com/b");
+    let xml_prefix = xot.add_prefix("xml");
+    let xml_ns = xot.add_namespace("http://www.w3.org/XML/1998/namespace");
+    let p0 = xot.first_child(root_id).unwrap();
+    // add a p1 that doesn't have a prefix
+    let p1_name = xot.add_name_ns("p", b_ns);
+    xot.append_element(root_id, p1_name).unwrap();
+    let p1 = xot.next_sibling(p0).unwrap();
+
+    assert_eq!(
+        xot.namespaces(p0).collect::<Vec<_>>(),
+        [(a_prefix, b_ns), (xml_prefix, xml_ns)]
+    );
+    assert_eq!(
+        xot.namespaces(root_id).collect::<Vec<_>>(),
+        [(a_prefix, a_ns), (xml_prefix, xml_ns)]
+    );
+    assert_eq!(
+        xot.namespaces(p1).collect::<Vec<_>>(),
+        [(a_prefix, a_ns), (xml_prefix, xml_ns)]
+    );
+}
+
+#[test]
+fn test_namespaces_overrides_xml_prefix() {
+    let mut xot = Xot::new();
+    let doc = xot
+        .parse(r#"<doc><p xmlns:xml="http://example.com/a"/></doc>"#)
+        .unwrap();
+    let root_id = xot.document_element(doc).unwrap();
+    let a_ns = xot.add_namespace("http://example.com/a");
+    let xml_prefix = xot.add_prefix("xml");
+    let xml_ns = xot.add_namespace("http://www.w3.org/XML/1998/namespace");
+    let p0 = xot.first_child(root_id).unwrap();
+
+    assert_eq!(xot.namespaces(p0).collect::<Vec<_>>(), [(xml_prefix, a_ns)]);
+    assert_eq!(
+        xot.namespaces(root_id).collect::<Vec<_>>(),
+        [(xml_prefix, xml_ns)]
+    );
+}

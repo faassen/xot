@@ -1,4 +1,5 @@
 use ahash::{HashMap, HashSet};
+use next_gen::prelude::*;
 
 use crate::access::NodeEdge;
 use crate::error::Error;
@@ -585,6 +586,15 @@ impl Xot {
         namespaces
     }
 
+    /// Returns an iterator that yields all the prefix/namespace combinations.
+    ///
+    /// Once a prefix has been yielded, it's not yielded again, as the
+    /// overriding prefix has already been yielded.
+    pub fn namespaces(&self, node: Node) -> impl Iterator<Item = (PrefixId, NamespaceId)> + '_ {
+        mk_gen!(let namespaces = box namespace_traverse(self, node));
+        namespaces
+    }
+
     pub(crate) fn base_prefixes(&self) -> Prefixes {
         let mut prefixes = Prefixes::new();
         prefixes.insert(self.xml_prefix_id, self.xml_namespace_id);
@@ -638,6 +648,29 @@ impl DeduplicateTracker {
             }
         }
         true
+    }
+}
+
+#[generator(yield((PrefixId, NamespaceId)))]
+pub(crate) fn namespace_traverse(xot: &Xot, node: Node) {
+    let mut seen: Vec<PrefixId> = Vec::new();
+    for ancestor in xot.ancestors(node) {
+        if let Some(element) = xot.element(ancestor) {
+            for (prefix_id, namespace_id) in element.prefixes() {
+                if seen.contains(prefix_id) {
+                    continue;
+                }
+                seen.push(*prefix_id);
+                yield_!((*prefix_id, *namespace_id));
+            }
+        }
+    }
+    for (prefix_id, namespace_id) in xot.base_prefixes() {
+        if seen.contains(&prefix_id) {
+            continue;
+        }
+        seen.push(prefix_id);
+        yield_!((prefix_id, namespace_id));
     }
 }
 
