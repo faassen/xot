@@ -485,9 +485,9 @@ mod tests {
         };
 
         let hash_builder = ahash::RandomState::with_seed(42);
-        let alpha_hash = hash_builder.hash_one(&alpha);
-        let beta_hash = hash_builder.hash_one(&beta);
-        let gamma_hash = hash_builder.hash_one(&gamma);
+        let alpha_hash = hash_builder.hash_one(alpha);
+        let beta_hash = hash_builder.hash_one(beta);
+        let gamma_hash = hash_builder.hash_one(gamma);
         assert_eq!(alpha_hash, beta_hash);
         assert_ne!(alpha_hash, gamma_hash);
     }
@@ -524,9 +524,9 @@ mod tests {
         };
 
         let hash_builder = ahash::RandomState::with_seed(42);
-        let alpha_hash = hash_builder.hash_one(&alpha);
-        let beta_hash = hash_builder.hash_one(&beta);
-        let gamma_hash = hash_builder.hash_one(&gamma);
+        let alpha_hash = hash_builder.hash_one(alpha);
+        let beta_hash = hash_builder.hash_one(beta);
+        let gamma_hash = hash_builder.hash_one(gamma);
         assert_eq!(alpha_hash, beta_hash);
         assert_ne!(alpha_hash, gamma_hash);
     }
@@ -566,9 +566,9 @@ mod tests {
         };
 
         let hash_builder = ahash::RandomState::with_seed(42);
-        let alpha_hash = hash_builder.hash_one(&alpha);
-        let beta_hash = hash_builder.hash_one(&beta);
-        let gamma_hash = hash_builder.hash_one(&gamma);
+        let alpha_hash = hash_builder.hash_one(alpha);
+        let beta_hash = hash_builder.hash_one(beta);
+        let gamma_hash = hash_builder.hash_one(gamma);
         assert_eq!(alpha_hash, beta_hash);
         assert_ne!(alpha_hash, gamma_hash);
     }
