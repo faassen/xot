@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.15.0] - 2023-09-06
+
 ### Changes
 
 - Add `xot.namespace_for_prefix()` function to look up namespace in the context
@@ -401,8 +403,9 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.15.0...HEAD
 
-[Unreleased]: https://github.com/faassen/xot/compare/v0.14.0...HEAD
+[0.15.0]: https://github.com/faassen/xot/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/faassen/xot/compare/v0.13.5...v0.14.0
 [0.13.5]: https://github.com/faassen/xot/compare/v0.13.4...v0.13.5
 [0.13.4]: https://github.com/faassen/xot/compare/v0.13.3...v0.13.4
