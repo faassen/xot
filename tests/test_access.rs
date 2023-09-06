@@ -116,3 +116,55 @@ fn test_compare_children() {
     assert!(xot.compare_children(doc1_b0, doc2_b0));
     assert!(!xot.compare_children(doc1_b1, doc2_b0));
 }
+
+#[test]
+fn test_advanced_compare_text() {
+    let mut xot = Xot::new();
+    let doc1 = xot.parse(r#"<a>text</a>"#).unwrap();
+    let doc2 = xot.parse(r#"<a>TEXT</a>"#).unwrap();
+    // case insensitive compare
+    assert!(xot.advanced_compare(
+        doc1,
+        doc2,
+        |_| true,
+        |a, b| a.to_lowercase() == b.to_lowercase()
+    ));
+}
+
+#[test]
+fn test_advanced_compare_text2() {
+    let mut xot = Xot::new();
+    let doc1 = xot.parse(r#"<a>text</a>"#).unwrap();
+    let doc2 = xot.parse(r#"<a>different</a>"#).unwrap();
+
+    // case insensitive compare doesn't matter, it's still different
+    assert!(!xot.advanced_compare(
+        doc1,
+        doc2,
+        |_| true,
+        |a, b| a.to_lowercase() == b.to_lowercase()
+    ));
+}
+
+#[test]
+fn test_advanced_compare_attribute_text() {
+    let mut xot = Xot::new();
+    let doc1 = xot.parse(r#"<a alpha="alpha">text</a>"#).unwrap();
+    let doc2 = xot.parse(r#"<a alpha="ALPHA">text</a>"#).unwrap();
+    // no text compares as equal, so this is not equal
+    assert!(xot.advanced_compare(
+        doc1,
+        doc2,
+        |_| true,
+        |a, b| a.to_lowercase() == b.to_lowercase()
+    ));
+}
+
+#[test]
+fn test_advanced_compare_filter() {
+    let mut xot = Xot::new();
+    let doc1 = xot.parse(r#"<a>text<!--comment--></a>"#).unwrap();
+    let doc2 = xot.parse(r#"<a>text</a>"#).unwrap();
+    // compare, disregarding comments
+    assert!(xot.advanced_compare(doc1, doc2, |node| !xot.is_comment(node), |a, b| a == b));
+}

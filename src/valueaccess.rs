@@ -563,12 +563,41 @@ impl<'a> Xot {
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn compare(&self, a: Node, b: Node) -> bool {
-        let mut edges_a = self.traverse(a);
-        let mut edges_b = self.traverse(b);
+        self.advanced_compare(a, b, |_| true, |a, b| a == b)
+    }
+
+    /// Compare two nodes for semantic equality with custom text compare and
+    /// filtering.
+    ///
+    /// This is a deep comparison of the nodes and their children. The trees
+    /// have to have the same structure.
+    ///
+    /// A name is considered to be semantically equal to another name if they
+    /// have the same namespace and local name. Prefixes are ignored.
+    ///
+    /// Two elements are the same if their name and attributes are the same.
+    /// Namespace declarations are ignored.
+    ///
+    /// You can include only the nodes that are relevant to the comparison
+    /// using the filter function.
+    ///
+    /// Text nodes and attributes are compared using the provided comparison function.
+    pub fn advanced_compare<F, C>(&self, a: Node, b: Node, filter: F, text_compare: C) -> bool
+    where
+        F: Fn(Node) -> bool,
+        C: Fn(&str, &str) -> bool,
+    {
+        let filter_edge = |edge: &NodeEdge| match edge {
+            NodeEdge::Start(node) => filter(*node),
+            NodeEdge::End(node) => filter(*node),
+        };
+
+        let mut edges_a = self.traverse(a).filter(filter_edge);
+        let mut edges_b = self.traverse(b).filter(filter_edge);
         for edge_pair in edges_a.by_ref().zip(edges_b.by_ref()) {
             match edge_pair {
                 (NodeEdge::Start(a), NodeEdge::Start(b)) => {
-                    if !self.compare_value(a, b) {
+                    if !self.advanced_compare_value(a, b, &text_compare) {
                         return false;
                     }
                 }
@@ -608,13 +637,16 @@ impl<'a> Xot {
         b_children.next().is_none()
     }
 
-    pub(crate) fn compare_value(&self, a: Node, b: Node) -> bool {
+    pub(crate) fn advanced_compare_value<C>(&self, a: Node, b: Node, text_compare: C) -> bool
+    where
+        C: Fn(&str, &str) -> bool,
+    {
         let a_value = self.value(a);
         let b_value = self.value(b);
         match (a_value, b_value) {
             (Value::Root, Value::Root) => true,
-            (Value::Element(a), Value::Element(b)) => a.compare(b),
-            (Value::Text(a), Value::Text(b)) => a.get() == b.get(),
+            (Value::Element(a), Value::Element(b)) => a.advanced_compare(b, text_compare),
+            (Value::Text(a), Value::Text(b)) => text_compare(a.get(), b.get()),
             (Value::Comment(a), Value::Comment(b)) => a.get() == b.get(),
             (Value::ProcessingInstruction(a), Value::ProcessingInstruction(b)) => {
                 a.target() == b.target() && a.data() == b.data()

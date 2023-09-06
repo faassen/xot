@@ -10,6 +10,9 @@
 - Add `xot.namespaces()` function that returns an iterator that iterators over
   non-overridden `(prefix, namespace)`` pairs in the scope of a node.
 
+- Add `xot.advanced_compare()` function that lets you compare two nodes with a
+  node filter and with a custom text/attribute value comparison.
+
 ## [0.14.0] - 2023-08-24
 
 ### Changes

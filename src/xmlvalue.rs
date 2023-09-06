@@ -272,6 +272,18 @@ impl Element {
     ///
     /// This ignores element prefixes.
     pub fn compare(&self, other: &Element) -> bool {
+        self.advanced_compare(other, |a, b| a == b)
+    }
+
+    /// Compare with other element for semantic equality.
+    ///
+    /// You configure this with a function that compares attribute text.
+    ///
+    /// This ignores element prefixes.
+    pub fn advanced_compare<C>(&self, other: &Element, text_compare: C) -> bool
+    where
+        C: Fn(&str, &str) -> bool,
+    {
         if self.name() != other.name() {
             return false;
         }
@@ -284,7 +296,11 @@ impl Element {
         // know they aren't the same, given we already compared the length
         for (key, value_a) in self_attributes {
             let value_b = other_attributes.get(key);
-            if Some(value_a) != value_b {
+            if let Some(value_b) = value_b {
+                if !text_compare(value_a, value_b) {
+                    return false;
+                }
+            } else {
                 return false;
             }
         }
