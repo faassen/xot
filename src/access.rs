@@ -233,6 +233,85 @@ impl Xot {
         node.get().preceding_siblings(self.arena()).map(Node::new)
     }
 
+    /// Following nodes in document order
+    ///
+    /// These are nodes that come after this node in document order,
+    /// without that node itself, its ancestors, or its descendants.
+    ///
+    /// ```rust
+    /// let mut xot = xot::Xot::new();
+    /// let root = xot.parse("<p><a/><b><c/><d/><e/></b><f><g/><h/></f></p>").unwrap();
+    /// let p = xot.document_element(root).unwrap();
+    /// let a = xot.first_child(p).unwrap();
+    /// let b = xot.next_sibling(a).unwrap();
+    /// let c = xot.first_child(b).unwrap();
+    /// let d = xot.next_sibling(c).unwrap();
+    /// let e = xot.next_sibling(d).unwrap();
+    /// let f = xot.next_sibling(b).unwrap();
+    /// let g = xot.first_child(f).unwrap();
+    /// let h = xot.next_sibling(g).unwrap();
+    /// let siblings = xot.following(c).collect::<Vec<_>>();
+    /// assert_eq!(siblings, vec![d, e, f, g, h]);
+    /// ```
+    pub fn following(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+        // start with an empty iterator
+        let mut joined_iterator: Box<dyn Iterator<Item = Node>> = Box::new(std::iter::empty());
+        let mut current_parent = Some(node);
+        while let Some(parent) = current_parent {
+            let mut current_sibling = parent;
+            while let Some(current) = self.next_sibling(current_sibling) {
+                // add descendants of next sibling
+                joined_iterator =
+                    Box::new(joined_iterator.chain(Box::new(self.descendants(current))));
+                current_sibling = current;
+            }
+            current_parent = self.parent(parent);
+        }
+        joined_iterator
+    }
+
+    /// Preceding nodes in document order
+    ///
+    /// These are nodes that come before this node in document order,
+    /// without that node itself, its ancestors, or its descendants.
+    ///
+    /// ```rust
+    /// let mut xot = xot::Xot::new();
+    /// let root = xot.parse("<p><a/><b><c/><d/><e/></b><f><g/><h/></f></p>").unwrap();
+    /// let p = xot.document_element(root).unwrap();
+    /// let a = xot.first_child(p).unwrap();
+    /// let b = xot.next_sibling(a).unwrap();
+    /// let c = xot.first_child(b).unwrap();
+    /// let d = xot.next_sibling(c).unwrap();
+    /// let e = xot.next_sibling(d).unwrap();
+    /// let f = xot.next_sibling(b).unwrap();
+    /// let g = xot.first_child(f).unwrap();
+    /// let h = xot.next_sibling(g).unwrap();
+    /// let siblings = xot.preceding(e).collect::<Vec<_>>();
+    /// assert_eq!(siblings, vec![d, c, a]);
+    /// let siblings = xot.preceding(h).collect::<Vec<_>>();
+    /// assert_eq!(siblings, vec![g, e, d, c, b, a]);
+    /// ```
+    pub fn preceding(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+        // start with an empty iterator
+        let mut joined_iterator: Box<dyn Iterator<Item = Node>> = Box::new(std::iter::empty());
+        let mut current_parent = Some(node);
+        while let Some(parent) = current_parent {
+            let mut current_sibling = parent;
+            while let Some(current) = self.previous_sibling(current_sibling) {
+                // add descendants of previous sibling, reversed
+                // this unfortunately requires an extra allocation, as descendants
+                // is not a double iterator.
+                let descendants = Box::new(self.descendants(current).collect::<Vec<_>>());
+                let reverse_descendants = descendants.into_iter().rev();
+                joined_iterator = Box::new(joined_iterator.chain(Box::new(reverse_descendants)));
+                current_sibling = current;
+            }
+            current_parent = self.parent(parent);
+        }
+        joined_iterator
+    }
+
     /// Traverse over node edges.
     ///
     /// This can be used to traverse the tree in document order iteratively

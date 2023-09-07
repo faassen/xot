@@ -2,6 +2,15 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Changes
+
+- Add `xot.following()` function. This returns all nodes that follow a node in
+  document order, not including the node itself or any of its ancestors or
+  descendants.
+
+- Add `xot.preceding()` function. This returns all nodes that precede a node in
+  document order, not including the node itself or any of its ancestors.
+
 ## [0.15.0] - 2023-09-06
 
 ### Changes
@@ -403,8 +412,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.15.0...HEAD
 
+[Unreleased]: https://github.com/faassen/xot/compare/v0.15.0...HEAD
 [0.15.0]: https://github.com/faassen/xot/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/faassen/xot/compare/v0.13.5...v0.14.0
 [0.13.5]: https://github.com/faassen/xot/compare/v0.13.4...v0.13.5
