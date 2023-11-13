@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.17.0] - 2023-11-13
+
 ### Changes
 
 - Add `xot.parse_with_spans()` which besides parsing the tree also returns a
@@ -424,8 +426,9 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.17.0...HEAD
 
-[Unreleased]: https://github.com/faassen/xot/compare/v0.16.0...HEAD
+[0.17.0]: https://github.com/faassen/xot/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/faassen/xot/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/faassen/xot/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/faassen/xot/compare/v0.13.5...v0.14.0
