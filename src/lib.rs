@@ -73,6 +73,7 @@ pub use error::Error;
 pub use levelorder::LevelOrder;
 pub use name::NameId;
 pub use namespace::NamespaceId;
+pub use parse::{Span, SpanInfo};
 pub use prefix::PrefixId;
 pub use serialize::{PrettyOutputToken, SerializeOptions, WithSerializeOptions};
 pub use serializer::{Output, OutputToken};

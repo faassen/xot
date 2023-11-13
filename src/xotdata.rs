@@ -24,6 +24,13 @@ impl Node {
     }
 }
 
+impl From<NodeId> for Node {
+    #[inline]
+    fn from(node_id: NodeId) -> Self {
+        Node(node_id)
+    }
+}
+
 /// The `Xot` struct manages all XML tree data in your program. It lets you
 /// access and manipulate one or more XML documents and
 /// fragments.

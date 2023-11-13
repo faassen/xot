@@ -1,4 +1,4 @@
-use xot::{Error, Xot};
+use xot::{Error, Span, Xot};
 
 const US_ASCII: &str = include_str!("fixtures/us-ascii.xml");
 
@@ -109,4 +109,160 @@ fn test_ampersand_in_cdata() -> Result<(), Error> {
     let txt = xot.text_content_str(doc_el).unwrap();
     assert_eq!(txt, "&");
     Ok(())
+}
+
+#[test]
+fn test_parse_with_span_info_element_start_unprefixed() {
+    let mut xot = Xot::new();
+    let (doc, span_info) = xot.parse_with_span_info(r#"<a></a>"#).unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    assert_eq!(
+        span_info.element_start.get(&doc_el).unwrap(),
+        &Span::new(1, 2)
+    );
+}
+
+#[test]
+fn test_parse_with_span_info_element_start_prefixed() {
+    let mut xot = Xot::new();
+    let (doc, span_info) = xot
+        .parse_with_span_info(r#"<foo:a xmlns:foo="http://example.com/foo"></foo:a>"#)
+        .unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    assert_eq!(
+        span_info.element_start.get(&doc_el).unwrap(),
+        &Span::new(1, 6)
+    );
+}
+
+#[test]
+fn test_parse_with_span_info_attribute_name_unprefixed() {
+    let mut xot = Xot::new();
+    let (doc, span_info) = xot.parse_with_span_info(r#"<a b="B"></a>"#).unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    let attribute_name = xot.name("b").unwrap();
+
+    assert_eq!(
+        span_info
+            .attribute_name
+            .get(&(doc_el, attribute_name))
+            .unwrap(),
+        &Span::new(3, 4)
+    );
+}
+
+#[test]
+fn test_parse_with_span_info_attribute_value_unprefixed() {
+    let mut xot = Xot::new();
+    let (doc, span_info) = xot.parse_with_span_info(r#"<a b="B"></a>"#).unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    let attribute_name = xot.name("b").unwrap();
+
+    assert_eq!(
+        span_info
+            .attribute_value
+            .get(&(doc_el, attribute_name))
+            .unwrap(),
+        &Span::new(6, 7)
+    );
+}
+
+#[test]
+fn test_parse_with_span_info_attribute_name_prefixed() {
+    let mut xot = Xot::new();
+    let (doc, span_info) = xot
+        .parse_with_span_info(r#"<a foo:b="B" xmlns:foo="http://example.com/foo"></a>"#)
+        .unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    let ns = xot.namespace("http://example.com/foo").unwrap();
+    let attribute_name = xot.name_ns("b", ns).unwrap();
+
+    assert_eq!(
+        span_info
+            .attribute_name
+            .get(&(doc_el, attribute_name))
+            .unwrap(),
+        &Span::new(3, 8)
+    );
+}
+
+#[test]
+fn test_parse_with_span_info_attribute_value_prefixed() {
+    let mut xot = Xot::new();
+    let (doc, span_info) = xot
+        .parse_with_span_info(r#"<a foo:b="B" xmlns:foo="http://example.com/foo"></a>"#)
+        .unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    let ns = xot.namespace("http://example.com/foo").unwrap();
+    let attribute_name = xot.name_ns("b", ns).unwrap();
+
+    assert_eq!(
+        span_info
+            .attribute_value
+            .get(&(doc_el, attribute_name))
+            .unwrap(),
+        &Span::new(10, 11)
+    );
+}
+
+#[test]
+fn test_parse_with_span_info_end_normal() {
+    let mut xot = Xot::new();
+    let (doc, span_info) = xot.parse_with_span_info(r#"<a></a>"#).unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    assert_eq!(
+        span_info.element_end.get(&doc_el).unwrap(),
+        &Span::new(3, 7)
+    );
+}
+
+#[test]
+fn test_parse_with_span_info_empty() {
+    let mut xot = Xot::new();
+    let (doc, span_info) = xot.parse_with_span_info(r#"<a/>"#).unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    assert_eq!(
+        span_info.element_end.get(&doc_el).unwrap(),
+        &Span::new(2, 4)
+    );
+}
+
+#[test]
+fn test_parse_with_span_info_text() {
+    let mut xot = Xot::new();
+    let (doc, span_info) = xot.parse_with_span_info(r#"<a>text</a>"#).unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    let text = xot.first_child(doc_el).unwrap();
+    assert_eq!(span_info.text.get(&text).unwrap(), &Span::new(3, 7));
+}
+
+#[test]
+fn test_parse_with_span_info_comment() {
+    let mut xot = Xot::new();
+    let (doc, span_info) = xot
+        .parse_with_span_info(r#"<a><!--comment--></a>"#)
+        .unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    let comment = xot.first_child(doc_el).unwrap();
+    assert_eq!(span_info.comment.get(&comment).unwrap(), &Span::new(7, 14));
+}
+
+#[test]
+fn test_parse_with_span_info_pi_target() {
+    let mut xot = Xot::new();
+    let (doc, span_info) = xot.parse_with_span_info(r#"<a><?pi?></a>"#).unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    let pi = xot.first_child(doc_el).unwrap();
+    assert_eq!(span_info.pi_target.get(&pi).unwrap(), &Span::new(5, 7));
+}
+
+#[test]
+fn test_parse_with_span_info_pi_content() {
+    let mut xot = Xot::new();
+    let (doc, span_info) = xot
+        .parse_with_span_info(r#"<a><?pi content?></a>"#)
+        .unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    let pi = xot.first_child(doc_el).unwrap();
+    assert_eq!(span_info.pi_content.get(&pi).unwrap(), &Span::new(8, 15));
 }
