@@ -1,4 +1,4 @@
-use xot::{Error, Span, Xot};
+use xot::{Error, Span, SpanInfoKey, Xot};
 
 const US_ASCII: &str = include_str!("fixtures/us-ascii.xml");
 
@@ -117,7 +117,7 @@ fn test_parse_with_span_info_element_start_unprefixed() {
     let (doc, span_info) = xot.parse_with_span_info(r#"<a></a>"#).unwrap();
     let doc_el = xot.document_element(doc).unwrap();
     assert_eq!(
-        span_info.element_start.get(&doc_el).unwrap(),
+        span_info.get(SpanInfoKey::ElementStart(doc_el)).unwrap(),
         &Span::new(1, 2)
     );
 }
@@ -130,7 +130,7 @@ fn test_parse_with_span_info_element_start_prefixed() {
         .unwrap();
     let doc_el = xot.document_element(doc).unwrap();
     assert_eq!(
-        span_info.element_start.get(&doc_el).unwrap(),
+        span_info.get(SpanInfoKey::ElementStart(doc_el)).unwrap(),
         &Span::new(1, 6)
     );
 }
@@ -144,8 +144,7 @@ fn test_parse_with_span_info_attribute_name_unprefixed() {
 
     assert_eq!(
         span_info
-            .attribute_name
-            .get(&(doc_el, attribute_name))
+            .get(SpanInfoKey::AttributeName(doc_el, attribute_name))
             .unwrap(),
         &Span::new(3, 4)
     );
@@ -160,8 +159,7 @@ fn test_parse_with_span_info_attribute_value_unprefixed() {
 
     assert_eq!(
         span_info
-            .attribute_value
-            .get(&(doc_el, attribute_name))
+            .get(SpanInfoKey::AttributeValue(doc_el, attribute_name))
             .unwrap(),
         &Span::new(6, 7)
     );
@@ -179,8 +177,7 @@ fn test_parse_with_span_info_attribute_name_prefixed() {
 
     assert_eq!(
         span_info
-            .attribute_name
-            .get(&(doc_el, attribute_name))
+            .get(SpanInfoKey::AttributeName(doc_el, attribute_name))
             .unwrap(),
         &Span::new(3, 8)
     );
@@ -198,8 +195,7 @@ fn test_parse_with_span_info_attribute_value_prefixed() {
 
     assert_eq!(
         span_info
-            .attribute_value
-            .get(&(doc_el, attribute_name))
+            .get(SpanInfoKey::AttributeValue(doc_el, attribute_name))
             .unwrap(),
         &Span::new(10, 11)
     );
@@ -211,7 +207,7 @@ fn test_parse_with_span_info_end_normal() {
     let (doc, span_info) = xot.parse_with_span_info(r#"<a></a>"#).unwrap();
     let doc_el = xot.document_element(doc).unwrap();
     assert_eq!(
-        span_info.element_end.get(&doc_el).unwrap(),
+        span_info.get(SpanInfoKey::ElementEnd(doc_el)).unwrap(),
         &Span::new(3, 7)
     );
 }
@@ -222,7 +218,7 @@ fn test_parse_with_span_info_empty() {
     let (doc, span_info) = xot.parse_with_span_info(r#"<a/>"#).unwrap();
     let doc_el = xot.document_element(doc).unwrap();
     assert_eq!(
-        span_info.element_end.get(&doc_el).unwrap(),
+        span_info.get(SpanInfoKey::ElementEnd(doc_el)).unwrap(),
         &Span::new(2, 4)
     );
 }
@@ -233,7 +229,10 @@ fn test_parse_with_span_info_text() {
     let (doc, span_info) = xot.parse_with_span_info(r#"<a>text</a>"#).unwrap();
     let doc_el = xot.document_element(doc).unwrap();
     let text = xot.first_child(doc_el).unwrap();
-    assert_eq!(span_info.text.get(&text).unwrap(), &Span::new(3, 7));
+    assert_eq!(
+        span_info.get(SpanInfoKey::Text(text)).unwrap(),
+        &Span::new(3, 7)
+    );
 }
 
 #[test]
@@ -244,7 +243,10 @@ fn test_parse_with_span_info_comment() {
         .unwrap();
     let doc_el = xot.document_element(doc).unwrap();
     let comment = xot.first_child(doc_el).unwrap();
-    assert_eq!(span_info.comment.get(&comment).unwrap(), &Span::new(7, 14));
+    assert_eq!(
+        span_info.get(SpanInfoKey::Comment(comment)).unwrap(),
+        &Span::new(7, 14)
+    );
 }
 
 #[test]
@@ -253,7 +255,10 @@ fn test_parse_with_span_info_pi_target() {
     let (doc, span_info) = xot.parse_with_span_info(r#"<a><?pi?></a>"#).unwrap();
     let doc_el = xot.document_element(doc).unwrap();
     let pi = xot.first_child(doc_el).unwrap();
-    assert_eq!(span_info.pi_target.get(&pi).unwrap(), &Span::new(5, 7));
+    assert_eq!(
+        span_info.get(SpanInfoKey::PiTarget(pi)).unwrap(),
+        &Span::new(5, 7)
+    );
 }
 
 #[test]
@@ -264,5 +269,8 @@ fn test_parse_with_span_info_pi_content() {
         .unwrap();
     let doc_el = xot.document_element(doc).unwrap();
     let pi = xot.first_child(doc_el).unwrap();
-    assert_eq!(span_info.pi_content.get(&pi).unwrap(), &Span::new(8, 15));
+    assert_eq!(
+        span_info.get(SpanInfoKey::PiContent(pi)).unwrap(),
+        &Span::new(8, 15)
+    );
 }

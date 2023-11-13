@@ -3,7 +3,7 @@ use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value, Valu
 use crate::xotdata::{Node, Xot};
 
 /// ## Value and type access
-impl<'a> Xot {
+impl Xot {
     /// Access to the XML value for this node.
     ///
     /// ```rust

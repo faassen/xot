@@ -344,50 +344,71 @@ impl<'a> From<xmlparser::StrSpan<'a>> for Span {
 
 type AttributeSpans = Vec<(NameId, Span, Span)>;
 
+/// A key to use to look up span information using
+/// [`SpanInfo::get`](`crate::SpanInfo::get`)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SpanInfoKey {
+    /// The name part of an attribute.
+    /// foo:name="value", the 'foo:name' part
+    AttributeName(Node, NameId),
+    /// The value part of an attribute.
+    /// foo:name="value", the 'value' part
+    AttributeValue(Node, NameId),
+    /// The name part of a start element tag.
+    /// <foo:name ..>, the `foo:name` part
+    ElementStart(Node),
+    /// The closing part of the end element tag (or a self-closing element).
+    /// </foo:name>, the `</foo:name>` part, or if it is an empty element
+    /// <foo:name/>, the `/>` part
+    ElementEnd(Node),
+    /// Text node.
+    /// <foo>text</foo>, the `text` part
+    Text(Node),
+    /// Comment node.
+    /// <!--comment-->, the `comment` part
+    Comment(Node),
+    /// The target part of a processing instruction.
+    /// <?target content?>, the `target` part
+    PiTarget(Node),
+    /// The content part of a processing instruction (if defined).
+    /// <?target content?>, the `content` part
+    PiContent(Node),
+}
+
 /// Span information for a parsed XML document.
 ///
 /// This span information is valid immediately after the parse. It becomes
 /// invalid as soon as you mutate the parsed document.
 pub struct SpanInfo {
-    /// foo:name="value", the 'foo:name' part
-    pub attribute_name: HashMap<(Node, NameId), Span>,
-    /// foo:name="value", the 'value' part
-    pub attribute_value: HashMap<(Node, NameId), Span>,
-    /// <foo:name ..>, the `foo:name` part
-    pub element_start: HashMap<Node, Span>,
-    /// </foo:name>, the `</foo:name>` part, or if it is an empty element <foo:name/>, the
-    /// `/>` part
-    pub element_end: HashMap<Node, Span>,
-    /// <foo>text</foo>, the `text` part
-    pub text: HashMap<Node, Span>,
-    /// <!--comment-->, the `comment` part
-    pub comment: HashMap<Node, Span>,
-    /// <?target content?>, the `target` part
-    pub pi_target: HashMap<Node, Span>,
-    /// <?target content?>, the `content` part
-    pub pi_content: HashMap<Node, Span>,
+    map: HashMap<SpanInfoKey, Span>,
 }
 
 impl SpanInfo {
     fn new() -> Self {
         SpanInfo {
-            attribute_name: HashMap::new(),
-            attribute_value: HashMap::new(),
-            element_start: HashMap::new(),
-            element_end: HashMap::new(),
-            text: HashMap::new(),
-            comment: HashMap::new(),
-            pi_target: HashMap::new(),
-            pi_content: HashMap::new(),
+            map: HashMap::new(),
         }
+    }
+
+    /// Get span info by key
+    pub fn get(&self, key: SpanInfoKey) -> Option<&Span> {
+        self.map.get(&key)
+    }
+
+    fn add(&mut self, key: SpanInfoKey, span: Span) {
+        self.map.insert(key, span);
     }
 
     fn add_attribute_spans(&mut self, node_id: NodeId, attribute_spans: AttributeSpans) {
         for (attribute_name, name_span, value_span) in attribute_spans {
-            self.attribute_name
-                .insert((node_id.into(), attribute_name), name_span);
-            self.attribute_value
-                .insert((node_id.into(), attribute_name), value_span);
+            self.add(
+                SpanInfoKey::AttributeName(node_id.into(), attribute_name),
+                name_span,
+            );
+            self.add(
+                SpanInfoKey::AttributeValue(node_id.into(), attribute_name),
+                value_span,
+            );
         }
     }
 }
@@ -423,7 +444,7 @@ impl Xot {
                 }
                 Text { text } => {
                     let node_id = builder.text(text.as_str(), self)?;
-                    span_info.text.insert(node_id.into(), text.into());
+                    span_info.add(SpanInfoKey::Text(node_id.into()), text.into());
                 }
                 ElementStart {
                     prefix,
@@ -442,30 +463,26 @@ impl Xot {
                     match end {
                         Open => {
                             let (node_id, span, attribute_spans) = builder.open_element(self)?;
-                            span_info.element_start.insert(node_id.into(), span);
+                            span_info.add(SpanInfoKey::ElementStart(node_id.into()), span);
                             span_info.add_attribute_spans(node_id, attribute_spans);
                         }
                         Close(prefix, local) => {
                             let node_id =
                                 builder.close_element(prefix.as_str(), local.as_str(), self)?;
-                            span_info
-                                .element_end
-                                .insert(node_id.into(), end_span.into());
+                            span_info.add(SpanInfoKey::ElementEnd(node_id.into()), end_span.into());
                         }
                         Empty => {
                             let (node_id, span, attribute_spans) = builder.open_element(self)?;
-                            span_info.element_start.insert(node_id.into(), span);
+                            span_info.add(SpanInfoKey::ElementStart(node_id.into()), span);
                             span_info.add_attribute_spans(node_id, attribute_spans);
                             let node_id = builder.close_element_immediate(self);
-                            span_info
-                                .element_end
-                                .insert(node_id.into(), end_span.into());
+                            span_info.add(SpanInfoKey::ElementEnd(node_id.into()), end_span.into());
                         }
                     }
                 }
                 Comment { text, span: _ } => {
                     let node_id = builder.comment(text.as_str(), self)?;
-                    span_info.comment.insert(node_id.into(), text.into());
+                    span_info.add(SpanInfoKey::Comment(node_id.into()), text.into());
                 }
                 ProcessingInstruction {
                     target,
@@ -477,9 +494,9 @@ impl Xot {
                         content.map(|s| s.as_str()),
                         self,
                     )?;
-                    span_info.pi_target.insert(node_id.into(), target.into());
+                    span_info.add(SpanInfoKey::PiTarget(node_id.into()), target.into());
                     if let Some(content) = content {
-                        span_info.pi_content.insert(node_id.into(), content.into());
+                        span_info.add(SpanInfoKey::PiContent(node_id.into()), content.into());
                     }
                 }
                 Declaration {
