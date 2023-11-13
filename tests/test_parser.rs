@@ -136,6 +136,19 @@ fn test_parse_with_span_info_element_start_prefixed() {
 }
 
 #[test]
+fn test_parse_with_span_info_element_start_unprefixed_nested() {
+    let mut xot = Xot::new();
+    let (doc, span_info) = xot.parse_with_span_info(r#"<a><b></b></a>"#).unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    let b_el = xot.first_child(doc_el).unwrap();
+
+    assert_eq!(
+        span_info.get(SpanInfoKey::ElementStart(b_el)).unwrap(),
+        &Span::new(4, 5)
+    );
+}
+
+#[test]
 fn test_parse_with_span_info_attribute_name_unprefixed() {
     let mut xot = Xot::new();
     let (doc, span_info) = xot.parse_with_span_info(r#"<a b="B"></a>"#).unwrap();

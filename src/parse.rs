@@ -309,7 +309,15 @@ impl NameIdBuilder {
     }
 }
 
-/// A simple span with a start and end position
+/// A span with a start and end position
+///
+/// Spans describe ranges in the source text, with the end point not inclusive,
+/// like a range. It's not a `std::ops::Range` as it's handy for a span to be
+/// `Copy`.
+///
+/// You can obtain these from a [`SpanInfo`](crate::SpanInfo). You create a
+/// [`SpanInfo`] by using
+/// [`Xot::parse_with_span_info`](crate::Xot::parse_with_span_info).
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Span {
     /// the start position in the XML source
@@ -331,6 +339,11 @@ impl Span {
             Self::new(prefix.start(), name.end())
         }
     }
+
+    /// Turn a span into a range
+    pub fn range(&self) -> std::ops::Range<usize> {
+        self.start..self.end
+    }
 }
 
 impl<'a> From<xmlparser::StrSpan<'a>> for Span {
@@ -349,29 +362,29 @@ type AttributeSpans = Vec<(NameId, Span, Span)>;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SpanInfoKey {
     /// The name part of an attribute.
-    /// foo:name="value", the 'foo:name' part
+    /// In `foo:name="value"`, the `foo:name` part
     AttributeName(Node, NameId),
     /// The value part of an attribute.
-    /// foo:name="value", the 'value' part
+    /// In `foo:name="value"`, the `value` part
     AttributeValue(Node, NameId),
     /// The name part of a start element tag.
-    /// <foo:name ..>, the `foo:name` part
+    /// In `<foo:name ..>`, the `foo:name` part
     ElementStart(Node),
     /// The closing part of the end element tag (or a self-closing element).
-    /// </foo:name>, the `</foo:name>` part, or if it is an empty element
-    /// <foo:name/>, the `/>` part
+    /// In `</foo:name>`, the `</foo:name>` part, or if it is an empty element
+    /// `<foo:name/>`, the `/>` part
     ElementEnd(Node),
     /// Text node.
-    /// <foo>text</foo>, the `text` part
+    /// In `<foo>text</foo>`, the `text` part
     Text(Node),
     /// Comment node.
-    /// <!--comment-->, the `comment` part
+    /// In `<!--comment-->`, the `comment` part
     Comment(Node),
     /// The target part of a processing instruction.
-    /// <?target content?>, the `target` part
+    /// In `<?target content?>`, the `target` part
     PiTarget(Node),
     /// The content part of a processing instruction (if defined).
-    /// <?target content?>, the `content` part
+    /// In `<?target content?>`, the `content` part
     PiContent(Node),
 }
 
@@ -379,6 +392,12 @@ pub enum SpanInfoKey {
 ///
 /// This span information is valid immediately after the parse. It becomes
 /// invalid as soon as you mutate the parsed document.
+///
+/// You obtain this by using
+/// [`Xot::parse_with_span_info`](`Xot::parse_with_span_info`).
+///
+/// You use a [`SpanInfoKey`](crate::SpanInfoKey) to look up the span
+/// information.
 pub struct SpanInfo {
     map: HashMap<SpanInfoKey, Span>,
 }
@@ -390,7 +409,7 @@ impl SpanInfo {
         }
     }
 
-    /// Get span info by key
+    /// Get span info by [`SpanInfoKey`](crate::SpanInfoKey)
     pub fn get(&self, key: SpanInfoKey) -> Option<&Span> {
         self.map.get(&key)
     }
@@ -415,12 +434,11 @@ impl SpanInfo {
 
 /// ## Parsing
 impl Xot {
-    /// Parse a string containing XML into a node. Return span info too.
+    /// Parse a string containing XML into a node. Retain span information.
     ///
-    /// This parses the XML source into a Xot tree, and also returns span info
-    /// describing where values in the tree are located in the source text.
-    ///
-    /// ```
+    /// This parses the XML source into a Xot tree, and also returns
+    /// [`SpanInfo`](`crate::SpanInfo`) which describes where nodes in the
+    /// tree are located in the source text.
     pub fn parse_with_span_info(&mut self, xml: &str) -> Result<(Node, SpanInfo), Error> {
         use Token::*;
 

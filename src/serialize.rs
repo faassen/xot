@@ -131,6 +131,26 @@ impl Xot {
         WithSerializeOptions { xot: self, options }
     }
 
+    /// Serialize node into outputs.
+    ///
+    /// This creates an iterator of `(Node, Output)` tokens. These can then be
+    /// processed externally, for instance with a custom parser.
+    ///
+    /// You can use [`Xot::parse_with_span_info`] to get access to source span
+    /// information in a [`crate::SpanInfo`]. This can be handy to display
+    /// parser error information (as long as you don't mutate the Xot
+    /// document).
+    ///
+    /// Why do the round-trip through Xot instead of using an XML parser like
+    /// `xmlparser`, `xml_rs` or `quick_xml`, which will be more efficient? By
+    /// using Xot you can guarantee that the XML is well-formed, entities and
+    /// namespaces have been expanded, and you have access to Xot names using
+    /// familiar Xot APIs.
+    pub fn outputs(&self, node: Node) -> impl Iterator<Item = (Node, Output)> {
+        mk_gen!(let outputs = box gen_outputs(self, node));
+        outputs
+    }
+
     /// Serialize node into outputs and tokens.
     ///
     /// This creates an iterator that represents the serialized XML. You

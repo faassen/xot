@@ -2,6 +2,16 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Changes
+
+- Add `xot.parse_with_spans()` which besides parsing the tree also returns a
+  `xot::SpanInfo` which maintains span information. The span information
+  becomes invalid as soon as you mutate a Xot document.
+
+- Add `xot.outputs` to get serialization output tokens out without rendering
+  them. This can be useful if you want to process these tokens with an external
+  parser.
+
 ## [0.16.0] - 2023-09-07
 
 ### Changes
@@ -414,8 +424,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.16.0...HEAD
 
+[Unreleased]: https://github.com/faassen/xot/compare/v0.16.0...HEAD
 [0.16.0]: https://github.com/faassen/xot/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/faassen/xot/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/faassen/xot/compare/v0.13.5...v0.14.0
