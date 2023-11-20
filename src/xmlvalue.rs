@@ -129,6 +129,26 @@ impl Element {
         self.name_id
     }
 
+    /// Sets the name of the element.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let name_zod = xot.add_name("zod");
+    ///
+    /// let root = xot.parse("<doc/>")?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let element = xot.element_mut(doc_el).unwrap();
+    /// element.set_name(name_zod);
+    /// assert_eq!(element.name(), name_zod);
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    pub fn set_name(&mut self, name_id: NameId) {
+        self.name_id = name_id;
+    }
+
     /// The attributes of the element.
     ///
     /// ```rust
@@ -477,6 +497,17 @@ impl ProcessingInstruction {
 mod tests {
     use super::*;
     use crate::xotdata::Xot;
+
+    #[test]
+    fn test_element_set_name() {
+        let mut xot = Xot::new();
+        let a = xot.add_name("a");
+        let root = xot.parse("<doc/>").unwrap();
+        let doc_el = xot.document_element(root).unwrap();
+        let element = xot.element_mut(doc_el).unwrap();
+        element.set_name(a);
+        assert_eq!(xot.to_string(root).unwrap(), "<a/>");
+    }
 
     #[test]
     fn test_element_hashable_name() {
