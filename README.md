@@ -35,6 +35,7 @@ Xot exposes the entire XML structure for access and programmatic manipulation.
 There are the following limitations:
 
 - DTDs are not supported.
+- Only XML 1.0 supported. 
 
 ## Why another XML library for Rust?
 
