@@ -676,8 +676,9 @@ pub(crate) fn namespace_traverse(xot: &Xot, node: Node) {
 
 #[cfg(test)]
 mod tests {
+    use vecmap::VecMap;
+
     use super::*;
-    use std::collections::BTreeMap;
 
     #[test]
     fn test_prefixes_in_scope() {
@@ -697,17 +698,14 @@ mod tests {
 
         assert_eq!(
             xot.prefixes_in_scope(doc_el),
-            BTreeMap::from_iter(vec![(foo, ns)])
+            VecMap::from_iter(vec![(foo, ns)])
         );
 
-        assert_eq!(
-            xot.prefixes_in_scope(a),
-            BTreeMap::from_iter(vec![(foo, ns)])
-        );
+        assert_eq!(xot.prefixes_in_scope(a), VecMap::from_iter(vec![(foo, ns)]));
 
         assert_eq!(
             xot.prefixes_in_scope(b),
-            BTreeMap::from_iter(vec![(foo, ns_foo), (bar, ns_bar)])
+            VecMap::from_iter(vec![(foo, ns_foo), (bar, ns_bar)])
         );
     }
 }
