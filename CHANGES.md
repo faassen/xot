@@ -2,6 +2,18 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Changes
+
+- Changed representation of attributes and prefixes from
+  `std::collections::BTreeMap` to use `VecMap` from `vecmap-rs`. This has the
+  benefit of retaining the original definition order. Note that `vecmap-rs` is
+  a different implementation than `vector-map`, which Xot used until version
+  0.14. `vecmap-rs` offers an ordering guarantee, while `vector-map` doesn't.
+
+  This could cause some breaking changes if there are differences in the map
+  API, or if you used the `BTreeMap` type directly instead of Xot's
+  `Attributes` and `Prefixes` type.
+
 ## [0.17.0] - 2023-11-13
 
 ### Changes
@@ -426,8 +438,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.17.0...HEAD
 
+[Unreleased]: https://github.com/faassen/xot/compare/v0.17.0...HEAD
 [0.17.0]: https://github.com/faassen/xot/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/faassen/xot/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/faassen/xot/compare/v0.14.0...v0.15.0
