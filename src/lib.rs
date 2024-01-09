@@ -41,13 +41,15 @@
 //! construct or compare an element, you first need to get hold of a name. To
 //! access a name, use [`Xot::name`]. To create a new name if necessary, use
 //! [`Xot::add_name`].
+//!
+//! You can also create Xot nodes from a fixed structure, the [`fixed`]
+//! submodule.
 
 mod access;
 mod creation;
 mod encoding;
 mod entity;
 mod error;
-#[cfg(feature = "proptest")]
 pub mod fixed;
 mod fullname;
 mod idmap;

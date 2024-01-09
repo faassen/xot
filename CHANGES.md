@@ -2,6 +2,13 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- Now always expose the `xot::fixed` API, even if the proptest feature is
+  disabled. It turns out to be handy to be able to create fixed content and
+  then transform it into Xot data for other use cases as well. The details of
+  the `fixed` API have also been reworked.
+
 ## [0.18.0] - 2024-01-08
 
 ### Changes
@@ -440,8 +447,8 @@
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.18.0...HEAD
 
+[Unreleased]: https://github.com/faassen/xot/compare/v0.18.0...HEAD
 [0.18.0]: https://github.com/faassen/xot/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/faassen/xot/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/faassen/xot/compare/v0.15.0...v0.16.0

@@ -17,7 +17,9 @@
 use ahash::HashSet;
 use proptest::prelude::*;
 
-use crate::fixed::{FixedContent, FixedElement, FixedRoot, FixedRootContent};
+use crate::fixed;
+
+// use crate::fixed::{Content, Element, Name, Prefix, ProcessingInstruction, Root, RootContent};
 
 const NAMESPACES: &[&str] = &["", "http://example.com/x", "http://example.com/y"];
 const PREFIXES: &[&str] = &["", "x", "y"];
@@ -27,21 +29,32 @@ const PI_NAMES: &[&str] = &["pi1", "pi2", "pi3", "pi4", "pi5"];
 const XML_STRING: &str = "[\u{000a}\u{0009}][\u{0020}-\u{D7FF}][\u{E000}-\u{FFFD}]*";
 const XML_STRING_WITHOUT_WHITESPACE: &str = "[\u{0020}-\u{D7FF}][\u{E000}-\u{FFFD}]*";
 
-fn arb_attribute() -> impl Strategy<Value = ((String, String), String)> {
+fn arb_attribute() -> impl Strategy<Value = (fixed::Name, String)> {
     (
         prop::sample::select(ATTRIBUTE_NAMES),
         prop::sample::select(NAMESPACES),
         XML_STRING_WITHOUT_WHITESPACE,
     )
-        .prop_map(|(name, namespace, value)| ((name.to_string(), namespace.to_string()), value))
+        .prop_map(|(name, namespace, value)| {
+            (
+                fixed::Name {
+                    localname: name.to_string(),
+                    namespace: namespace.to_string(),
+                },
+                value,
+            )
+        })
 }
 
-fn arb_prefix() -> impl Strategy<Value = (String, String)> {
+fn arb_prefix() -> impl Strategy<Value = fixed::Prefix> {
     (
         prop::sample::select(PREFIXES),
         prop::sample::select(NAMESPACES),
     )
-        .prop_map(|(prefix, namespace)| (prefix.to_string(), namespace.to_string()))
+        .prop_map(|(prefix, namespace)| fixed::Prefix {
+            name: prefix.to_string(),
+            namespace: namespace.to_string(),
+        })
 }
 
 fn arb_comment() -> impl Strategy<Value = String> {
@@ -58,12 +71,14 @@ fn arb_processing_instruction() -> impl Strategy<Value = (String, Option<String>
         .prop_map(|(target, data)| (target.to_string(), data))
 }
 
-fn arb_fixed_content() -> impl Strategy<Value = FixedContent> {
+fn arb_fixed_content() -> impl Strategy<Value = fixed::Content> {
     let leaf = prop_oneof![
-        XML_STRING.prop_map(FixedContent::Text),
-        arb_comment().prop_map(FixedContent::Comment),
-        arb_processing_instruction()
-            .prop_map(|(target, data)| { FixedContent::ProcessingInstruction(target, data) }),
+        XML_STRING.prop_map(fixed::Content::Text),
+        arb_comment().prop_map(fixed::Content::Comment),
+        arb_processing_instruction().prop_map(|(target, content)| {
+            let processing_instruction = fixed::ProcessingInstruction { target, content };
+            fixed::Content::ProcessingInstruction(processing_instruction)
+        }),
     ];
 
     leaf.prop_recursive(
@@ -79,9 +94,11 @@ fn arb_fixed_content() -> impl Strategy<Value = FixedContent> {
                 prop::collection::vec(arb_prefix(), 0..4),
             )
                 .prop_map(|(name, namespace, children, attributes, prefixes)| {
-                    FixedContent::Element(FixedElement {
-                        namespace: namespace.to_string(),
-                        name: name.to_string(),
+                    fixed::Content::Element(fixed::Element {
+                        name: fixed::Name {
+                            namespace: namespace.to_string(),
+                            localname: name.to_string(),
+                        },
                         attributes: unduplicate_attributes(attributes.as_slice()),
                         prefixes: unduplicate_prefixes(prefixes.as_slice()),
                         children,
@@ -96,10 +113,12 @@ prop_compose! {
                            namespace in prop::sample::select(NAMESPACES),
                            children in arb_fixed_content(),
                            attributes in prop::collection::vec(arb_attribute(), 0..4),
-                           prefixes in prop::collection::vec(arb_prefix(), 0..4)) -> FixedElement {
-        FixedElement {
-            namespace: namespace.to_string(),
-            name: name.to_string(),
+                           prefixes in prop::collection::vec(arb_prefix(), 0..4)) -> fixed::Element {
+        fixed::Element {
+            name: fixed::Name {
+                namespace: namespace.to_string(),
+                localname: name.to_string(),
+            },
             attributes: unduplicate_attributes(attributes.as_slice()),
             prefixes: unduplicate_prefixes(prefixes.as_slice()),
             children: vec![children],
@@ -107,22 +126,20 @@ prop_compose! {
     }
 }
 
-fn unduplicate_attributes(
-    attributes: &[((String, String), String)],
-) -> Vec<((String, String), String)> {
+fn unduplicate_attributes(attributes: &[(fixed::Name, String)]) -> Vec<(fixed::Name, String)> {
     let mut seen = HashSet::default();
     attributes
         .iter()
-        .filter(|((name, namespace), _)| seen.insert((name.clone(), namespace.clone())))
+        .filter(|(name, _)| seen.insert(name.clone()))
         .cloned()
         .collect()
 }
 
-fn unduplicate_prefixes(prefixes: &[(String, String)]) -> Vec<(String, String)> {
+fn unduplicate_prefixes(prefixes: &[fixed::Prefix]) -> Vec<fixed::Prefix> {
     let mut seen = HashSet::default();
     prefixes
         .iter()
-        .filter(|(prefix, _)| seen.insert(prefix.clone()))
+        .filter(|prefix| seen.insert(prefix.clone()))
         .cloned()
         .collect()
 }
@@ -149,7 +166,7 @@ fn unduplicate_prefixes(prefixes: &[(String, String)]) -> Vec<(String, String)> 
 ///   }
 /// }
 /// ```
-pub fn arb_xml_root() -> impl Strategy<Value = FixedRoot> {
+pub fn arb_xml_root() -> impl Strategy<Value = fixed::Root> {
     arb_xml_root_with_config(Config {
         comments_and_pi_outside_document_element: true,
     })
@@ -166,20 +183,21 @@ pub struct Config {
 ///
 /// This produces a value that can be converted into a `Xot` node using its
 /// `xotify` method.
-pub fn arb_xml_root_with_config(config: Config) -> BoxedStrategy<FixedRoot> {
+pub fn arb_xml_root_with_config(config: Config) -> BoxedStrategy<fixed::Root> {
     if config.comments_and_pi_outside_document_element {
         let before = prop::collection::vec(
             prop_oneof![
-                arb_comment().prop_map(FixedRootContent::Comment),
-                arb_processing_instruction().prop_map(|(target, data)| {
-                    FixedRootContent::ProcessingInstruction(target, data)
+                arb_comment().prop_map(fixed::RootContent::Comment),
+                arb_processing_instruction().prop_map(|(target, content)| {
+                    let processing_instruction = fixed::ProcessingInstruction { target, content };
+                    fixed::RootContent::ProcessingInstruction(processing_instruction)
                 }),
             ],
             0..10,
         );
         let after = before.clone();
         (before, arb_fixed_element(), after)
-            .prop_map(|(before, document_element, after)| FixedRoot {
+            .prop_map(|(before, document_element, after)| fixed::Root {
                 before,
                 document_element,
                 after,
@@ -187,7 +205,7 @@ pub fn arb_xml_root_with_config(config: Config) -> BoxedStrategy<FixedRoot> {
             .boxed()
     } else {
         arb_fixed_element()
-            .prop_map(|document_element| FixedRoot {
+            .prop_map(|document_element| fixed::Root {
                 before: vec![],
                 document_element,
                 after: vec![],
