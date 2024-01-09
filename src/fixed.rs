@@ -1,7 +1,7 @@
-//! A static representation of a tree of nodes.
+//! A fixed representation of a tree of nodes.
 //!
-//! Xot trees are dynamic, but it is useful to have a static representation of
-//! a node that you can create and store separately. This has no dependency on
+//! Xot trees are mutable, but it is useful to have a fixed representation of a
+//! node that you can create and store separately. This has no dependency on
 //! the [`Xot`] object. You can turn this fixed representation into a node by
 //! calling `.xotify` on them and passing a mutable [`Xot`].
 //!
