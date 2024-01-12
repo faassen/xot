@@ -2,7 +2,9 @@
 
 ## [Unreleased] - ReleaseDate
 
-### Added
+### Change
+
+- Add `Debug` support for `Xot` struct.
 
 - Now always expose the `xot::fixed` API, even if the proptest feature is
   disabled. It turns out to be handy to be able to create fixed content and
