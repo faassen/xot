@@ -11,11 +11,12 @@ impl Xot {
         Node::new(self.arena.new_node(value))
     }
 
-    /// Create a new, unattached root node.
+    /// Create a new root node.
     ///
     /// You can use this to create a new document from scratch.
     /// You have to supply a document element, as a root without
-    /// a document element is not allowed in XML.
+    /// a document element is not allowed in XML. If you want to do
+    /// this manually, use `Xot::new_root_unconnected`.
     ///
     /// ```rust
     /// use xot::Xot;
@@ -38,10 +39,36 @@ impl Xot {
                 "You must supply an element node".to_string(),
             ));
         }
-        let root = Value::Root;
-        let root_node = self.new_node(root);
+        let root_node = self.new_root_unconnected();
         self.append(root_node, node)?;
         Ok(root_node)
+    }
+
+    /// Create a new, unattached root node without document element.
+    ///
+    /// You can use this to create a new document from scratch.
+    /// If you don't attach at a single element later, the document
+    /// is going to be invalid.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let doc_name = xot.add_name("doc");
+    /// let doc_el = xot.new_element(doc_name);
+    /// let txt = xot.new_text("Hello, world!");
+    /// xot.append(doc_el, txt)?;
+    ///
+    /// /// now create the root
+    /// let root = xot.new_root_unconnected();
+    /// xot.append(root, doc_el)?;
+    ///
+    /// assert_eq!(xot.to_string(root)?, "<doc>Hello, world!</doc>");
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    pub fn new_root_unconnected(&mut self) -> Node {
+        let root = Value::Root;
+        self.new_node(root)
     }
 
     /// Create a new, unattached element node given element name.

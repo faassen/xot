@@ -6,6 +6,9 @@
 
 - Add `Debug` support for `Xot` struct.
 
+- Add `xot.new_root_unconnected` to create a root node without any document
+  element attached.
+
 - Now always expose the `xot::fixed` API, even if the proptest feature is
   disabled. It turns out to be handy to be able to create fixed content and
   then transform it into Xot data for other use cases as well. The details of
