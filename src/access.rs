@@ -188,6 +188,30 @@ impl Xot {
         node.get().children(self.arena()).map(Node::new)
     }
 
+    /// Get index of child
+    ///
+    /// Returns [`None`] if the node is not a child of this node.
+    ///
+    /// ```rust
+    /// let mut xot = xot::Xot::new();
+    /// let root = xot.parse("<p><a/><b/></p>").unwrap();
+    /// let p = xot.document_element(root).unwrap();
+    /// let a = xot.first_child(p).unwrap();
+    /// let b = xot.next_sibling(a).unwrap();
+    /// assert_eq!(xot.child_index(p, a), Some(0));
+    /// assert_eq!(xot.child_index(p, b), Some(1));
+    /// assert_eq!(xot.child_index(a, b), None);
+    /// ```
+    pub fn child_index(&self, parent: Node, child: Node) -> Option<usize> {
+        if self.parent(child) != Some(parent) {
+            return None;
+        }
+        parent
+            .get()
+            .children(self.arena())
+            .position(|n| n == child.get())
+    }
+
     /// Iterator over the child nodes of this node, in reverse order.
     pub fn reverse_children(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
         node.get().reverse_children(self.arena()).map(Node::new)
