@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.20.0] - 2024-02-08
+
 ### Changes
 
 - Added `child_index` method to get the index of a child in a parent.
@@ -458,8 +460,9 @@
 Initial public release.
 
 <!-- next-url -->
+[Unreleased]: https://github.com/faassen/xot/compare/v0.20.0...HEAD
 
-[Unreleased]: https://github.com/faassen/xot/compare/v0.19.0...HEAD
+[0.20.0]: https://github.com/faassen/xot/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/faassen/xot/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/faassen/xot/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/faassen/xot/compare/v0.16.0...v0.17.0
