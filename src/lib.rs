@@ -58,6 +58,7 @@ mod manipulation;
 mod name;
 mod nameaccess;
 mod namespace;
+mod nodemap;
 mod parse;
 mod prefix;
 mod pretty;
@@ -80,7 +81,7 @@ pub use prefix::PrefixId;
 pub use serialize::{PrettyOutputToken, SerializeOptions, WithSerializeOptions};
 pub use serializer::{Output, OutputToken};
 pub use xmlvalue::{
-    Attributes, Comment, Element, FullValue, FullValueType, Prefixes, ProcessingInstruction, Text,
-    Value, ValueType,
+    Attribute, Attributes, Comment, Element, FullValue, FullValueType, Namespace, Prefixes,
+    ProcessingInstruction, Text, Value, ValueType,
 };
 pub use xotdata::{Node, Xot};

@@ -215,22 +215,26 @@ impl Xot {
     /// assert_eq!(children, vec![a, b]);
     /// ```
     pub fn children(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
-        // consume any non-value children first
-        let children = node.get().children(self.arena());
-        let mut peekable_children = node.get().children(self.arena()).peekable();
-        loop {
-            let peeked = peekable_children.peek();
-            if let Some(peeked) = peeked {
-                if !self.arena[*peeked].get().is_value() {
-                    peekable_children.next();
-                } else {
-                    break;
-                }
-            } else {
-                break;
-            }
-        }
-        children.map(Node::new)
+        node.get()
+            .children(self.arena())
+            .filter(self.value_filter())
+            .map(Node::new)
+        // // consume any non-value children first
+        // let children = node.get().children(self.arena());
+        // let mut peekable_children = node.get().children(self.arena()).peekable();
+        // loop {
+        //     let peeked = peekable_children.peek();
+        //     if let Some(peeked) = peeked {
+        //         if !self.arena[*peeked].get().is_value() {
+        //             peekable_children.next();
+        //         } else {
+        //             break;
+        //         }
+        //     } else {
+        //         break;
+        //     }
+        // }
+        // children.map(Node::new)
     }
 
     /// Get index of child

@@ -8,9 +8,11 @@ use crate::error::Error;
 use crate::name::{Name, NameId};
 use crate::prefix::PrefixId;
 use crate::xmlvalue::{
-    Attributes, Comment, Element, FullValue, Prefixes, ProcessingInstruction, Text, Value,
+    Attributes, Comment, Element, FullValue, Namespace, Prefixes, ProcessingInstruction, Text,
+    Value,
 };
 use crate::xotdata::{Node, Xot};
+use crate::Attribute;
 
 struct AttributeBuilder {
     prefix: String,
@@ -52,6 +54,7 @@ impl ElementBuilder {
                 &attribute_builder.name,
                 xot,
             )?;
+
             attributes.insert(name_id, attribute_builder.value);
             attribute_spans.push((
                 name_id,
@@ -68,7 +71,9 @@ impl ElementBuilder {
         xot: &mut Xot,
     ) -> Result<(Element, AttributeSpans), Error> {
         document_builder.name_id_builder.push(&self.prefixes);
+
         let (attributes, attribute_spans) = self.build_attributes(document_builder, xot)?;
+
         let name_id =
             document_builder
                 .name_id_builder
@@ -113,6 +118,7 @@ impl DocumentBuilder {
     fn prefix(&mut self, prefix: &str, namespace_uri: &str, xot: &mut Xot) {
         let prefix_id = xot.prefix_lookup.get_id_mut(prefix);
         let namespace_id = xot.namespace_lookup.get_id_mut(namespace_uri);
+
         self.element_builder
             .as_mut()
             .unwrap()
@@ -157,10 +163,26 @@ impl DocumentBuilder {
     fn open_element(&mut self, xot: &mut Xot) -> Result<(NodeId, Span, AttributeSpans), Error> {
         let element_builder = self.element_builder.take().unwrap();
         let span = element_builder.span;
-        let (element, attribute_spans) = element_builder.into_element(self, xot)?;
-        let element = FullValue::Value(Value::Element(element));
+        // TODO: messy cloning to build attribute nodes properly
+        let (element2, attribute_spans) = element_builder.into_element(self, xot)?;
+        let element = FullValue::Value(Value::Element(element2.clone()));
         let node_id = self.add(element, xot);
         self.current_node_id = node_id;
+
+        for (prefix_id, namespace_id) in &element2.prefixes {
+            let prefix_node = xot.arena.new_node(FullValue::Namespace(Namespace::new(
+                *prefix_id,
+                *namespace_id,
+            )));
+            self.current_node_id.append(prefix_node, &mut xot.arena);
+        }
+        for (key, value) in &element2.attributes {
+            let attribute_node = xot
+                .arena
+                .new_node(FullValue::Attribute(Attribute::new(*key, value.clone())));
+            self.current_node_id.append(attribute_node, &mut xot.arena);
+        }
+
         Ok((node_id, span, attribute_spans))
     }
 
