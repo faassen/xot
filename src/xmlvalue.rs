@@ -74,15 +74,18 @@ impl Value {
 pub enum FullValue {
     /// A normal value
     Value(Value),
-    /// Namespace
+    /// Namespace value
     Namespace(Namespace),
-    /// Attribute
+    /// Attribute value
     Attribute(Attribute),
-    /// Namespace holder
+    /// Namespace holder. Node directly under the element node that
+    /// holds namespace nodes.
     Namespaces,
-    /// Attributes holder
+    /// Attributes holder. Node directly under the element node that
+    /// holds attribute nodes.
     Attributes,
-    /// Children holder
+    /// Children holder. Node directly under the element node that holds
+    /// normal node children (elements, text nodes, etc)
     Children,
 }
 
