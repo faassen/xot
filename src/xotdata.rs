@@ -3,9 +3,9 @@ use indextree::{Arena, NodeId};
 use crate::name::{Name, NameId, NameLookup};
 use crate::namespace::{NamespaceId, NamespaceLookup};
 use crate::prefix::{PrefixId, PrefixLookup};
-use crate::xmlvalue::Value;
+use crate::xmlvalue::FullValue;
 
-pub(crate) type XmlArena = Arena<Value>;
+pub(crate) type XmlArena = Arena<FullValue>;
 
 /// A node in the XML tree.
 /// This is a lightweight value and can be copied.

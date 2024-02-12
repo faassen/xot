@@ -7,7 +7,9 @@ use crate::entity::{parse_attribute, parse_text};
 use crate::error::Error;
 use crate::name::{Name, NameId};
 use crate::prefix::PrefixId;
-use crate::xmlvalue::{Attributes, Comment, Element, Prefixes, ProcessingInstruction, Text, Value};
+use crate::xmlvalue::{
+    Attributes, Comment, Element, FullValue, Prefixes, ProcessingInstruction, Text, Value,
+};
 use crate::xotdata::{Node, Xot};
 
 struct AttributeBuilder {
@@ -91,7 +93,7 @@ struct DocumentBuilder {
 
 impl DocumentBuilder {
     fn new(xot: &mut Xot) -> Self {
-        let root = xot.arena.new_node(Value::Root);
+        let root = xot.arena.new_node(FullValue::Value(Value::Root));
         let mut name_id_builder = NameIdBuilder::new(xot.base_prefixes());
         let mut base_prefixes = Prefixes::new();
         base_prefixes.insert(xot.empty_prefix_id, xot.no_namespace_id);
@@ -146,8 +148,8 @@ impl DocumentBuilder {
         Ok(())
     }
 
-    fn add(&mut self, value: Value, xot: &mut Xot) -> NodeId {
-        let node_id = xot.arena.new_node(value);
+    fn add(&mut self, full_value: FullValue, xot: &mut Xot) -> NodeId {
+        let node_id = xot.arena.new_node(full_value);
         self.current_node_id.append(node_id, &mut xot.arena);
         node_id
     }
@@ -156,7 +158,7 @@ impl DocumentBuilder {
         let element_builder = self.element_builder.take().unwrap();
         let span = element_builder.span;
         let (element, attribute_spans) = element_builder.into_element(self, xot)?;
-        let element = Value::Element(element);
+        let element = FullValue::Value(Value::Element(element));
         let node_id = self.add(element, xot);
         self.current_node_id = node_id;
         Ok((node_id, span, attribute_spans))
@@ -164,17 +166,23 @@ impl DocumentBuilder {
 
     fn text(&mut self, content: &str, xot: &mut Xot) -> Result<NodeId, Error> {
         let content = parse_text(content.into())?;
-        Ok(self.add(Value::Text(Text::new(content.to_string())), xot))
+        Ok(self.add(
+            FullValue::Value(Value::Text(Text::new(content.to_string()))),
+            xot,
+        ))
     }
 
     fn cdata_text(&mut self, content: &str, xot: &mut Xot) -> Result<(), Error> {
-        self.add(Value::Text(Text::new(content.to_string())), xot);
+        self.add(
+            FullValue::Value(Value::Text(Text::new(content.to_string()))),
+            xot,
+        );
         Ok(())
     }
 
     fn close_element_immediate(&mut self, xot: &mut Xot) -> NodeId {
         let current_node = xot.arena.get(self.current_node_id).unwrap();
-        if let Value::Element(element) = current_node.get() {
+        if let FullValue::Value(Value::Element(element)) = current_node.get() {
             self.name_id_builder.pop(&element.prefixes);
         }
         let closed_node_id = self.current_node_id;
@@ -185,7 +193,7 @@ impl DocumentBuilder {
     fn close_element(&mut self, prefix: &str, name: &str, xot: &mut Xot) -> Result<NodeId, Error> {
         let name_id = self.name_id_builder.element_name_id(prefix, name, xot)?;
         let current_node = xot.arena.get(self.current_node_id).unwrap();
-        if let Value::Element(element) = current_node.get() {
+        if let FullValue::Value(Value::Element(element)) = current_node.get() {
             if element.name_id != name_id {
                 return Err(Error::InvalidCloseTag(prefix.to_string(), name.to_string()));
             }
@@ -199,7 +207,10 @@ impl DocumentBuilder {
     fn comment(&mut self, content: &str, xot: &mut Xot) -> Result<NodeId, Error> {
         // XXX are there illegal comments, like those with -- inside? or
         // won't they pass the parser?
-        Ok(self.add(Value::Comment(Comment::new(content.to_string())), xot))
+        Ok(self.add(
+            FullValue::Value(Value::Comment(Comment::new(content.to_string()))),
+            xot,
+        ))
     }
 
     fn processing_instruction(
@@ -211,16 +222,19 @@ impl DocumentBuilder {
         // XXX are there illegal processing instructions, like those with
         // ?> inside? or won't they pass the parser?
         Ok(self.add(
-            Value::ProcessingInstruction(ProcessingInstruction::new(
+            FullValue::Value(Value::ProcessingInstruction(ProcessingInstruction::new(
                 target.to_string(),
                 content.map(|s| s.to_string()),
-            )),
+            ))),
             xot,
         ))
     }
 
     fn is_current_node_root(&self, xot: &Xot) -> bool {
-        matches!(xot.arena[self.current_node_id].get(), Value::Root)
+        matches!(
+            xot.arena[self.current_node_id].get(),
+            FullValue::Value(Value::Root)
+        )
     }
 }
 

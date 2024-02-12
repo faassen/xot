@@ -29,7 +29,7 @@ impl Xot {
     /// methods like [`Xot::element`].
     #[inline]
     pub fn value(&self, node_id: Node) -> &Value {
-        self.arena[node_id.get()].get()
+        self.arena[node_id.get()].get().value()
     }
 
     /// Mutable access to the XML value for this node.
@@ -59,7 +59,7 @@ impl Xot {
     /// methods like [`Xot::element_mut`]
     #[inline]
     pub fn value_mut(&mut self, node_id: Node) -> &mut Value {
-        self.arena[node_id.get()].get_mut()
+        self.arena[node_id.get()].get_mut().value_mut()
     }
 
     /// Get the [`ValueType`](crate::xmlvalue::ValueType) of a node.

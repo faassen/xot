@@ -1,6 +1,6 @@
 use crate::error::Error;
 use crate::name::NameId;
-use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value};
+use crate::xmlvalue::{Comment, Element, FullValue, ProcessingInstruction, Text, Value};
 use crate::xotdata::{Node, Xot};
 
 /// ## Creation
@@ -8,7 +8,7 @@ use crate::xotdata::{Node, Xot};
 /// in the manipulation section.
 impl Xot {
     pub(crate) fn new_node(&mut self, value: Value) -> Node {
-        Node::new(self.arena.new_node(value))
+        Node::new(self.arena.new_node(FullValue::Value(value)))
     }
 
     /// Create a new root node.

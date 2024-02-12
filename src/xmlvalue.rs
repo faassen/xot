@@ -63,6 +63,54 @@ impl Value {
     }
 }
 
+/// Full XML value.
+///
+/// Both namespace nodes (prefixes) as well as attributes are
+/// represented as nodes in the tree. There are also special nodes that hold
+/// element children, element namespace nodes and element attribute nodes.
+///
+/// [`Value`] is a subset of this.
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum FullValue {
+    /// A normal value
+    Value(Value),
+    /// Namespace
+    Namespace(Namespace),
+    /// Attribute
+    Attribute(Attribute),
+    /// Namespace holder
+    Namespaces,
+    /// Attributes holder
+    Attributes,
+    /// Children holder
+    Children,
+}
+
+impl FullValue {
+    pub fn value(&self) -> &Value {
+        match self {
+            FullValue::Value(value) => value,
+            _ => panic!("FullValue is not a Value"),
+        }
+    }
+
+    pub fn value_mut(&mut self) -> &mut Value {
+        match self {
+            FullValue::Value(value) => value,
+            _ => panic!("FullValue is not a Value"),
+        }
+    }
+}
+
+// impl From<FullValue> for Value {
+//     fn from(full_value: FullValue) -> Value {
+//         match full_value {
+//             FullValue::Value(value) => value,
+//             _ => panic!("Illegal internal value"),
+//         }
+//     }
+// }
+
 /// A map of NameId to String for attributes
 pub type Attributes = VecMap<NameId, String>;
 /// A map of PrefixId to NamespaceId for namespace declarations.
@@ -472,6 +520,24 @@ impl ProcessingInstruction {
         }
         self.data = None;
     }
+}
+
+/// XML namespace value
+///
+/// This is the namespace prefix as well as the namespace URI.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Namespace {
+    prefix: PrefixId,
+    uri: NamespaceId,
+}
+
+/// XML attribute value
+///
+/// This is the attribute name as well as value.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Attribute {
+    name: NameId,
+    value: String,
 }
 
 #[cfg(test)]
