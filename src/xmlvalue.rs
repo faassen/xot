@@ -66,8 +66,7 @@ impl Value {
 /// Full XML value.
 ///
 /// Both namespace nodes (prefixes) as well as attributes are
-/// represented as nodes in the tree. There are also special nodes that hold
-/// element children, element namespace nodes and element attribute nodes.
+/// represented as nodes in the tree.
 ///
 /// [`Value`] is a subset of this.
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -78,15 +77,6 @@ pub enum FullValue {
     Namespace(Namespace),
     /// Attribute value
     Attribute(Attribute),
-    /// Namespace holder. Node directly under the element node that
-    /// holds namespace nodes.
-    Namespaces,
-    /// Attributes holder. Node directly under the element node that
-    /// holds attribute nodes.
-    Attributes,
-    /// Children holder. Node directly under the element node that holds
-    /// normal node children (elements, text nodes, etc)
-    Children,
 }
 
 impl FullValue {
@@ -104,15 +94,6 @@ impl FullValue {
         }
     }
 }
-
-// impl From<FullValue> for Value {
-//     fn from(full_value: FullValue) -> Value {
-//         match full_value {
-//             FullValue::Value(value) => value,
-//             _ => panic!("Illegal internal value"),
-//         }
-//     }
-// }
 
 /// A map of NameId to String for attributes
 pub type Attributes = VecMap<NameId, String>;
