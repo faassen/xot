@@ -1,5 +1,5 @@
 use crate::access::NodeEdge;
-use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value, ValueType};
+use crate::xmlvalue::{Comment, Element, FullValue, ProcessingInstruction, Text, Value, ValueType};
 use crate::xotdata::{Node, Xot};
 
 /// ## Value and type access
@@ -32,6 +32,37 @@ impl Xot {
         self.arena[node_id.get()].get().value()
     }
 
+    /// Access to the full XML value for this node.
+    ///
+    /// The full value supports namespace nodes and attribute
+    /// nodes.
+    ///
+    /// ```rust
+    /// use xot::{Xot, Value};
+    ///
+    /// let mut xot = Xot::new();
+    ///
+    /// let root = xot.parse("<doc>Example</doc>")?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let doc_name = xot.name("doc").unwrap();
+    ///
+    /// match xot.full_value(doc_el) {
+    ///    FullValue::Value(Value::Element(element)) => {
+    ///       assert_eq!(element.name(), doc_name);
+    ///   }
+    ///   _ => { }
+    /// }
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    ///
+    /// Note that if you already know the type of a node value or are
+    /// only interested in a single type, you can use the convenience
+    /// methods like [`Xot::element`].
+    #[inline]
+    pub fn full_value(&self, node_id: Node) -> &FullValue {
+        self.arena[node_id.get()].get()
+    }
+
     /// Mutable access to the XML value for this node.
     ///
     /// ```rust
@@ -62,7 +93,41 @@ impl Xot {
         self.arena[node_id.get()].get_mut().value_mut()
     }
 
+    /// Mutable access to the full XML value for this node.
+    ///
+    /// The full value supports namespace nodes and attribute
+    /// nodes.
+    ///
+    /// ```rust
+    /// use xot::{Xot, Value};
+    ///
+    /// let mut xot = Xot::new();
+    ///
+    /// let root = xot.parse("<doc>Example</doc>")?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    ///
+    /// let attr_name = xot.add_name("foo");
+    ///
+    /// match xot.full_value_mut(doc_el) {
+    ///    FullValue::Value(Value::Element(element)) => {
+    ///       element.set_attribute(attr_name, "Foo!")
+    ///   }
+    ///   _ => { }
+    /// }
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    ///
+    /// Note that if you already know the type of a node value or are
+    /// only interested in a single type, you can use the convenience
+    /// methods like [`Xot::element_mut`]
+    #[inline]
+    pub fn full_value_mut(&mut self, node_id: Node) -> &mut FullValue {
+        self.arena[node_id.get()].get_mut()
+    }
+
     /// Get the [`ValueType`](crate::xmlvalue::ValueType) of a node.
+    #[inline]
     pub fn value_type(&self, node: Node) -> ValueType {
         self.value(node).value_type()
     }
