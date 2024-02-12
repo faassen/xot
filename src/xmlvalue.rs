@@ -80,6 +80,31 @@ pub enum FullValue {
 }
 
 impl FullValue {
+    /// Returns the full value type.
+    pub fn full_value_type(&self) -> FullValueType {
+        match self {
+            FullValue::Value(value) => FullValueType::ValueType(value.value_type()),
+            FullValue::Namespace(_) => FullValueType::Namespace,
+            FullValue::Attribute(_) => FullValueType::Attribute,
+        }
+    }
+
+    pub(crate) fn full_value_category(&self) -> FullValueCategory {
+        match self {
+            FullValue::Value(_) => FullValueCategory::Value,
+            FullValue::Namespace(_) => FullValueCategory::Namespace,
+            FullValue::Attribute(_) => FullValueCategory::Attribute,
+        }
+    }
+
+    /// Returns true if full value is a normal (non-namespace, non-attribute) value.
+    pub fn is_value(&self) -> bool {
+        matches!(self, FullValue::Value(_))
+    }
+
+    /// Get the normal value for a node, or panic.
+    ///
+    /// The normal value is the non-namespace, non-attribute value.
     pub fn value(&self) -> &Value {
         match self {
             FullValue::Value(value) => value,
@@ -87,12 +112,35 @@ impl FullValue {
         }
     }
 
+    /// Get the mutable normal value for a node, or panic.
+    ///
+    /// The normal value is the non-namespace, non-attribute value.
     pub fn value_mut(&mut self) -> &mut Value {
         match self {
             FullValue::Value(value) => value,
             _ => panic!("FullValue is not a Value"),
         }
     }
+}
+
+/// The full value type.
+///
+/// Unlike [`ValueType`], this works for all nodes, including namespace and attribute nodes.
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+pub enum FullValueType {
+    /// A normal non-namespace, non-attribute value,
+    ValueType(ValueType),
+    /// Namespace
+    Namespace,
+    /// Attribute
+    Attribute,
+}
+
+#[derive(Debug, PartialEq, Hash, Clone, Copy)]
+pub(crate) enum FullValueCategory {
+    Value,
+    Namespace,
+    Attribute,
 }
 
 /// A map of NameId to String for attributes

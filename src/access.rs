@@ -5,6 +5,7 @@ use crate::error::Error;
 use crate::levelorder::{level_order_traverse, LevelOrder};
 use crate::xmlvalue::{Value, ValueType};
 use crate::xotdata::{Node, Xot};
+use crate::{FullValue, FullValueType};
 
 /// Node edges.
 ///
@@ -41,11 +42,11 @@ impl Xot {
     /// assert_eq!(xot.element(doc_el).unwrap().name(), p_name);
     /// ```
     pub fn document_element(&self, node: Node) -> Result<Node, Error> {
-        if self.value_type(node) != ValueType::Root {
+        if self.full_value_type(node) != FullValueType::ValueType(ValueType::Root) {
             return Err(Error::NotRoot(node));
         }
         for child in self.children(node) {
-            if let Value::Element(_) = self.value(child) {
+            if let FullValue::Value(Value::Element(_)) = self.full_value(child) {
                 return Ok(child);
             }
         }
@@ -58,12 +59,12 @@ impl Xot {
     /// In an XML fragment it's the top node of the
     /// fragment.
     pub fn top_element(&self, node: Node) -> Node {
-        if self.value_type(node) == ValueType::Root {
+        if self.full_value_type(node) == FullValueType::ValueType(ValueType::Root) {
             return self.document_element(node).unwrap();
         }
         let mut top = node;
         for ancestor in self.ancestors(node) {
-            if let Value::Element(_) = self.value(ancestor) {
+            if let FullValue::Value(Value::Element(_)) = self.full_value(ancestor) {
                 top = ancestor;
             }
         }
@@ -122,19 +123,31 @@ impl Xot {
     /// assert_eq!(xot.first_child(text), None);
     /// ```
     pub fn first_child(&self, node: Node) -> Option<Node> {
-        self.arena()[node.get()].first_child().map(Node::new)
+        let mut child = self.arena()[node.get()].first_child()?;
+        while !self.arena()[child].get().is_value() {
+            child = self.arena()[child].next_sibling()?;
+        }
+        Some(Node::new(child))
     }
 
     /// Get last child.
     ///
     /// Returns [`None`] if there are no children.
     pub fn last_child(&self, node: Node) -> Option<Node> {
-        self.arena()[node.get()].last_child().map(Node::new)
+        let last_child = self.arena()[node.get()].last_child()?;
+        if self.arena()[last_child].get().is_value() {
+            Some(Node::new(last_child))
+        } else {
+            None
+        }
     }
 
     /// Get next sibling.
     ///
     /// Returns [`None`] if there is no next sibling.
+    ///
+    /// For normal children, get the next child, if any. For namespace and
+    /// attribute nodes, give the next namespace or attribute node, if any.
     ///
     /// ```rust
     /// let mut xot = xot::Xot::new();
@@ -145,14 +158,29 @@ impl Xot {
     /// assert_eq!(xot.next_sibling(b), None);
     /// ```
     pub fn next_sibling(&self, node: Node) -> Option<Node> {
-        self.arena()[node.get()].next_sibling().map(Node::new)
+        let current_category = self.arena[node.get()].get().full_value_category();
+        let next_sibling = self.arena()[node.get()].next_sibling()?;
+        let next_category = self.arena()[next_sibling].get().full_value_category();
+        if current_category != next_category {
+            return None;
+        }
+        Some(Node::new(next_sibling))
     }
 
     /// Get previous sibling.
     ///
     /// Returns [`None`] if there is no previous sibling.
+    ///
+    /// For normal children, get the previous child. For namespace and
+    /// attribute node, get the previous namespace or attribute, if any.
     pub fn previous_sibling(&self, node: Node) -> Option<Node> {
-        self.arena()[node.get()].previous_sibling().map(Node::new)
+        let current_category = self.arena[node.get()].get().full_value_category();
+        let previous_sibling = self.arena()[node.get()].previous_sibling()?;
+        let previous_category = self.arena()[previous_sibling].get().full_value_category();
+        if current_category != previous_category {
+            return None;
+        }
+        Some(Node::new(previous_sibling))
     }
 
     /// Iterator over ancestor nodes, including this one.
@@ -174,6 +202,8 @@ impl Xot {
 
     /// Iterator over the child nodes of this node.
     ///
+    /// This excludes namespace and attribute nodes.
+    ///
     /// ```rust
     /// let mut xot = xot::Xot::new();
     /// let root = xot.parse("<p><a/><b/></p>").unwrap();
@@ -185,7 +215,22 @@ impl Xot {
     /// assert_eq!(children, vec![a, b]);
     /// ```
     pub fn children(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
-        node.get().children(self.arena()).map(Node::new)
+        // consume any non-value children first
+        let children = node.get().children(self.arena());
+        let mut peekable_children = node.get().children(self.arena()).peekable();
+        loop {
+            let peeked = peekable_children.peek();
+            if let Some(peeked) = peeked {
+                if !self.arena[*peeked].get().is_value() {
+                    peekable_children.next();
+                } else {
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+        children.map(Node::new)
     }
 
     /// Get index of child
@@ -206,15 +251,19 @@ impl Xot {
         if self.parent(child) != Some(parent) {
             return None;
         }
-        parent
-            .get()
-            .children(self.arena())
-            .position(|n| n == child.get())
+        self.children(parent).position(|n| n == child)
+    }
+
+    fn value_filter(&self) -> impl Fn(&indextree::NodeId) -> bool + '_ {
+        |node_id| self.arena[*node_id].get().is_value()
     }
 
     /// Iterator over the child nodes of this node, in reverse order.
     pub fn reverse_children(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
-        node.get().reverse_children(self.arena()).map(Node::new)
+        node.get()
+            .reverse_children(self.arena())
+            .filter(self.value_filter())
+            .map(Node::new)
     }
 
     /// Iterator over of the descendants of this node,
@@ -231,7 +280,10 @@ impl Xot {
     /// assert_eq!(descendants, vec![a, b, c]);
     /// ```
     pub fn descendants(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
-        node.get().descendants(self.arena()).map(Node::new)
+        node.get()
+            .descendants(self.arena())
+            .filter(self.value_filter())
+            .map(Node::new)
     }
 
     /// Iterator over the following siblings of this node, including this one.
@@ -249,12 +301,18 @@ impl Xot {
     /// assert_eq!(siblings, vec![b, c]);
     /// ```
     pub fn following_siblings(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
-        node.get().following_siblings(self.arena()).map(Node::new)
+        node.get()
+            .following_siblings(self.arena())
+            .filter(self.value_filter())
+            .map(Node::new)
     }
 
     /// Iterator over the preceding siblings of this node.
     pub fn preceding_siblings(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
-        node.get().preceding_siblings(self.arena()).map(Node::new)
+        node.get()
+            .preceding_siblings(self.arena())
+            .filter(self.value_filter())
+            .map(Node::new)
     }
 
     /// Following nodes in document order
@@ -336,6 +394,16 @@ impl Xot {
         joined_iterator
     }
 
+    fn traverse_value_filter(&self) -> impl Fn(&IndexTreeNodeEdge) -> bool + '_ {
+        |edge| {
+            let node_id = match edge {
+                IndexTreeNodeEdge::Start(node_id) => node_id,
+                IndexTreeNodeEdge::End(node_id) => node_id,
+            };
+            self.arena[*node_id].get().is_value()
+        }
+    }
+
     /// Traverse over node edges.
     ///
     /// This can be used to traverse the tree in document order iteratively
@@ -367,6 +435,54 @@ impl Xot {
     /// ]);
     /// ```
     pub fn traverse(&self, node: Node) -> impl Iterator<Item = NodeEdge> + '_ {
+        node.get()
+            .traverse(self.arena())
+            .filter(self.traverse_value_filter())
+            .map(|edge| match edge {
+                IndexTreeNodeEdge::Start(node_id) => NodeEdge::Start(Node::new(node_id)),
+                IndexTreeNodeEdge::End(node_id) => NodeEdge::End(Node::new(node_id)),
+            })
+    }
+
+    /// Traverse over node edges, including namespace and attributes.
+    ///
+    /// This can be used to traverse the tree in document order iteratively
+    /// without the need for recursion, while getting structure information
+    /// (unlike [`Xot::descendants`] which doesn't retain structure
+    /// information).
+    ///
+    /// For the tree `<a><b/></a>` this generates a [`NodeEdge::Start`] for
+    /// `<a>`, then a [`NodeEdge::Start`] for `<b>`, immediately followed by a
+    /// [`NodeEdge::End`] for `<b>`, and finally a [`NodeEdge::End`] for `<a>`.
+    ///
+    ///
+    /// For the tree `<a b="B"/>` this generates a [`NodeEdge::Start`] for
+    /// `<a>`, then a [`NodeEdge::Start`] for the attribute `b`, then a `[NodeEdge::End`] for
+    /// attribute `b`, finally followed by [`NodeEdge::End`] for `<a>`.
+    ///
+    /// For value types other than element or root, the start and end always
+    /// come as pairs without any intervening edges.
+    ///
+    /// ```no_run
+    /// let mut xot = xot::Xot::new();
+    /// let root = xot.parse(r#"<a><b c="C">Text</b></a>"#).unwrap();
+    /// let a = xot.document_element(root).unwrap();
+    /// let b = xot.first_child(a).unwrap();
+    /// let c = xot.first_child(b).unwrap(); // WRONG, getting it to compile
+    /// let text = xot.first_child(b).unwrap();
+    /// let edges = xot.traverse(a).collect::<Vec<_>>();
+    /// assert_eq!(edges, vec![
+    ///  xot::NodeEdge::Start(a),
+    ///  xot::NodeEdge::Start(b),
+    ///  xot::NodeEdge::Start(c),
+    ///  xot::NodeEdge::End(c),
+    ///  xot::NodeEdge::Start(text),
+    ///  xot::NodeEdge::End(text),
+    ///  xot::NodeEdge::End(b),
+    ///  xot::NodeEdge::End(a),
+    /// ]);
+    /// ```
+    pub fn full_traverse(&self, node: Node) -> impl Iterator<Item = NodeEdge> + '_ {
         node.get().traverse(self.arena()).map(|edge| match edge {
             IndexTreeNodeEdge::Start(node_id) => NodeEdge::Start(Node::new(node_id)),
             IndexTreeNodeEdge::End(node_id) => NodeEdge::End(Node::new(node_id)),
@@ -379,6 +495,7 @@ impl Xot {
     pub fn reverse_traverse(&self, node: Node) -> impl Iterator<Item = NodeEdge> + '_ {
         node.get()
             .reverse_traverse(self.arena())
+            .filter(self.traverse_value_filter())
             .map(|edge| match edge {
                 IndexTreeNodeEdge::Start(node_id) => NodeEdge::Start(Node::new(node_id)),
                 IndexTreeNodeEdge::End(node_id) => NodeEdge::End(Node::new(node_id)),

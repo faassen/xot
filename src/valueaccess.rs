@@ -1,6 +1,7 @@
 use crate::access::NodeEdge;
 use crate::xmlvalue::{Comment, Element, FullValue, ProcessingInstruction, Text, Value, ValueType};
 use crate::xotdata::{Node, Xot};
+use crate::FullValueType;
 
 /// ## Value and type access
 impl Xot {
@@ -38,7 +39,7 @@ impl Xot {
     /// nodes.
     ///
     /// ```rust
-    /// use xot::{Xot, Value};
+    /// use xot::{Xot, Value, FullValue};
     ///
     /// let mut xot = Xot::new();
     ///
@@ -99,7 +100,7 @@ impl Xot {
     /// nodes.
     ///
     /// ```rust
-    /// use xot::{Xot, Value};
+    /// use xot::{Xot, Value, FullValue};
     ///
     /// let mut xot = Xot::new();
     ///
@@ -132,6 +133,12 @@ impl Xot {
         self.value(node).value_type()
     }
 
+    /// Get the [`FullValueType`] (crate::xmlvalue::FullValueType) of a node.
+    #[inline]
+    pub fn full_value_type(&self, node: Node) -> FullValueType {
+        self.full_value(node).full_value_type()
+    }
+
     /// Return true if node is directly under the document root.
     /// This means it's either the document element or a comment or
     /// processing instruction.
@@ -151,7 +158,7 @@ impl Xot {
     /// ```
     pub fn is_under_root(&self, node: Node) -> bool {
         if let Some(parent_id) = self.parent(node) {
-            self.value_type(parent_id) == ValueType::Root
+            self.full_value_type(parent_id) == FullValueType::ValueType(ValueType::Root)
         } else {
             false
         }
@@ -173,8 +180,8 @@ impl Xot {
     /// ```
     pub fn is_document_element(&self, node: Node) -> bool {
         if let Some(parent_id) = self.parent(node) {
-            self.value_type(parent_id) == ValueType::Root
-                && self.value_type(node) == ValueType::Element
+            self.full_value_type(parent_id) == FullValueType::ValueType(ValueType::Root)
+                && self.full_value_type(node) == FullValueType::ValueType(ValueType::Element)
         } else {
             false
         }
@@ -194,7 +201,7 @@ impl Xot {
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn is_root(&self, node: Node) -> bool {
-        self.value_type(node) == ValueType::Root
+        self.full_value_type(node) == FullValueType::ValueType(ValueType::Root)
     }
 
     /// Return true if node is an element.
@@ -212,7 +219,7 @@ impl Xot {
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn is_element(&self, node: Node) -> bool {
-        self.value_type(node) == ValueType::Element
+        self.full_value_type(node) == FullValueType::ValueType(ValueType::Element)
     }
 
     /// Return true if node is text.
@@ -231,17 +238,17 @@ impl Xot {
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn is_text(&self, node: Node) -> bool {
-        self.value_type(node) == ValueType::Text
+        self.full_value_type(node) == FullValueType::ValueType(ValueType::Text)
     }
 
     /// Return true if node is a comment.
     pub fn is_comment(&self, node: Node) -> bool {
-        self.value_type(node) == ValueType::Comment
+        self.full_value_type(node) == FullValueType::ValueType(ValueType::Comment)
     }
 
     /// Return true if node is a processing instruction.
     pub fn is_processing_instruction(&self, node: Node) -> bool {
-        self.value_type(node) == ValueType::ProcessingInstruction
+        self.full_value_type(node) == FullValueType::ValueType(ValueType::ProcessingInstruction)
     }
 
     /// If this node's value is text, return a reference to it.
@@ -266,8 +273,8 @@ impl Xot {
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn text(&self, node: Node) -> Option<&Text> {
-        let xml_node = self.value(node);
-        if let Value::Text(text) = xml_node {
+        let xml_node = self.full_value(node);
+        if let FullValue::Value(Value::Text(text)) = xml_node {
             Some(text)
         } else {
             None
@@ -317,8 +324,8 @@ impl Xot {
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn text_mut(&mut self, node: Node) -> Option<&mut Text> {
-        let xml_node = self.value_mut(node);
-        if let Value::Text(text) = xml_node {
+        let xml_node = self.full_value_mut(node);
+        if let FullValue::Value(Value::Text(text)) = xml_node {
             Some(text)
         } else {
             None
@@ -350,8 +357,8 @@ impl Xot {
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn element(&self, node: Node) -> Option<&Element> {
-        let xml_node = self.value(node);
-        if let Value::Element(element) = xml_node {
+        let xml_node = self.full_value(node);
+        if let FullValue::Value(Value::Element(element)) = xml_node {
             Some(element)
         } else {
             None
@@ -389,8 +396,8 @@ impl Xot {
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn element_mut(&mut self, node: Node) -> Option<&mut Element> {
-        let xml_node = self.value_mut(node);
-        if let Value::Element(element) = xml_node {
+        let xml_node = self.full_value_mut(node);
+        if let FullValue::Value(Value::Element(element)) = xml_node {
             Some(element)
         } else {
             None
@@ -471,7 +478,7 @@ impl Xot {
             if let Some(text) = self.text_mut(child) {
                 return Some(text);
             }
-        } else if self.value_type(node) == ValueType::Element {
+        } else if self.full_value_type(node) == FullValueType::ValueType(ValueType::Element) {
             self.append_text(node, "").unwrap();
             let child = self.first_child(node).unwrap();
             return self.text_mut(child);
@@ -512,8 +519,8 @@ impl Xot {
 
     /// If this node's value is a comment, return a reference to it.
     pub fn comment(&self, node: Node) -> Option<&Comment> {
-        let xml_node = self.value(node);
-        if let Value::Comment(comment) = xml_node {
+        let xml_node = self.full_value(node);
+        if let FullValue::Value(Value::Comment(comment)) = xml_node {
             Some(comment)
         } else {
             None
@@ -527,8 +534,8 @@ impl Xot {
 
     /// If this node's value is a comment, return a mutable reference to it.
     pub fn comment_mut(&mut self, node: Node) -> Option<&mut Comment> {
-        let xml_node = self.value_mut(node);
-        if let Value::Comment(comment) = xml_node {
+        let xml_node = self.full_value_mut(node);
+        if let FullValue::Value(Value::Comment(comment)) = xml_node {
             Some(comment)
         } else {
             None
@@ -537,8 +544,8 @@ impl Xot {
 
     /// If this node's value is a processing instruction, return a reference to it.
     pub fn processing_instruction(&self, node: Node) -> Option<&ProcessingInstruction> {
-        let xml_node = self.value(node);
-        if let Value::ProcessingInstruction(pi) = xml_node {
+        let xml_node = self.full_value(node);
+        if let FullValue::Value(Value::ProcessingInstruction(pi)) = xml_node {
             Some(pi)
         } else {
             None
@@ -547,8 +554,8 @@ impl Xot {
 
     /// If this node's value is a processing instruction, return a mutable reference to it.
     pub fn processing_instruction_mut(&mut self, node: Node) -> Option<&mut ProcessingInstruction> {
-        let xml_node = self.value_mut(node);
-        if let Value::ProcessingInstruction(pi) = xml_node {
+        let xml_node = self.full_value_mut(node);
+        if let FullValue::Value(Value::ProcessingInstruction(pi)) = xml_node {
             Some(pi)
         } else {
             None
@@ -706,17 +713,22 @@ impl Xot {
     where
         C: Fn(&str, &str) -> bool,
     {
-        let a_value = self.value(a);
-        let b_value = self.value(b);
-        match (a_value, b_value) {
-            (Value::Root, Value::Root) => true,
-            (Value::Element(a), Value::Element(b)) => a.advanced_compare(b, text_compare),
-            (Value::Text(a), Value::Text(b)) => text_compare(a.get(), b.get()),
-            (Value::Comment(a), Value::Comment(b)) => a.get() == b.get(),
-            (Value::ProcessingInstruction(a), Value::ProcessingInstruction(b)) => {
-                a.target() == b.target() && a.data() == b.data()
-            }
-            _ => false,
+        let a_full_value = self.full_value(a);
+        let b_full_value = self.full_value(b);
+        match (a_full_value, b_full_value) {
+            (FullValue::Value(a_value), FullValue::Value(b_value)) => match (a_value, b_value) {
+                (Value::Root, Value::Root) => true,
+                (Value::Element(a), Value::Element(b)) => a.advanced_compare(b, text_compare),
+                (Value::Text(a), Value::Text(b)) => text_compare(a.get(), b.get()),
+                (Value::Comment(a), Value::Comment(b)) => a.get() == b.get(),
+                (Value::ProcessingInstruction(a), Value::ProcessingInstruction(b)) => {
+                    a.target() == b.target() && a.data() == b.data()
+                }
+                _ => false,
+            },
+            // we handle attribute compare through element, and we should
+            // never encounter these nodes explicitly
+            _ => unreachable!(),
         }
     }
 }

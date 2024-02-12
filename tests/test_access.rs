@@ -168,3 +168,85 @@ fn test_advanced_compare_filter() {
     // compare, disregarding comments
     assert!(xot.advanced_compare(doc1, doc2, |node| !xot.is_comment(node), |a, b| a == b));
 }
+
+#[test]
+fn test_first_child_with_namespace() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc xmlns:foo="FOO">bar</doc>"#).unwrap();
+    let element = xot.document_element(doc).unwrap();
+    let value = xot.value(xot.first_child(element).unwrap());
+    if let xot::Value::Text(text) = value {
+        assert_eq!(text.get(), "bar");
+    } else {
+        unreachable!();
+    }
+}
+
+#[test]
+fn test_first_child_with_attribute() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc foo="FOO">bar</doc>"#).unwrap();
+    let element = xot.document_element(doc).unwrap();
+    let value = xot.value(xot.first_child(element).unwrap());
+    if let xot::Value::Text(text) = value {
+        assert_eq!(text.get(), "bar");
+    } else {
+        unreachable!();
+    }
+}
+
+#[test]
+fn test_first_child_missing_with_attribute() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc foo="FOO"/>"#).unwrap();
+    let element = xot.document_element(doc).unwrap();
+    assert_eq!(xot.first_child(element), None);
+}
+
+#[test]
+fn test_last_child_with_attribute() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc foo="FOO">bar</doc>"#).unwrap();
+    let element = xot.document_element(doc).unwrap();
+    let value = xot.value(xot.last_child(element).unwrap());
+    if let xot::Value::Text(text) = value {
+        assert_eq!(text.get(), "bar");
+    } else {
+        unreachable!();
+    }
+}
+
+#[test]
+fn test_last_child_missing_with_attribute() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc foo="FOO"/>"#).unwrap();
+    let element = xot.document_element(doc).unwrap();
+    assert_eq!(xot.last_child(element), None);
+}
+
+#[test]
+fn test_previous_sibling_with_attribute() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc foo="FOO">bar</doc>"#).unwrap();
+    let doc = xot.document_element(doc).unwrap();
+    let bar = xot.first_child(doc).unwrap();
+    assert_eq!(xot.previous_sibling(bar), None);
+}
+
+#[test]
+fn test_next_sibling_with_attribute() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc foo="FOO">bar</doc>"#).unwrap();
+    let doc = xot.document_element(doc).unwrap();
+    let bar = xot.first_child(doc).unwrap();
+    assert_eq!(xot.next_sibling(bar), None);
+}
+
+#[test]
+fn test_children() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc foo="FOO">bar</doc>"#).unwrap();
+    let doc = xot.document_element(doc).unwrap();
+    let children = xot.children(doc).collect::<Vec<_>>();
+    assert_eq!(children.len(), 1);
+}

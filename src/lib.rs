@@ -80,6 +80,7 @@ pub use prefix::PrefixId;
 pub use serialize::{PrettyOutputToken, SerializeOptions, WithSerializeOptions};
 pub use serializer::{Output, OutputToken};
 pub use xmlvalue::{
-    Attributes, Comment, Element, Prefixes, ProcessingInstruction, Text, Value, ValueType,
+    Attributes, Comment, Element, FullValue, FullValueType, Prefixes, ProcessingInstruction, Text,
+    Value, ValueType,
 };
 pub use xotdata::{Node, Xot};

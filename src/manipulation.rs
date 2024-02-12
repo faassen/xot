@@ -5,6 +5,7 @@ use crate::access::NodeEdge;
 use crate::error::Error;
 use crate::name::NameId;
 use crate::xmlvalue::{Value, ValueType};
+use crate::{FullValue, FullValueType};
 
 /// ## Manipulation
 ///
@@ -288,7 +289,9 @@ impl Xot {
     pub fn remove(&mut self, node: Node) -> Result<(), Error> {
         // we don't do a remove structure check, as we should be able to
         // remove an entire root if we do it explicitly.
-        if self.value_type(node) == ValueType::Element && self.is_under_root(node) {
+        if self.full_value_type(node) == FullValueType::ValueType(ValueType::Element)
+            && self.is_under_root(node)
+        {
             return Err(Error::InvalidOperation("Cannot remove root element".into()));
         }
         let prev_node = self.previous_sibling(node);
@@ -328,7 +331,7 @@ impl Xot {
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn clone(&mut self, node: Node) -> Node {
-        let edges = self.traverse(node).collect::<Vec<_>>();
+        let edges = self.full_traverse(node).collect::<Vec<_>>();
 
         // we need to create a top node
         let top = if self.is_root(node) {
@@ -345,19 +348,19 @@ impl Xot {
         for open_close in edges {
             match open_close {
                 NodeEdge::Start(node) => {
-                    let value = self.value(node);
-                    let value_type = value.value_type();
-                    if value_type == ValueType::Root {
+                    let value = self.full_value(node);
+                    let full_value_type = value.full_value_type();
+                    if full_value_type == FullValueType::ValueType(ValueType::Root) {
                         continue;
                     }
-                    let new_node = self.new_node(value.clone());
+                    let new_node = self.new_full_node(value.clone());
                     self.append(current, new_node).unwrap();
-                    if value_type == ValueType::Element {
+                    if full_value_type == FullValueType::ValueType(ValueType::Element) {
                         current = new_node;
                     }
                 }
                 NodeEdge::End(node) => {
-                    if self.value_type(node) != ValueType::Element {
+                    if self.full_value_type(node) != FullValueType::ValueType(ValueType::Element) {
                         continue;
                     }
                     current = self.parent(current).unwrap();
@@ -615,61 +618,81 @@ impl Xot {
             Error::InvalidOperation("Cannot create siblings for document root".into())
         })?;
         if !matches!(
-            self.value_type(parent),
-            ValueType::Element | ValueType::Root
+            self.full_value_type(parent),
+            FullValueType::ValueType(ValueType::Element)
+                | FullValueType::ValueType(ValueType::Root)
         ) {
             return Err(Error::InvalidOperation(
                 "Cannot add children to non-element and non-root node".into(),
             ));
         }
-        match self.value_type(child) {
-            ValueType::Root => {
-                return Err(Error::InvalidOperation("Cannot move document root".into()));
-            }
-            ValueType::Element => {
-                if self.is_under_root(child) {
-                    return Err(Error::InvalidOperation("Cannot move root element".into()));
+        match self.full_value_type(child) {
+            FullValueType::ValueType(value_type) => match value_type {
+                ValueType::Root => {
+                    return Err(Error::InvalidOperation("Cannot move document root".into()));
                 }
-                if self.is_root(parent) {
-                    for child in self.children(parent) {
-                        if self.is_element(child) {
-                            return Err(Error::InvalidOperation(
-                                "Cannot move extra element under document root".into(),
-                            ));
+                ValueType::Element => {
+                    if self.is_under_root(child) {
+                        return Err(Error::InvalidOperation("Cannot move root element".into()));
+                    }
+                    if self.is_root(parent) {
+                        for child in self.children(parent) {
+                            if self.is_element(child) {
+                                return Err(Error::InvalidOperation(
+                                    "Cannot move extra element under document root".into(),
+                                ));
+                            }
                         }
                     }
                 }
-            }
-            ValueType::Text => {
-                if self.is_root(parent) {
-                    return Err(Error::InvalidOperation(
-                        "Cannot move text under document root".into(),
-                    ));
+                ValueType::Text => {
+                    if self.is_root(parent) {
+                        return Err(Error::InvalidOperation(
+                            "Cannot move text under document root".into(),
+                        ));
+                    }
                 }
+                ValueType::ProcessingInstruction | ValueType::Comment => {
+                    // these can exist everywhere
+                }
+            },
+            FullValueType::Namespace => {
+                return Err(Error::InvalidOperation(
+                    "Cannot move namespace as normal child".into(),
+                ))
             }
-            ValueType::ProcessingInstruction | ValueType::Comment => {
-                // these can exist everywhere
+            FullValueType::Attribute => {
+                return Err(Error::InvalidOperation(
+                    "Cannot move attribute as normal child".into(),
+                ))
             }
         }
         Ok(())
     }
 
     fn remove_structure_check(&self, node: Node) -> Result<(), Error> {
-        match self.value_type(node) {
-            ValueType::Root => {
-                return Err(Error::InvalidOperation(
-                    "Cannot remove document root".into(),
-                ));
-            }
-            ValueType::Element => {
-                if self.is_under_root(node) {
-                    return Err(Error::InvalidOperation(
-                        "Cannot remove document element".into(),
-                    ));
+        match self.full_value_type(node) {
+            FullValueType::ValueType(value_type) => {
+                match value_type {
+                    ValueType::Root => {
+                        return Err(Error::InvalidOperation(
+                            "Cannot remove document root".into(),
+                        ));
+                    }
+                    ValueType::Element => {
+                        if self.is_under_root(node) {
+                            return Err(Error::InvalidOperation(
+                                "Cannot remove document element".into(),
+                            ));
+                        }
+                    }
+                    ValueType::Text | ValueType::ProcessingInstruction | ValueType::Comment => {
+                        // these have no removal constraints
+                    }
                 }
             }
-            ValueType::Text | ValueType::ProcessingInstruction | ValueType::Comment => {
-                // these have no removal constraints
+            FullValueType::Namespace | FullValueType::Attribute => {
+                // we can remove any namespace or attribute node too
             }
         }
         Ok(())
@@ -694,7 +717,7 @@ impl Xot {
         if !self.text_consolidation {
             return false;
         }
-        let added_text = if let Value::Text(t) = self.value(node) {
+        let added_text = if let FullValue::Value(Value::Text(t)) = self.full_value(node) {
             Some(t.get().to_string())
         } else {
             None
@@ -707,7 +730,7 @@ impl Xot {
         // if consolidation is turned off, then we could have two adjacent
         // text nodes. Prefer to consolidate with the previous node.
         let consolidated = if let Some(prev_node) = prev_node {
-            if let Value::Text(prev) = self.value_mut(prev_node) {
+            if let FullValue::Value(Value::Text(prev)) = self.full_value_mut(prev_node) {
                 let mut s = prev.get().to_string();
                 s.push_str(&added_text);
                 prev.set(s);
@@ -726,7 +749,7 @@ impl Xot {
         // we couldn't consolidate with the previous node, try to consolidate
         // with the next node
         if let Some(next_node) = next_node {
-            if let Value::Text(next) = self.value_mut(next_node) {
+            if let FullValue::Value(Value::Text(next)) = self.full_value_mut(next_node) {
                 let mut s = added_text;
                 s.push_str(next.get());
                 next.set(s);

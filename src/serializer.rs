@@ -12,6 +12,7 @@ use crate::pretty::Pretty;
 use crate::xmlvalue::{Element, Prefixes};
 use crate::xmlvalue::{Value, ValueType};
 use crate::xotdata::{Node, Xot};
+use crate::{FullValue, FullValueType};
 
 /// Output of serialization
 ///
@@ -67,50 +68,56 @@ pub(crate) fn gen_outputs<'a>(xot: &'a Xot, node: Node) {
 
 #[generator(yield(Output<'a>))]
 fn gen_edge_start<'a>(xot: &'a Xot, top_node: Node, node: Node, extra_prefixes: &Prefixes) {
-    let value = xot.value(node);
-    match value {
-        Value::Root => {}
-        Value::Element(element) => {
-            yield_!(Output::StartTagOpen(element));
+    let full_value = xot.full_value(node);
+    match full_value {
+        FullValue::Value(value) => {
+            match value {
+                Value::Root => {}
+                Value::Element(element) => {
+                    yield_!(Output::StartTagOpen(element));
 
-            // serialize any extra prefixes if this is the top element of
-            // a fragment and they aren't declared already
-            if node == top_node {
-                for (prefix_id, namespace_id) in extra_prefixes {
-                    if !element.prefixes.contains_key(prefix_id) {
+                    // serialize any extra prefixes if this is the top element of
+                    // a fragment and they aren't declared already
+                    if node == top_node {
+                        for (prefix_id, namespace_id) in extra_prefixes {
+                            if !element.prefixes.contains_key(prefix_id) {
+                                yield_!(Output::Prefix(element, *prefix_id, *namespace_id,));
+                            }
+                        }
+                    }
+
+                    for (prefix_id, namespace_id) in element.prefixes() {
                         yield_!(Output::Prefix(element, *prefix_id, *namespace_id,));
                     }
+                    yield_!(Output::PrefixesFinished(element));
+
+                    for (name_id, value) in element.attributes() {
+                        yield_!(Output::Attribute(element, *name_id, value));
+                    }
+                    yield_!(Output::AttributesFinished(element));
+
+                    yield_!(Output::StartTagClose(element));
+                }
+                Value::Text(text) => {
+                    yield_!(Output::Text(text.get()));
+                }
+                Value::Comment(comment) => {
+                    yield_!(Output::Comment(comment.get()));
+                }
+                Value::ProcessingInstruction(pi) => {
+                    yield_!(Output::ProcessingInstruction(pi.target(), pi.data()));
                 }
             }
-
-            for (prefix_id, namespace_id) in element.prefixes() {
-                yield_!(Output::Prefix(element, *prefix_id, *namespace_id,));
-            }
-            yield_!(Output::PrefixesFinished(element));
-
-            for (name_id, value) in element.attributes() {
-                yield_!(Output::Attribute(element, *name_id, value));
-            }
-            yield_!(Output::AttributesFinished(element));
-
-            yield_!(Output::StartTagClose(element));
         }
-        Value::Text(text) => {
-            yield_!(Output::Text(text.get()));
-        }
-        Value::Comment(comment) => {
-            yield_!(Output::Comment(comment.get()));
-        }
-        Value::ProcessingInstruction(pi) => {
-            yield_!(Output::ProcessingInstruction(pi.target(), pi.data()));
-        }
+        // TODO: handle namespace and attribute nodes properly
+        FullValue::Namespace(_) | FullValue::Attribute(_) => {}
     }
 }
 
 #[generator(yield(Output<'a>))]
 fn gen_edge_end<'a>(xot: &'a Xot, node: Node) {
-    let value = xot.value(node);
-    if let Value::Element(element) = value {
+    let full_value = xot.full_value(node);
+    if let FullValue::Value(Value::Element(element)) = full_value {
         yield_!(Output::EndTag(element));
     }
 }
@@ -294,7 +301,7 @@ impl<'a> XmlSerializer<'a> {
 pub(crate) fn get_extra_prefixes(xot: &Xot, node: Node) -> Prefixes {
     // collect namespace prefixes for all ancestors of the fragment
     if let Some(parent) = xot.parent(node) {
-        if xot.value_type(parent) != ValueType::Root {
+        if xot.full_value_type(parent) != FullValueType::ValueType(ValueType::Root) {
             xot.prefixes_in_scope(parent)
         } else {
             Prefixes::new()

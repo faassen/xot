@@ -1,6 +1,7 @@
 use crate::serializer::Output;
 use crate::xmlvalue::ValueType;
 use crate::xotdata::{Node, Xot};
+use crate::FullValueType;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Space {
@@ -85,9 +86,9 @@ impl<'a> Pretty<'a> {
     }
 
     fn has_text_child(&self, node: Node) -> bool {
-        self.xot
-            .children(node)
-            .any(|child| self.xot.value_type(child) == ValueType::Text)
+        self.xot.children(node).any(|child| {
+            self.xot.full_value_type(child) == FullValueType::ValueType(ValueType::Text)
+        })
     }
 
     pub(crate) fn prettify(&mut self, node: Node, output_token: &Output) -> (usize, bool) {

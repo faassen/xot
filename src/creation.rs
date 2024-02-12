@@ -11,6 +11,10 @@ impl Xot {
         Node::new(self.arena.new_node(FullValue::Value(value)))
     }
 
+    pub(crate) fn new_full_node(&mut self, value: FullValue) -> Node {
+        Node::new(self.arena.new_node(value))
+    }
+
     /// Create a new root node.
     ///
     /// You can use this to create a new document from scratch.
