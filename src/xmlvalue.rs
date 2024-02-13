@@ -29,6 +29,10 @@ pub enum ValueType {
     ProcessingInstruction,
     /// Comment.
     Comment,
+    /// Attribute
+    Attribute,
+    /// Namespace
+    Namespace,
 }
 
 /// An XML value.
@@ -48,6 +52,10 @@ pub enum Value {
     ProcessingInstruction(ProcessingInstruction),
     /// Comment.
     Comment(Comment),
+    /// Attribute
+    Attribute(Attribute),
+    /// Namespace
+    Namespace(Namespace),
 }
 
 impl Value {
@@ -59,6 +67,8 @@ impl Value {
             Value::Text(_) => ValueType::Text,
             Value::Comment(_) => ValueType::Comment,
             Value::ProcessingInstruction(_) => ValueType::ProcessingInstruction,
+            Value::Attribute(_) => ValueType::Attribute,
+            Value::Namespace(_) => ValueType::Namespace,
         }
     }
 }
@@ -472,6 +482,18 @@ impl ProcessingInstruction {
         }
         self.data = None;
     }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub struct Attribute {
+    pub(crate) name_id: NameId,
+    pub(crate) value: String,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub struct Namespace {
+    pub(crate) prefix_id: PrefixId,
+    pub(crate) namespace_id: NamespaceId,
 }
 
 #[cfg(test)]

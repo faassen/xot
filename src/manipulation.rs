@@ -650,6 +650,11 @@ impl Xot {
             ValueType::ProcessingInstruction | ValueType::Comment => {
                 // these can exist everywhere
             }
+            ValueType::Attribute | ValueType::Namespace => {
+                return Err(Error::InvalidOperation(
+                    "Cannot move attribute or namespace as child".into(),
+                ));
+            }
         }
         Ok(())
     }
@@ -668,7 +673,11 @@ impl Xot {
                     ));
                 }
             }
-            ValueType::Text | ValueType::ProcessingInstruction | ValueType::Comment => {
+            ValueType::Attribute
+            | ValueType::Namespace
+            | ValueType::Text
+            | ValueType::ProcessingInstruction
+            | ValueType::Comment => {
                 // these have no removal constraints
             }
         }
