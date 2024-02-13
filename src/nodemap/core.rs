@@ -7,6 +7,8 @@ use crate::{
     NameId, NamespaceId, Node, PrefixId, Value, Xot,
 };
 
+use super::entry::{Entry, OccupiedEntry, VacantEntry};
+
 pub trait ValueAdapter<K, V> {
     fn children(xot: &Xot, parent: Node) -> impl Iterator<Item = Node> + '_;
     // new node insertion point is either node whether it should be inserted after,
@@ -22,7 +24,7 @@ pub trait ValueAdapter<K, V> {
 #[derive(Debug)]
 pub struct NodeMap<'a, K, V, A: ValueAdapter<K, V>>
 where
-    K: PartialEq + Clone,
+    K: PartialEq + Eq + Clone,
     V: Clone,
 {
     xot: &'a mut Xot,
@@ -34,7 +36,7 @@ where
 
 impl<'a, K, V, A: ValueAdapter<K, V>> NodeMap<'a, K, V, A>
 where
-    K: PartialEq + Clone,
+    K: PartialEq + Eq + Clone,
     V: Clone,
 {
     fn new(xot: &'a mut Xot, parent: Node) -> Self {
@@ -161,14 +163,25 @@ where
         }
     }
 
-    // /// Get the given key's corresponding entry in the map for insertion and/or in-place
-    // /// manipulation.
-    // pub fn entry(&mut self, key: K) -> Entry<K, V> {
-    //     match self.get_index_of(&key) {
-    //         Some(index) => Entry::Occupied(OccupiedEntry::new(self, key, index)),
-    //         None => Entry::Vacant(VacantEntry::new(self, key)),
-    //     }
-    // }
+    pub fn remove(&mut self, key: &K) -> Option<V> {
+        let node = self.get_node(key);
+        if let Some(node) = node {
+            let value = A::value(self.xot.value(node)).clone();
+            self.xot.remove(node).unwrap();
+            Some(value)
+        } else {
+            None
+        }
+    }
+
+    /// Get the given key's corresponding entry in the map for insertion and/or in-place
+    /// manipulation.
+    pub fn entry(&'a mut self, key: K) -> Entry<K, V, A> {
+        match self.get(&key) {
+            Some(_value) => Entry::Occupied(OccupiedEntry::new(self, key)),
+            None => Entry::Vacant(VacantEntry::new(self, key)),
+        }
+    }
 
     /// An iterator visiting all key-value pairs in insertion order. The iterator element type is
     /// `(&'a K, &'a V)`.
@@ -197,144 +210,16 @@ where
     }
 }
 
-struct AttributeAdapter {}
-
-fn category_predicate(xot: &Xot, category: ValueCategory) -> impl Fn(&Node) -> bool + '_ {
+pub(crate) fn category_predicate(
+    xot: &Xot,
+    category: ValueCategory,
+) -> impl Fn(&Node) -> bool + '_ {
     move |node| xot.value(*node).value_category() == category
 }
 
-impl ValueAdapter<NameId, String> for AttributeAdapter {
-    fn children(xot: &Xot, node: Node) -> impl Iterator<Item = Node> + '_ {
-        xot.all_children(node)
-            .skip_while(category_predicate(xot, ValueCategory::Namespace))
-            .take_while(category_predicate(xot, ValueCategory::Attribute))
-    }
-
-    fn insertion_point(xot: &Xot, node: Node) -> Option<Node> {
-        let last_child = Self::children(xot, node).last();
-        // if there is a last child, insert after it
-        if let Some(last_child) = last_child {
-            return Some(last_child);
-        }
-        // if there is no last child, then insert after the last namespace node
-        let namespaces = xot
-            .all_children(node)
-            .take_while(category_predicate(xot, ValueCategory::Namespace));
-        if let Some(last_namespace) = namespaces.last() {
-            return Some(last_namespace);
-        }
-        // if there is no namespace node, we want to prepend
-        None
-    }
-
-    fn key(value: &Value) -> &NameId {
-        match value {
-            Value::Attribute(Attribute { name_id, .. }) => name_id,
-            _ => unreachable!(),
-        }
-    }
-
-    fn value(value: &Value) -> &String {
-        match value {
-            Value::Attribute(Attribute { value, .. }) => value,
-            _ => unreachable!(),
-        }
-    }
-
-    fn value_mut(value: &mut Value) -> &mut String {
-        match value {
-            Value::Attribute(Attribute { value, .. }) => value,
-            _ => unreachable!(),
-        }
-    }
-
-    fn create(key: NameId, value: String) -> Value {
-        Value::Attribute(Attribute {
-            name_id: key,
-            value,
-        })
-    }
-
-    fn update(value: &mut Value, new_value: String) -> Option<String> {
-        match value {
-            Value::Attribute(Attribute {
-                value: old_value, ..
-            }) => {
-                let old_value = std::mem::replace(old_value, new_value);
-                Some(old_value)
-            }
-            _ => unreachable!(),
-        }
-    }
-}
-
-struct NamespaceAdapter {}
-
-impl ValueAdapter<PrefixId, NamespaceId> for NamespaceAdapter {
-    fn children(xot: &Xot, node: Node) -> impl Iterator<Item = Node> + '_ {
-        xot.all_children(node)
-            .take_while(category_predicate(xot, ValueCategory::Namespace))
-    }
-
-    fn insertion_point(xot: &Xot, node: Node) -> Option<Node> {
-        let last_child = Self::children(xot, node).last();
-        // if there is a last child, insert after it
-        if let Some(last_child) = last_child {
-            return Some(last_child);
-        }
-        // if there is no namespace node, we want to prepend
-        None
-    }
-
-    fn key(value: &Value) -> &PrefixId {
-        match value {
-            Value::Namespace(Namespace { prefix_id, .. }) => prefix_id,
-            _ => unreachable!(),
-        }
-    }
-
-    fn value(value: &Value) -> &NamespaceId {
-        match value {
-            Value::Namespace(Namespace { namespace_id, .. }) => namespace_id,
-            _ => unreachable!(),
-        }
-    }
-
-    fn value_mut(value: &mut Value) -> &mut NamespaceId {
-        match value {
-            Value::Namespace(Namespace { namespace_id, .. }) => namespace_id,
-            _ => unreachable!(),
-        }
-    }
-
-    fn create(key: PrefixId, value: NamespaceId) -> Value {
-        Value::Namespace(Namespace {
-            prefix_id: key,
-            namespace_id: value,
-        })
-    }
-
-    fn update(value: &mut Value, new_value: NamespaceId) -> Option<NamespaceId> {
-        match value {
-            Value::Namespace(Namespace {
-                namespace_id: old_value,
-                ..
-            }) => {
-                let old_value = std::mem::replace(old_value, new_value);
-                Some(old_value)
-            }
-            _ => unreachable!(),
-        }
-    }
-}
-
-pub type Attributes<'a> = NodeMap<'a, NameId, String, AttributeAdapter>;
-pub type Namespaces<'a> = NodeMap<'a, PrefixId, NamespaceId, NamespaceAdapter>;
-
 #[cfg(test)]
 mod tests {
-    use super::*;
-
+    use crate::nodemap::{Attributes, Namespaces};
     use crate::Xot;
 
     #[test]
