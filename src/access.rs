@@ -3,6 +3,7 @@ use next_gen::prelude::*;
 
 use crate::error::Error;
 use crate::levelorder::{level_order_traverse, LevelOrder};
+use crate::nodemap::{Attributes, Namespaces};
 use crate::xmlvalue::{Value, ValueCategory, ValueType};
 use crate::xotdata::{Node, Xot};
 
@@ -121,6 +122,20 @@ impl Xot {
             .children(&self.arena)
             .skip_while(|n| !self.arena[*n].get().is_normal())
             .map(Node::new)
+    }
+
+    /// Attributes accessor.
+    ///
+    /// Returns a map of attributes.
+    pub fn attributes(&mut self, node: Node) -> Attributes {
+        Attributes::new(self, node)
+    }
+
+    /// Namespaces accessor.
+    ///
+    /// Returns a map of namespaces.
+    pub fn namespaces(&mut self, node: Node) -> Namespaces {
+        Namespaces::new(self, node)
     }
 
     /// Get first child.

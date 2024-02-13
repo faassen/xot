@@ -590,7 +590,10 @@ impl Xot {
     ///
     /// Once a prefix has been yielded, it's not yielded again, as the
     /// overriding prefix has already been yielded.
-    pub fn namespaces(&self, node: Node) -> impl Iterator<Item = (PrefixId, NamespaceId)> + '_ {
+    pub fn namespaces_in_scope(
+        &self,
+        node: Node,
+    ) -> impl Iterator<Item = (PrefixId, NamespaceId)> + '_ {
         mk_gen!(let namespaces = box namespace_traverse(self, node));
         namespaces
     }

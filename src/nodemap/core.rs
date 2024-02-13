@@ -39,7 +39,7 @@ where
     K: PartialEq + Eq + Clone,
     V: Clone,
 {
-    fn new(xot: &'a mut Xot, parent: Node) -> Self {
+    pub(crate) fn new(xot: &'a mut Xot, parent: Node) -> Self {
         NodeMap {
             xot,
             parent,
@@ -219,7 +219,6 @@ pub(crate) fn category_predicate(
 
 #[cfg(test)]
 mod tests {
-    use crate::nodemap::{Attributes, Namespaces};
     use crate::Xot;
 
     #[test]
@@ -228,7 +227,7 @@ mod tests {
         let root = xot.parse(r#"<doc a="A"></doc>"#);
         let a = xot.add_name("a");
         let document_element = xot.document_element(root.unwrap()).unwrap();
-        let attributes = Attributes::new(&mut xot, document_element);
+        let attributes = xot.attributes(document_element);
         assert_eq!(attributes.get(&a), Some(&"A".to_string()));
     }
 
@@ -238,7 +237,7 @@ mod tests {
         let root = xot.parse(r#"<doc a="A"></doc>"#);
         let a = xot.add_name("a");
         let document_element = xot.document_element(root.unwrap()).unwrap();
-        let mut attributes = Attributes::new(&mut xot, document_element);
+        let mut attributes = xot.attributes(document_element);
         attributes.insert(a, "B".to_string());
         assert_eq!(attributes.get(&a), Some(&"B".to_string()));
     }
@@ -249,7 +248,7 @@ mod tests {
         let root = xot.parse(r#"<doc></doc>"#);
         let a = xot.add_name("a");
         let document_element = xot.document_element(root.unwrap()).unwrap();
-        let mut attributes = Attributes::new(&mut xot, document_element);
+        let mut attributes = xot.attributes(document_element);
         attributes.insert(a, "A".to_string());
         assert_eq!(attributes.get(&a), Some(&"A".to_string()));
     }
@@ -260,7 +259,7 @@ mod tests {
         let root = xot.parse(r#"<doc c="C"></doc>"#);
         let a = xot.add_name("a");
         let document_element = xot.document_element(root.unwrap()).unwrap();
-        let mut attributes = Attributes::new(&mut xot, document_element);
+        let mut attributes = xot.attributes(document_element);
         attributes.insert(a, "A".to_string());
         assert_eq!(attributes.get(&a), Some(&"A".to_string()));
     }
@@ -274,9 +273,9 @@ mod tests {
         let foo_prefix = xot.add_prefix("foo");
         let foo_ns = xot.add_namespace("FOO");
         let document_element = xot.document_element(root.unwrap()).unwrap();
-        let attributes = Attributes::new(&mut xot, document_element);
+        let attributes = xot.attributes(document_element);
         assert_eq!(attributes.get(&a), Some(&"A".to_string()));
-        let namespaces = Namespaces::new(&mut xot, document_element);
+        let namespaces = xot.namespaces(document_element);
         assert_eq!(namespaces.get(&foo_prefix), Some(&foo_ns));
     }
 }
