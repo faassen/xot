@@ -7,7 +7,10 @@ use crate::entity::{parse_attribute, parse_text};
 use crate::error::Error;
 use crate::name::{Name, NameId};
 use crate::prefix::PrefixId;
-use crate::xmlvalue::{Attributes, Comment, Element, Prefixes, ProcessingInstruction, Text, Value};
+use crate::xmlvalue::{
+    Attribute, Attributes, Comment, Element, Namespace, Prefixes, ProcessingInstruction, Text,
+    Value,
+};
 use crate::xotdata::{Node, Xot};
 
 struct AttributeBuilder {
@@ -156,9 +159,28 @@ impl DocumentBuilder {
         let element_builder = self.element_builder.take().unwrap();
         let span = element_builder.span;
         let (element, attribute_spans) = element_builder.into_element(self, xot)?;
-        let element = Value::Element(element);
-        let node_id = self.add(element, xot);
+
+        // TODO: get rid of clone of element
+        let element_value = Value::Element(element.clone());
+        let node_id = self.add(element_value, xot);
         self.current_node_id = node_id;
+
+        // add namespace nodes
+        for (prefix_id, namespace_id) in &element.prefixes {
+            let namespace_node = xot.arena.new_node(Value::Namespace(Namespace {
+                prefix_id: *prefix_id,
+                namespace_id: *namespace_id,
+            }));
+            self.current_node_id.append(namespace_node, &mut xot.arena);
+        }
+        // add attribute nodes
+        for (name_id, value) in element.attributes {
+            let attribute_node = xot
+                .arena
+                .new_node(Value::Attribute(Attribute { name_id, value }));
+            self.current_node_id.append(attribute_node, &mut xot.arena);
+        }
+
         Ok((node_id, span, attribute_spans))
     }
 

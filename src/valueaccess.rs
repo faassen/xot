@@ -651,6 +651,11 @@ impl Xot {
             (Value::ProcessingInstruction(a), Value::ProcessingInstruction(b)) => {
                 a.target() == b.target() && a.data() == b.data()
             }
+            // TODO: for now we ignore these.
+            (Value::Attribute(_), _) => true,
+            (_, Value::Attribute(_)) => true,
+            (Value::Namespace(_), _) => true,
+            (_, Value::Namespace(_)) => true,
             _ => false,
         }
     }

@@ -42,34 +42,6 @@ pub(crate) enum ValueCategory {
     Namespace,
 }
 
-impl From<Value> for ValueCategory {
-    fn from(value: Value) -> Self {
-        match value {
-            Value::Root
-            | Value::Element(_)
-            | Value::Text(_)
-            | Value::ProcessingInstruction(_)
-            | Value::Comment(_) => ValueCategory::Normal,
-            Value::Attribute(_) => ValueCategory::Attribute,
-            Value::Namespace(_) => ValueCategory::Namespace,
-        }
-    }
-}
-
-impl From<ValueType> for ValueCategory {
-    fn from(value_type: ValueType) -> Self {
-        match value_type {
-            ValueType::Root
-            | ValueType::Element
-            | ValueType::Text
-            | ValueType::ProcessingInstruction
-            | ValueType::Comment => ValueCategory::Normal,
-            ValueType::Attribute => ValueCategory::Attribute,
-            ValueType::Namespace => ValueCategory::Namespace,
-        }
-    }
-}
-
 /// An XML value.
 ///
 /// Access it using [`Xot::value`](crate::xotdata::Xot::value) or
@@ -105,6 +77,29 @@ impl Value {
             Value::Attribute(_) => ValueType::Attribute,
             Value::Namespace(_) => ValueType::Namespace,
         }
+    }
+
+    pub(crate) fn value_category(&self) -> ValueCategory {
+        match self {
+            Value::Root
+            | Value::Element(_)
+            | Value::Text(_)
+            | Value::ProcessingInstruction(_)
+            | Value::Comment(_) => ValueCategory::Normal,
+            Value::Attribute(_) => ValueCategory::Attribute,
+            Value::Namespace(_) => ValueCategory::Namespace,
+        }
+    }
+
+    pub(crate) fn is_normal(&self) -> bool {
+        matches!(
+            self,
+            Value::Root
+                | Value::Element(_)
+                | Value::Text(_)
+                | Value::ProcessingInstruction(_)
+                | Value::Comment(_)
+        )
     }
 }
 

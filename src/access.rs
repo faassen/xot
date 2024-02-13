@@ -3,7 +3,7 @@ use next_gen::prelude::*;
 
 use crate::error::Error;
 use crate::levelorder::{level_order_traverse, LevelOrder};
-use crate::xmlvalue::{Value, ValueType};
+use crate::xmlvalue::{Value, ValueCategory, ValueType};
 use crate::xotdata::{Node, Xot};
 
 /// Node edges.
@@ -93,7 +93,11 @@ impl Xot {
 
     /// Get parent node.
     ///
-    /// Returns [`None`] if this is the root node.
+    /// Returns [`None`] if this is the root node or if the node is unattached
+    /// to a document.
+    ///
+    /// Attribute and namespace nodes have a parent, even though they aren't
+    /// children of the element they are in.
     ///
     /// ```rust
     /// let mut xot = xot::Xot::new();
@@ -106,6 +110,13 @@ impl Xot {
     /// ```
     pub fn parent(&self, node: Node) -> Option<Node> {
         self.arena()[node.get()].parent().map(Node::new)
+    }
+
+    fn normal_children(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+        node.get()
+            .children(&self.arena)
+            .skip_while(|n| !self.arena[*n].get().is_normal())
+            .map(Node::new)
     }
 
     /// Get first child.
@@ -122,19 +133,29 @@ impl Xot {
     /// assert_eq!(xot.first_child(text), None);
     /// ```
     pub fn first_child(&self, node: Node) -> Option<Node> {
-        self.arena()[node.get()].first_child().map(Node::new)
+        self.normal_children(node).next()
     }
 
     /// Get last child.
     ///
     /// Returns [`None`] if there are no children.
     pub fn last_child(&self, node: Node) -> Option<Node> {
-        self.arena()[node.get()].last_child().map(Node::new)
+        let last_child = self.arena[node.get()].last_child()?;
+        if self.arena[last_child].get().is_normal() {
+            Some(Node::new(last_child))
+        } else {
+            None
+        }
     }
 
     /// Get next sibling.
     ///
     /// Returns [`None`] if there is no next sibling.
+    ///
+    /// For normal child nodes, gives the next child.
+    ///
+    /// For namespace and attribute nodes, gives the next namespace or
+    /// attribute in definition order.
     ///
     /// ```rust
     /// let mut xot = xot::Xot::new();
@@ -145,17 +166,32 @@ impl Xot {
     /// assert_eq!(xot.next_sibling(b), None);
     /// ```
     pub fn next_sibling(&self, node: Node) -> Option<Node> {
-        self.arena()[node.get()].next_sibling().map(Node::new)
+        let current_category = self.arena[node.get()].get().value_category();
+        let next_sibling = self.arena[node.get()].next_sibling()?;
+        let next_category = self.arena[next_sibling].get().value_category();
+        if current_category != next_category {
+            return None;
+        }
+        Some(Node::new(next_sibling))
     }
 
     /// Get previous sibling.
     ///
     /// Returns [`None`] if there is no previous sibling.
     pub fn previous_sibling(&self, node: Node) -> Option<Node> {
-        self.arena()[node.get()].previous_sibling().map(Node::new)
+        let current_category = self.arena[node.get()].get().value_category();
+        let previous_sibling = self.arena[node.get()].previous_sibling()?;
+        let previous_category = self.arena[previous_sibling].get().value_category();
+        if current_category != previous_category {
+            return None;
+        }
+        Some(Node::new(previous_sibling))
     }
 
     /// Iterator over ancestor nodes, including this one.
+    ///
+    /// Namespace and attribute node have ancestors, even though
+    /// they aren't the child of the element they are in.
     ///
     /// ```rust
     /// let mut xot = xot::Xot::new();
@@ -174,6 +210,9 @@ impl Xot {
 
     /// Iterator over the child nodes of this node.
     ///
+    /// Namespace and attribute nodes aren't consider child nodes even
+    /// if they have a parent element.
+    ///
     /// ```rust
     /// let mut xot = xot::Xot::new();
     /// let root = xot.parse("<p><a/><b/></p>").unwrap();
@@ -185,12 +224,13 @@ impl Xot {
     /// assert_eq!(children, vec![a, b]);
     /// ```
     pub fn children(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
-        node.get().children(self.arena()).map(Node::new)
+        self.normal_children(node)
     }
 
-    /// Get index of child
+    /// Get index of child.
     ///
-    /// Returns [`None`] if the node is not a child of this node.
+    /// Returns [`None`] if the node is not a child of this node, so
+    /// does not apply to namespace or attribute nodes.
     ///
     /// ```rust
     /// let mut xot = xot::Xot::new();
@@ -206,19 +246,29 @@ impl Xot {
         if self.parent(child) != Some(parent) {
             return None;
         }
-        parent
-            .get()
-            .children(self.arena())
-            .position(|n| n == child.get())
+        self.normal_children(parent).position(|n| n == child)
     }
 
     /// Iterator over the child nodes of this node, in reverse order.
     pub fn reverse_children(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
-        node.get().reverse_children(self.arena()).map(Node::new)
+        node.get()
+            .reverse_children(self.arena())
+            .take_while(|n| self.arena[*n].get().is_normal())
+            .map(Node::new)
+    }
+
+    fn normal_filter(&self) -> impl Fn(&indextree::NodeId) -> bool + '_ {
+        |node_id| self.arena[*node_id].get().is_normal()
+    }
+
+    fn category_filter(&self, category: ValueCategory) -> impl Fn(&indextree::NodeId) -> bool + '_ {
+        move |node_id| self.arena[*node_id].get().value_category() == category
     }
 
     /// Iterator over of the descendants of this node,
     /// including this one. In document order (pre-order depth-first).
+    ///
+    /// Namespace and attribute nodes aren't included as descendants.
     ///
     /// ```rust
     /// let mut xot = xot::Xot::new();
@@ -231,10 +281,16 @@ impl Xot {
     /// assert_eq!(descendants, vec![a, b, c]);
     /// ```
     pub fn descendants(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
-        node.get().descendants(self.arena()).map(Node::new)
+        node.get()
+            .descendants(self.arena())
+            .filter(self.normal_filter())
+            .map(Node::new)
     }
 
     /// Iterator over the following siblings of this node, including this one.
+    ///
+    /// In case of namespace or attribute nodes, includes the following sibling
+    /// namespace or attribute nodes.
     ///
     /// ```rust
     /// let mut xot = xot::Xot::new();
@@ -249,18 +305,28 @@ impl Xot {
     /// assert_eq!(siblings, vec![b, c]);
     /// ```
     pub fn following_siblings(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
-        node.get().following_siblings(self.arena()).map(Node::new)
+        let current_category = self.arena[node.get()].get().value_category();
+        node.get()
+            .following_siblings(self.arena())
+            .filter(self.category_filter(current_category))
+            .map(Node::new)
     }
 
     /// Iterator over the preceding siblings of this node.
     pub fn preceding_siblings(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
-        node.get().preceding_siblings(self.arena()).map(Node::new)
+        let current_category = self.arena[node.get()].get().value_category();
+        node.get()
+            .preceding_siblings(self.arena())
+            .filter(self.category_filter(current_category))
+            .map(Node::new)
     }
 
     /// Following nodes in document order
     ///
     /// These are nodes that come after this node in document order,
     /// without that node itself, its ancestors, or its descendants.
+    ///
+    /// Does not include namespace or attribute nodes.
     ///
     /// ```rust
     /// let mut xot = xot::Xot::new();
@@ -298,6 +364,8 @@ impl Xot {
     ///
     /// These are nodes that come before this node in document order,
     /// without that node itself, its ancestors, or its descendants.
+    ///
+    /// Does not include namespace or attribute nodes.
     ///
     /// ```rust
     /// let mut xot = xot::Xot::new();
@@ -350,6 +418,8 @@ impl Xot {
     /// For value types other than element or root, the start and end always
     /// come as pairs without any intervening edges.
     ///
+    /// This includes edges for namespace and attribute nodes.
+    ///
     /// ```rust
     /// let mut xot = xot::Xot::new();
     /// let root = xot.parse("<a><b>Text</b></a>").unwrap();
@@ -398,6 +468,8 @@ impl Xot {
     /// generated for `<d/>`, followed by a [`LevelOrder::End`]. Finally a
     /// [`LevelOrder::Node`] is generated for `<e/>`, followed by a
     /// [`LevelOrder::End`].
+    ///
+    /// This does not include namespace or attribute nodes.
     ///
     /// ```rust
     /// let mut xot = xot::Xot::new();

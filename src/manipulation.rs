@@ -652,7 +652,7 @@ impl Xot {
             }
             ValueType::Attribute | ValueType::Namespace => {
                 return Err(Error::InvalidOperation(
-                    "Cannot move attribute or namespace as child".into(),
+                    "Cannot move attribute or namespace under element as normal child".into(),
                 ));
             }
         }

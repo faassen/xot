@@ -105,10 +105,10 @@ fn gen_edge_start<'a>(xot: &'a Xot, top_node: Node, node: Node, extra_prefixes: 
             yield_!(Output::ProcessingInstruction(pi.target(), pi.data()));
         }
         Value::Attribute(_attribute) => {
-            todo!()
+            // TODO: skip for now
         }
         Value::Namespace(_namespace) => {
-            todo!()
+            // TODO: skip for now
         }
     }
 }
