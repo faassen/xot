@@ -7,7 +7,9 @@ where
     K: PartialEq + Eq + Clone,
     V: Clone,
 {
+    /// Occupied entry.
     Occupied(OccupiedEntry<'a, K, V, A>),
+    /// Vacant entry.
     Vacant(VacantEntry<'a, K, V, A>),
 }
 

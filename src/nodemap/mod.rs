@@ -3,6 +3,6 @@ mod core;
 mod entry;
 mod namespace;
 
-pub use attribute::{AttributeAdapter, Attributes};
+pub use attribute::Attributes;
 pub use entry::Entry;
-pub use namespace::{NamespaceAdapter, Namespaces};
+pub use namespace::Namespaces;

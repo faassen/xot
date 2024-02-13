@@ -70,4 +70,10 @@ impl ValueAdapter<NameId, String> for AttributeAdapter {
     }
 }
 
+/// Attributes of an element.
+///
+/// Behaves like a HashMap, but stores the data in the tree, so that namespace
+/// nodes have a parent and can exist unattached.
+///
+/// Access is linear time. Insertion order is preserved.
 pub type Attributes<'a> = NodeMap<'a, NameId, String, AttributeAdapter>;

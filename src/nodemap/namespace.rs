@@ -63,4 +63,10 @@ impl ValueAdapter<PrefixId, NamespaceId> for NamespaceAdapter {
     }
 }
 
+/// A map of namespace prefixes to namespace ids.
+///
+/// Behaves like a HashMap, but stores the data in the tree, so that namespace
+/// nodes have a parent and can exist unattached.
+///
+/// Access is linear time. Insertion order is preserved.
 pub type Namespaces<'a> = NodeMap<'a, PrefixId, NamespaceId, NamespaceAdapter>;

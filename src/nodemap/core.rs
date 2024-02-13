@@ -2,10 +2,7 @@
 
 use std::borrow::Borrow;
 
-use crate::{
-    xmlvalue::{Attribute, Namespace, ValueCategory},
-    NameId, NamespaceId, Node, PrefixId, Value, Xot,
-};
+use crate::{xmlvalue::ValueCategory, Node, Value, Xot};
 
 use super::entry::{Entry, OccupiedEntry, VacantEntry};
 
@@ -185,7 +182,7 @@ where
 
     /// An iterator visiting all key-value pairs in insertion order. The iterator element type is
     /// `(&'a K, &'a V)`.
-    fn iter(&self) -> impl Iterator<Item = (&K, &V)> + '_ {
+    pub fn iter(&self) -> impl Iterator<Item = (&K, &V)> + '_ {
         self.children().map(move |child| {
             let value = self.xot.value(child);
             (A::key(value), A::value(value))
@@ -193,18 +190,18 @@ where
     }
 
     /// Copies the map entries into a new `Vec<(K, V)>`.
-    fn to_vec(&self) -> Vec<(K, V)> {
+    pub fn to_vec(&self) -> Vec<(K, V)> {
         self.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
     }
 
     /// An iterator visiting all keys in insertion order. The iterator element type is `&'a K`.
-    fn keys(&self) -> impl Iterator<Item = &K> + '_ {
+    pub fn keys(&self) -> impl Iterator<Item = &K> + '_ {
         self.children()
             .map(move |child| A::key(self.xot.value(child)))
     }
 
     /// An iterator visiting all values in insertion order. The iterator element type is `&'a V`.
-    fn values(&self) -> impl Iterator<Item = &V> + '_ {
+    pub fn values(&self) -> impl Iterator<Item = &V> + '_ {
         self.children()
             .map(move |child| A::value(self.xot.value(child)))
     }
