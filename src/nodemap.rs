@@ -8,7 +8,7 @@ use crate::{
 };
 
 pub trait ValueAdapter<K, V> {
-    fn children(xot: &Xot, parent: Node) -> Box<dyn Iterator<Item = Node> + '_>;
+    fn children(xot: &Xot, parent: Node) -> impl Iterator<Item = Node> + '_;
     // new node insertion point is either node whether it should be inserted after,
     // or if None, prepend in the beginning
     fn insertion_point(xot: &Xot, parent: Node) -> Option<Node>;
@@ -45,7 +45,7 @@ where
         }
     }
 
-    fn children(&self) -> Box<dyn Iterator<Item = Node> + '_> {
+    fn children(&self) -> impl Iterator<Item = Node> + '_ {
         A::children(self.xot, self.parent)
     }
 
@@ -64,7 +64,7 @@ where
         let to_remove = self.children().collect::<Vec<_>>();
 
         for child in to_remove {
-            self.xot.remove(child);
+            self.xot.remove(child).unwrap();
         }
     }
 
@@ -147,6 +147,23 @@ where
             None
         }
     }
+
+    fn iter(&self) -> impl Iterator<Item = (&K, &V)> + '_ {
+        self.children().map(move |child| {
+            let value = self.xot.value(child);
+            (A::key(value), A::value(value))
+        })
+    }
+
+    fn keys(&self) -> impl Iterator<Item = &K> + '_ {
+        self.children()
+            .map(move |child| A::key(self.xot.value(child)))
+    }
+
+    fn values(&self) -> impl Iterator<Item = &V> + '_ {
+        self.children()
+            .map(move |child| A::value(self.xot.value(child)))
+    }
 }
 
 struct AttributeAdapter {}
@@ -156,12 +173,10 @@ fn category_predicate(xot: &Xot, category: ValueCategory) -> impl Fn(&Node) -> b
 }
 
 impl ValueAdapter<NameId, String> for AttributeAdapter {
-    fn children(xot: &Xot, node: Node) -> Box<dyn Iterator<Item = Node> + '_> {
-        Box::new(
-            xot.all_children(node)
-                .skip_while(category_predicate(xot, ValueCategory::Namespace))
-                .take_while(category_predicate(xot, ValueCategory::Attribute)),
-        )
+    fn children(xot: &Xot, node: Node) -> impl Iterator<Item = Node> + '_ {
+        xot.all_children(node)
+            .skip_while(category_predicate(xot, ValueCategory::Namespace))
+            .take_while(category_predicate(xot, ValueCategory::Attribute))
     }
 
     fn insertion_point(xot: &Xot, node: Node) -> Option<Node> {
@@ -225,11 +240,9 @@ impl ValueAdapter<NameId, String> for AttributeAdapter {
 struct NamespaceAdapter {}
 
 impl ValueAdapter<PrefixId, NamespaceId> for NamespaceAdapter {
-    fn children(xot: &Xot, node: Node) -> Box<dyn Iterator<Item = Node> + '_> {
-        Box::new(
-            xot.all_children(node)
-                .take_while(category_predicate(xot, ValueCategory::Namespace)),
-        )
+    fn children(xot: &Xot, node: Node) -> impl Iterator<Item = Node> + '_ {
+        xot.all_children(node)
+            .take_while(category_predicate(xot, ValueCategory::Namespace))
     }
 
     fn insertion_point(xot: &Xot, node: Node) -> Option<Node> {
