@@ -27,9 +27,8 @@ fn test_attribute_insert_order_is_serialization_order1() -> Result<(), Error> {
     let text = r#"<doc a="A" b="B"/>"#;
     let doc = xot.parse(text)?;
     let doc_el = xot.document_element(doc).unwrap();
-    let element = xot.element_mut(doc_el).unwrap();
-    element.set_attribute(c, "C");
-
+    let mut attributes = xot.attributes_mut(doc_el);
+    attributes.insert(c, "C".to_string());
     assert_eq!(xot.to_string(doc)?, r#"<doc a="A" b="B" c="C"/>"#);
     Ok(())
 }

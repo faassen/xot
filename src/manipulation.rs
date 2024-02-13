@@ -405,13 +405,12 @@ impl Xot {
 
         let clone = self.clone(node);
         // add any prefixes from outer scope we may need
-        if let Some(element) = self.element_mut(clone) {
-            for (prefix, ns) in prefixes {
-                if element.prefixes().contains_key(&prefix) {
-                    continue;
-                }
-                element.set_prefix(prefix, ns);
+        let mut namespaces = self.namespaces_mut(node);
+        for (prefix, ns) in prefixes {
+            if namespaces.contains_key(&prefix) {
+                continue;
             }
+            namespaces.insert(prefix, ns);
         }
         clone
     }

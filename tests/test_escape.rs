@@ -22,9 +22,8 @@ fn test_add_attribute_entities() {
     assert!(xot.name("a").is_none());
     let a = xot.add_name("a");
 
-    if let Value::Element(element) = xot.value_mut(el_id) {
-        element.set_attribute(a, "Created & set".to_string());
-    }
+    let mut attributes = xot.attributes_mut(el_id);
+    attributes.insert(a, "Created & set".to_string());
     assert_eq!(
         xot.to_string(doc).unwrap(),
         r#"<doc a="Created &amp; set"/>"#

@@ -1,4 +1,4 @@
-use super::core::{NodeMap, ValueAdapter};
+use super::core::{MutableNodeMap, ValueAdapter};
 
 /// Entry for an existing key-value pair or a vacant location to insert one.
 #[derive(Debug)]
@@ -79,7 +79,7 @@ where
     K: PartialEq + Eq + Clone,
     V: Clone,
 {
-    map: &'a mut NodeMap<'a, K, V, A>,
+    map: &'a mut MutableNodeMap<'a, K, V, A>,
     key: K,
 }
 
@@ -89,7 +89,7 @@ where
     V: Clone,
     A: ValueAdapter<K, V>,
 {
-    pub(crate) fn new(map: &'a mut NodeMap<'a, K, V, A>, key: K) -> Self {
+    pub(crate) fn new(map: &'a mut MutableNodeMap<'a, K, V, A>, key: K) -> Self {
         Self { map, key }
     }
 
@@ -132,7 +132,7 @@ where
     K: PartialEq + Eq + Clone,
     V: Clone,
 {
-    map: &'a mut NodeMap<'a, K, V, A>,
+    map: &'a mut MutableNodeMap<'a, K, V, A>,
     key: K,
 }
 
@@ -142,7 +142,7 @@ where
     V: Clone,
     A: ValueAdapter<K, V>,
 {
-    pub(crate) fn new(map: &'a mut NodeMap<'a, K, V, A>, key: K) -> Self {
+    pub(crate) fn new(map: &'a mut MutableNodeMap<'a, K, V, A>, key: K) -> Self {
         Self { map, key }
     }
 

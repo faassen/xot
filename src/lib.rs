@@ -76,12 +76,10 @@ pub use error::Error;
 pub use levelorder::LevelOrder;
 pub use name::NameId;
 pub use namespace::NamespaceId;
-pub use nodemap::{Attributes as NewAttributes, Entry, Namespaces};
+pub use nodemap::{Attributes, Entry, MutableAttributes, MutableNamespaces, Namespaces};
 pub use parse::{Span, SpanInfo, SpanInfoKey};
 pub use prefix::PrefixId;
 pub use serialize::{PrettyOutputToken, SerializeOptions, WithSerializeOptions};
 pub use serializer::{Output, OutputToken};
-pub use xmlvalue::{
-    Attributes, Comment, Element, Prefixes, ProcessingInstruction, Text, Value, ValueType,
-};
+pub use xmlvalue::{Comment, Element, Prefixes, ProcessingInstruction, Text, Value, ValueType};
 pub use xotdata::{Node, Xot};

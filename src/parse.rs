@@ -8,8 +8,7 @@ use crate::error::Error;
 use crate::name::{Name, NameId};
 use crate::prefix::PrefixId;
 use crate::xmlvalue::{
-    Attribute, Attributes, Comment, Element, Namespace, Prefixes, ProcessingInstruction, Text,
-    Value,
+    Attribute, Comment, Element, Namespace, Prefixes, ProcessingInstruction, Text, Value,
 };
 use crate::xotdata::{Node, Xot};
 
@@ -40,49 +39,42 @@ impl ElementBuilder {
         }
     }
 
-    fn build_attributes(
-        &mut self,
-        document_builder: &mut DocumentBuilder,
-        xot: &mut Xot,
-    ) -> Result<(Attributes, AttributeSpans), Error> {
-        let mut attributes = Attributes::new();
-        let mut attribute_spans = Vec::new();
-        for attribute_builder in self.attributes.drain(..) {
-            let name_id = document_builder.name_id_builder.attribute_name_id(
-                &attribute_builder.prefix,
-                &attribute_builder.name,
-                xot,
-            )?;
-            attributes.insert(name_id, attribute_builder.value);
-            attribute_spans.push((
-                name_id,
-                attribute_builder.name_span,
-                attribute_builder.value_span,
-            ));
-        }
-        Ok((attributes, attribute_spans))
-    }
+    // fn build_attributes(
+    //     &mut self,
+    //     document_builder: &mut DocumentBuilder,
+    //     xot: &mut Xot,
+    // ) -> Result<(Attributes, AttributeSpans), Error> {
+    //     let mut attributes = Attributes::new();
+    //     let mut attribute_spans = Vec::new();
+    //     for attribute_builder in self.attributes.drain(..) {
+    //         let name_id = document_builder.name_id_builder.attribute_name_id(
+    //             &attribute_builder.prefix,
+    //             &attribute_builder.name,
+    //             xot,
+    //         )?;
+    //         attributes.insert(name_id, attribute_builder.value);
+    //         attribute_spans.push((
+    //             name_id,
+    //             attribute_builder.name_span,
+    //             attribute_builder.value_span,
+    //         ));
+    //     }
+    //     Ok((attributes, attribute_spans))
+    // }
 
-    fn into_element(
-        mut self,
-        document_builder: &mut DocumentBuilder,
-        xot: &mut Xot,
-    ) -> Result<(Element, AttributeSpans), Error> {
-        document_builder.name_id_builder.push(&self.prefixes);
-        let (attributes, attribute_spans) = self.build_attributes(document_builder, xot)?;
-        let name_id =
-            document_builder
-                .name_id_builder
-                .element_name_id(&self.prefix, &self.name, xot)?;
-        Ok((
-            Element {
-                name_id,
-                prefixes: self.prefixes,
-                attributes,
-            },
-            attribute_spans,
-        ))
-    }
+    // fn into_element(
+    //     mut self,
+    //     document_builder: &mut DocumentBuilder,
+    //     xot: &mut Xot,
+    // ) -> Result<(Element, AttributeSpans), Error> {
+    //     document_builder.name_id_builder.push(&self.prefixes);
+    //     let (attributes, attribute_spans) = self.build_attributes(document_builder, xot)?;
+    //     let name_id =
+    //         document_builder
+    //             .name_id_builder
+    //             .element_name_id(&self.prefix, &self.name, xot)?;
+    //     Ok((Element { name_id }, attribute_spans))
+    // }
 }
 
 struct DocumentBuilder {
@@ -158,15 +150,20 @@ impl DocumentBuilder {
     fn open_element(&mut self, xot: &mut Xot) -> Result<(NodeId, Span, AttributeSpans), Error> {
         let element_builder = self.element_builder.take().unwrap();
         let span = element_builder.span;
-        let (element, attribute_spans) = element_builder.into_element(self, xot)?;
 
-        // TODO: get rid of clone of element
-        let element_value = Value::Element(element.clone());
+        self.name_id_builder.push(&element_builder.prefixes);
+
+        let name_id = self.name_id_builder.element_name_id(
+            &element_builder.prefix,
+            &element_builder.name,
+            xot,
+        )?;
+        let element_value = Value::Element(Element { name_id });
         let node_id = self.add(element_value, xot);
         self.current_node_id = node_id;
 
         // add namespace nodes
-        for (prefix_id, namespace_id) in &element.prefixes {
+        for (prefix_id, namespace_id) in &element_builder.prefixes {
             let namespace_node = xot.arena.new_node(Value::Namespace(Namespace {
                 prefix_id: *prefix_id,
                 namespace_id: *namespace_id,
@@ -174,10 +171,22 @@ impl DocumentBuilder {
             self.current_node_id.append(namespace_node, &mut xot.arena);
         }
         // add attribute nodes
-        for (name_id, value) in element.attributes {
-            let attribute_node = xot
-                .arena
-                .new_node(Value::Attribute(Attribute { name_id, value }));
+        let mut attribute_spans = Vec::new();
+        for attribute_builder in element_builder.attributes {
+            let name_id = self.name_id_builder.attribute_name_id(
+                &attribute_builder.prefix,
+                &attribute_builder.name,
+                xot,
+            )?;
+            let attribute_node = xot.arena.new_node(Value::Attribute(Attribute {
+                name_id,
+                value: attribute_builder.value,
+            }));
+            attribute_spans.push((
+                name_id,
+                attribute_builder.name_span,
+                attribute_builder.value_span,
+            ));
             self.current_node_id.append(attribute_node, &mut xot.arena);
         }
 
@@ -197,7 +206,7 @@ impl DocumentBuilder {
     fn close_element_immediate(&mut self, xot: &mut Xot) -> NodeId {
         let current_node = xot.arena.get(self.current_node_id).unwrap();
         if let Value::Element(element) = current_node.get() {
-            self.name_id_builder.pop(&element.prefixes);
+            self.name_id_builder.pop();
         }
         let closed_node_id = self.current_node_id;
         self.current_node_id = current_node.parent().expect("Cannot close root node");
@@ -211,7 +220,7 @@ impl DocumentBuilder {
             if element.name_id != name_id {
                 return Err(Error::InvalidCloseTag(prefix.to_string(), name.to_string()));
             }
-            self.name_id_builder.pop(&element.prefixes);
+            self.name_id_builder.pop();
         }
         let closed_node_id = self.current_node_id;
         self.current_node_id = current_node.parent().expect("Cannot close root node");
@@ -257,19 +266,13 @@ impl NameIdBuilder {
     }
 
     fn push(&mut self, prefixes: &Prefixes) {
-        if prefixes.is_empty() {
-            return;
-        }
         // can always use top as there's a bottom entry
         let mut entry = self.top().clone();
         entry.extend(prefixes);
         self.namespace_stack.push(entry);
     }
 
-    fn pop(&mut self, prefixes: &Prefixes) {
-        if prefixes.is_empty() {
-            return;
-        }
+    fn pop(&mut self) {
         // should always be able to pop as there's a bottom entry
         self.namespace_stack.pop();
     }

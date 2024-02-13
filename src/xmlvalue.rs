@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use vecmap::VecMap;
+use ahash::AHashMap;
 
 use crate::error::Error;
 use crate::name::NameId;
@@ -103,52 +103,23 @@ impl Value {
     }
 }
 
-/// A map of NameId to String for attributes
-pub type Attributes = VecMap<NameId, String>;
-/// A map of PrefixId to NamespaceId for namespace declarations.
-pub type Prefixes = VecMap<PrefixId, NamespaceId>;
+/// A map of PrefixId to NamespaceId for namespace tracking.
+pub type Prefixes = AHashMap<PrefixId, NamespaceId>;
 
-/// XML element value.
+/// XML element name.
 ///
-/// Example: `<foo/>` or `<foo bar="baz"/>`.
-#[derive(Debug, Clone)]
+/// Does not include namespace or attribute information;
+/// this is kept in the tree.
+///
+/// Example: `<foo/>`.
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct Element {
     pub(crate) name_id: NameId,
-    pub(crate) prefixes: Prefixes,
-    pub(crate) attributes: Attributes,
-}
-
-impl PartialEq for Element {
-    fn eq(&self, other: &Self) -> bool {
-        self.name_id == other.name_id
-            && self.prefixes == other.prefixes
-            && self.attributes == other.attributes
-    }
-}
-
-impl Eq for Element {}
-
-use std::hash::Hash;
-
-impl Hash for Element {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.name_id.hash(state);
-        let mut prefixes = self.prefixes.iter().collect::<Vec<_>>();
-        prefixes.sort();
-        prefixes.hash(state);
-        let mut attributes = self.attributes.iter().collect::<Vec<_>>();
-        attributes.sort();
-        attributes.hash(state);
-    }
 }
 
 impl Element {
     pub(crate) fn new(name_id: NameId) -> Self {
-        Element {
-            name_id,
-            prefixes: Prefixes::new(),
-            attributes: Attributes::new(),
-        }
+        Self { name_id }
     }
 
     /// The name of the element.
@@ -170,219 +141,80 @@ impl Element {
         self.name_id
     }
 
-    /// The attributes of the element.
-    ///
-    /// ```rust
-    /// use xot::{Xot, Attributes};
-    ///
-    /// let mut xot = Xot::new();
-    /// let name_a = xot.add_name("a");
-    /// let name_b = xot.add_name("b");
-    ///
-    /// let root = xot.parse(r#"<doc a="A" b="B" />"#)?;
-    /// let doc_el = xot.document_element(root).unwrap();
-    /// let element = xot.element(doc_el).unwrap();
-    ///
-    /// let mut expected = Attributes::new();
-    /// expected.insert(name_a, "A".to_string());
-    /// expected.insert(name_b, "B".to_string());
-    ///
-    /// assert_eq!(element.attributes(), &expected);
-    /// # Ok::<(), xot::Error>(())
-    /// ```
-    pub fn attributes(&self) -> &Attributes {
-        &self.attributes
-    }
+    // /// Compare with other element for semantic equality.
+    // ///
+    // /// This ignores element prefixes.
+    // pub fn compare(&self, other: &Element) -> bool {
+    //     self.advanced_compare(other, |a, b| a == b)
+    // }
 
-    /// Get an attribute by name.
-    ///
-    /// ```rust
-    /// use xot::Xot;
-    ///
-    /// let mut xot = Xot::new();
-    /// let name_a = xot.add_name("a");
-    ///
-    /// let root = xot.parse(r#"<doc a="A" />"#)?;
-    /// let doc_el = xot.document_element(root).unwrap();
-    /// let element = xot.element(doc_el).unwrap();
-    ///
-    /// assert_eq!(element.get_attribute(name_a), Some("A"));
-    /// # Ok::<(), xot::Error>(())
-    /// ```
-    pub fn get_attribute(&self, name_id: NameId) -> Option<&str> {
-        self.attributes.get(&name_id).map(|s| s.as_str())
-    }
+    // /// Compare with other element for semantic equality.
+    // ///
+    // /// You configure this with a function that compares attribute text.
+    // ///
+    // /// This ignores element prefixes.
+    // pub fn advanced_compare<C>(&self, other: &Element, text_compare: C) -> bool
+    // where
+    //     C: Fn(&str, &str) -> bool,
+    // {
+    //     if self.name() != other.name() {
+    //         return false;
+    //     }
+    //     let self_attributes = self.attributes();
+    //     let other_attributes = other.attributes();
+    //     if self_attributes.len() != other_attributes.len() {
+    //         return false;
+    //     }
+    //     // if we can't find a value for a key in a in b, then we
+    //     // know they aren't the same, given we already compared the length
+    //     for (key, value_a) in self_attributes {
+    //         let value_b = other_attributes.get(key);
+    //         if let Some(value_b) = value_b {
+    //             if !text_compare(value_a, value_b) {
+    //                 return false;
+    //             }
+    //         } else {
+    //             return false;
+    //         }
+    //     }
+    //     true
+    // }
 
-    /// Set an attribute value.
-    ///
-    /// ```rust
-    /// use xot::Xot;
-    ///
-    /// let mut xot = Xot::new();
-    /// let name_a = xot.add_name("a");
-    ///
-    /// let root = xot.parse(r#"<doc/>"#)?;
-    /// let doc_el = xot.document_element(root).unwrap();
-    /// let element = xot.element_mut(doc_el).unwrap();
-    ///
-    /// element.set_attribute(name_a, "A");
-    ///
-    /// assert_eq!(element.get_attribute(name_a), Some("A"));
-    /// # Ok::<(), xot::Error>(())
-    /// ```
-    pub fn set_attribute<S: Into<String>>(&mut self, name_id: NameId, value: S) {
-        self.attributes.insert(name_id, value.into());
-    }
+    // /// Compare with other element for semantic equality, ignoring particular
+    // /// attributes in the comparison.
+    // ///
+    // /// This ignores element prefixes.
+    // pub fn compare_ignore_attributes(&self, other: &Element, ignore_attributes: &[NameId]) -> bool {
+    //     if self.name() != other.name() {
+    //         return false;
+    //     }
+    //     // count the amount of attributes we compare
+    //     let mut compare_attributes_count = 0;
 
-    /// Remove an attribute.
-    ///
-    /// ```rust
-    /// use xot::Xot;
-    ///
-    /// let mut xot = Xot::new();
-    /// let name_a = xot.add_name("a");
-    ///
-    /// let root = xot.parse(r#"<doc a="A" />"#)?;
-    /// let doc_el = xot.document_element(root).unwrap();
-    /// let element = xot.element_mut(doc_el).unwrap();
-    ///
-    /// element.remove_attribute(name_a);
-    ///
-    /// assert_eq!(element.get_attribute(name_a), None);
-    /// # Ok::<(), xot::Error>(())
-    /// ```
-    pub fn remove_attribute(&mut self, name_id: NameId) {
-        self.attributes.remove(&name_id);
-    }
+    //     let self_attributes = self.attributes();
+    //     let other_attributes = other.attributes();
 
-    /// Add a prefix to namespace mapping.
-    ///
-    /// ```rust
-    /// use xot::Xot;
-    ///
-    /// let mut xot = Xot::new();
-    /// let prefix_x = xot.add_prefix("x");
-    /// let namespace_x = xot.add_namespace("http://example.com/x");
-    ///
-    /// let root = xot.parse(r#"<doc/>"#)?;
-    /// let doc_el = xot.document_element(root).unwrap();
-    /// let element = xot.element_mut(doc_el).unwrap();
-    ///
-    /// element.set_prefix(prefix_x, namespace_x);
-    ///
-    /// assert_eq!(element.prefixes().iter().collect::<Vec<_>>(), [(&prefix_x, &namespace_x)]);
-    /// # Ok::<(), xot::Error>(())
-    /// ```
-    pub fn set_prefix(&mut self, prefix_id: PrefixId, namespace_id: NamespaceId) {
-        self.prefixes.insert(prefix_id, namespace_id);
-    }
+    //     for (key, value_a) in self_attributes {
+    //         if ignore_attributes.contains(key) {
+    //             continue;
+    //         }
+    //         let value_b = other_attributes.get(key);
+    //         if Some(value_a) != value_b {
+    //             return false;
+    //         }
+    //         compare_attributes_count += 1;
+    //     }
 
-    /// Remove namespace prefix and associated namespace.
-    ///
-    /// This may result in documents with missing prefixes. This can be safely
-    /// serialized if you call [`Xot::create_missing_prefixes`](`crate::Xot::create_missing_prefixes`) before serialization.
-    pub fn remove_prefix(&mut self, prefix_id: PrefixId) {
-        self.prefixes.remove(&prefix_id);
-    }
-
-    /// Remove prefixs by namespace.
-    ///
-    /// This may result in documents with missing prefixes. This can be safely
-    /// serialized if you call [`Xot::create_missing_prefixes`](`crate::Xot::create_missing_prefixes`) before
-    /// serialization.
-    pub fn remove_namespace(&mut self, namespace_id: NamespaceId) {
-        self.prefixes.retain(|_, v| *v != namespace_id);
-    }
-
-    /// Get the namespace for a prefix, if defined on this element.
-    ///
-    /// This does not check for ancestor namespace definitions.
-    pub fn get_namespace(&self, prefix_id: PrefixId) -> Option<NamespaceId> {
-        self.prefixes.get(&prefix_id).copied()
-    }
-
-    /// Get a map of prefixes to namespaces.
-    ///
-    /// It only returns those prefixes that are defined
-    /// on this element.
-    pub fn prefixes(&self) -> &Prefixes {
-        &self.prefixes
-    }
-
-    /// Compare with other element for semantic equality.
-    ///
-    /// This ignores element prefixes.
-    pub fn compare(&self, other: &Element) -> bool {
-        self.advanced_compare(other, |a, b| a == b)
-    }
-
-    /// Compare with other element for semantic equality.
-    ///
-    /// You configure this with a function that compares attribute text.
-    ///
-    /// This ignores element prefixes.
-    pub fn advanced_compare<C>(&self, other: &Element, text_compare: C) -> bool
-    where
-        C: Fn(&str, &str) -> bool,
-    {
-        if self.name() != other.name() {
-            return false;
-        }
-        let self_attributes = self.attributes();
-        let other_attributes = other.attributes();
-        if self_attributes.len() != other_attributes.len() {
-            return false;
-        }
-        // if we can't find a value for a key in a in b, then we
-        // know they aren't the same, given we already compared the length
-        for (key, value_a) in self_attributes {
-            let value_b = other_attributes.get(key);
-            if let Some(value_b) = value_b {
-                if !text_compare(value_a, value_b) {
-                    return false;
-                }
-            } else {
-                return false;
-            }
-        }
-        true
-    }
-
-    /// Compare with other element for semantic equality, ignoring particular
-    /// attributes in the comparison.
-    ///
-    /// This ignores element prefixes.
-    pub fn compare_ignore_attributes(&self, other: &Element, ignore_attributes: &[NameId]) -> bool {
-        if self.name() != other.name() {
-            return false;
-        }
-        // count the amount of attributes we compare
-        let mut compare_attributes_count = 0;
-
-        let self_attributes = self.attributes();
-        let other_attributes = other.attributes();
-
-        for (key, value_a) in self_attributes {
-            if ignore_attributes.contains(key) {
-                continue;
-            }
-            let value_b = other_attributes.get(key);
-            if Some(value_a) != value_b {
-                return false;
-            }
-            compare_attributes_count += 1;
-        }
-
-        let mut other_ignore_attributes = 0;
-        for ignore_attribute in ignore_attributes {
-            if other_attributes.get(ignore_attribute).is_some() {
-                other_ignore_attributes += 1;
-            }
-        }
-        // we expect the amount of non-ignored attributes in self to
-        // be the same as the amount of non-ignored attributes in other
-        compare_attributes_count == other_attributes.len() - other_ignore_attributes
-    }
+    //     let mut other_ignore_attributes = 0;
+    //     for ignore_attribute in ignore_attributes {
+    //         if other_attributes.get(ignore_attribute).is_some() {
+    //             other_ignore_attributes += 1;
+    //         }
+    //     }
+    //     // we expect the amount of non-ignored attributes in self to
+    //     // be the same as the amount of non-ignored attributes in other
+    //     compare_attributes_count == other_attributes.len() - other_ignore_attributes
+    // }
 }
 
 /// XML text value.
@@ -537,21 +369,9 @@ mod tests {
         let a = xot.add_name("a");
         let b = xot.add_name("b");
 
-        let alpha = Element {
-            name_id: a,
-            prefixes: Prefixes::new(),
-            attributes: Attributes::new(),
-        };
-        let beta = Element {
-            name_id: a,
-            prefixes: Prefixes::new(),
-            attributes: Attributes::new(),
-        };
-        let gamma = Element {
-            name_id: b,
-            prefixes: Prefixes::new(),
-            attributes: Attributes::new(),
-        };
+        let alpha = Element { name_id: a };
+        let beta = Element { name_id: a };
+        let gamma = Element { name_id: b };
 
         let hash_builder = ahash::RandomState::with_seed(42);
         let alpha_hash = hash_builder.hash_one(alpha);
@@ -561,242 +381,161 @@ mod tests {
         assert_ne!(alpha_hash, gamma_hash);
     }
 
-    #[test]
-    fn test_element_hashable_attributes_different_value() {
-        let mut xot = Xot::new();
-        let a = xot.add_name("a");
-        let b = xot.add_name("b");
+    // #[test]
+    // fn test_element_compare_same() {
+    //     let mut xot = Xot::new();
+    //     let a = xot.add_name("a");
 
-        let mut alpha_attributes = Attributes::new();
-        alpha_attributes.insert(b, "foo".to_string());
+    //     let mut alpha = Element {
+    //         name_id: a,
+    //         prefixes: Prefixes::new(),
+    //         attributes: Attributes::new(),
+    //     };
+    //     let mut beta = Element {
+    //         name_id: a,
+    //         prefixes: Prefixes::new(),
+    //         attributes: Attributes::new(),
+    //     };
+    //     alpha.set_attribute(a, "foo");
+    //     beta.set_attribute(a, "foo");
 
-        let mut beta_attributes = Attributes::new();
-        beta_attributes.insert(b, "foo".to_string());
+    //     assert!(alpha.compare(&beta));
+    // }
 
-        let mut gamma_attributes = Attributes::new();
-        gamma_attributes.insert(b, "bar".to_string());
+    // #[test]
+    // fn test_element_compare_different_value() {
+    //     let mut xot = Xot::new();
+    //     let a = xot.add_name("a");
 
-        let alpha = Element {
-            name_id: a,
-            prefixes: Prefixes::new(),
-            attributes: alpha_attributes,
-        };
-        let beta = Element {
-            name_id: a,
-            prefixes: Prefixes::new(),
-            attributes: beta_attributes,
-        };
-        let gamma = Element {
-            name_id: a,
-            prefixes: Prefixes::new(),
-            attributes: gamma_attributes,
-        };
+    //     let mut alpha = Element {
+    //         name_id: a,
+    //         prefixes: Prefixes::new(),
+    //         attributes: Attributes::new(),
+    //     };
+    //     let mut beta = Element {
+    //         name_id: a,
+    //         prefixes: Prefixes::new(),
+    //         attributes: Attributes::new(),
+    //     };
+    //     alpha.set_attribute(a, "foo");
+    //     beta.set_attribute(a, "bar");
 
-        let hash_builder = ahash::RandomState::with_seed(42);
-        let alpha_hash = hash_builder.hash_one(alpha);
-        let beta_hash = hash_builder.hash_one(beta);
-        let gamma_hash = hash_builder.hash_one(gamma);
-        assert_eq!(alpha_hash, beta_hash);
-        assert_ne!(alpha_hash, gamma_hash);
-    }
+    //     assert!(!alpha.compare(&beta));
+    // }
 
-    #[test]
-    fn test_element_hashable_attributes_different_order() {
-        let mut xot = Xot::new();
-        let a = xot.add_name("a");
-        let b = xot.add_name("b");
-        let c = xot.add_name("c");
+    // #[test]
+    // fn test_element_compare_overlap() {
+    //     let mut xot = Xot::new();
+    //     let a = xot.add_name("a");
+    //     let b = xot.add_name("b");
 
-        let mut alpha_attributes = Attributes::new();
-        alpha_attributes.insert(b, "foo".to_string());
-        alpha_attributes.insert(c, "bar".to_string());
+    //     let mut alpha = Element {
+    //         name_id: a,
+    //         prefixes: Prefixes::new(),
+    //         attributes: Attributes::new(),
+    //     };
+    //     let mut beta = Element {
+    //         name_id: a,
+    //         prefixes: Prefixes::new(),
+    //         attributes: Attributes::new(),
+    //     };
+    //     alpha.set_attribute(a, "foo");
+    //     beta.set_attribute(a, "foo");
+    //     beta.set_attribute(b, "bar");
 
-        let mut beta_attributes = Attributes::new();
-        beta_attributes.insert(c, "bar".to_string());
-        beta_attributes.insert(b, "foo".to_string());
+    //     assert!(!alpha.compare(&beta));
+    // }
 
-        let mut gamma_attributes = Attributes::new();
-        gamma_attributes.insert(c, "bar".to_string());
+    // #[test]
+    // fn test_element_compare_ignore_attributes_same_ignorable_in_self() {
+    //     let mut xot = Xot::new();
+    //     let a = xot.add_name("a");
+    //     let b = xot.add_name("b");
 
-        let alpha = Element {
-            name_id: a,
-            prefixes: Prefixes::new(),
-            attributes: alpha_attributes,
-        };
-        let beta = Element {
-            name_id: a,
-            prefixes: Prefixes::new(),
-            attributes: beta_attributes,
-        };
-        let gamma = Element {
-            name_id: a,
-            prefixes: Prefixes::new(),
-            attributes: gamma_attributes,
-        };
+    //     let mut alpha = Element {
+    //         name_id: a,
+    //         prefixes: Prefixes::new(),
+    //         attributes: Attributes::new(),
+    //     };
+    //     let mut beta = Element {
+    //         name_id: a,
+    //         prefixes: Prefixes::new(),
+    //         attributes: Attributes::new(),
+    //     };
+    //     alpha.set_attribute(a, "foo");
+    //     beta.set_attribute(a, "foo");
+    //     alpha.set_attribute(b, "bar");
+    //     assert!(alpha.compare_ignore_attributes(&beta, &[b]));
+    //     assert!(!alpha.compare_ignore_attributes(&beta, &[]));
+    // }
 
-        let hash_builder = ahash::RandomState::with_seed(42);
-        let alpha_hash = hash_builder.hash_one(alpha);
-        let beta_hash = hash_builder.hash_one(beta);
-        let gamma_hash = hash_builder.hash_one(gamma);
-        assert_eq!(alpha_hash, beta_hash);
-        assert_ne!(alpha_hash, gamma_hash);
-    }
+    // #[test]
+    // fn test_element_compare_ignore_attributes_same_ignorable_in_other() {
+    //     let mut xot = Xot::new();
+    //     let a = xot.add_name("a");
+    //     let b = xot.add_name("b");
 
-    #[test]
-    fn test_element_compare_same() {
-        let mut xot = Xot::new();
-        let a = xot.add_name("a");
+    //     let mut alpha = Element {
+    //         name_id: a,
+    //         prefixes: Prefixes::new(),
+    //         attributes: Attributes::new(),
+    //     };
+    //     let mut beta = Element {
+    //         name_id: a,
+    //         prefixes: Prefixes::new(),
+    //         attributes: Attributes::new(),
+    //     };
+    //     alpha.set_attribute(a, "foo");
+    //     beta.set_attribute(a, "foo");
+    //     beta.set_attribute(b, "bar");
+    //     assert!(alpha.compare_ignore_attributes(&beta, &[b]));
+    //     assert!(!alpha.compare_ignore_attributes(&beta, &[]));
+    // }
 
-        let mut alpha = Element {
-            name_id: a,
-            prefixes: Prefixes::new(),
-            attributes: Attributes::new(),
-        };
-        let mut beta = Element {
-            name_id: a,
-            prefixes: Prefixes::new(),
-            attributes: Attributes::new(),
-        };
-        alpha.set_attribute(a, "foo");
-        beta.set_attribute(a, "foo");
+    // #[test]
+    // fn test_element_compare_ignore_attributes_different_value() {
+    //     let mut xot = Xot::new();
+    //     let a = xot.add_name("a");
+    //     let b = xot.add_name("b");
 
-        assert!(alpha.compare(&beta));
-    }
+    //     let mut alpha = Element {
+    //         name_id: a,
+    //         prefixes: Prefixes::new(),
+    //         attributes: Attributes::new(),
+    //     };
+    //     let mut beta = Element {
+    //         name_id: a,
+    //         prefixes: Prefixes::new(),
+    //         attributes: Attributes::new(),
+    //     };
+    //     alpha.set_attribute(a, "foo");
+    //     beta.set_attribute(a, "qux");
+    //     beta.set_attribute(b, "bar");
+    //     assert!(!alpha.compare_ignore_attributes(&beta, &[b]));
+    //     assert!(!alpha.compare_ignore_attributes(&beta, &[]));
+    // }
 
-    #[test]
-    fn test_element_compare_different_value() {
-        let mut xot = Xot::new();
-        let a = xot.add_name("a");
+    // #[test]
+    // fn test_element_compare_ignore_attributes_ignorable_in_both() {
+    //     let mut xot = Xot::new();
+    //     let a = xot.add_name("a");
+    //     let b = xot.add_name("b");
 
-        let mut alpha = Element {
-            name_id: a,
-            prefixes: Prefixes::new(),
-            attributes: Attributes::new(),
-        };
-        let mut beta = Element {
-            name_id: a,
-            prefixes: Prefixes::new(),
-            attributes: Attributes::new(),
-        };
-        alpha.set_attribute(a, "foo");
-        beta.set_attribute(a, "bar");
-
-        assert!(!alpha.compare(&beta));
-    }
-
-    #[test]
-    fn test_element_compare_overlap() {
-        let mut xot = Xot::new();
-        let a = xot.add_name("a");
-        let b = xot.add_name("b");
-
-        let mut alpha = Element {
-            name_id: a,
-            prefixes: Prefixes::new(),
-            attributes: Attributes::new(),
-        };
-        let mut beta = Element {
-            name_id: a,
-            prefixes: Prefixes::new(),
-            attributes: Attributes::new(),
-        };
-        alpha.set_attribute(a, "foo");
-        beta.set_attribute(a, "foo");
-        beta.set_attribute(b, "bar");
-
-        assert!(!alpha.compare(&beta));
-    }
-
-    #[test]
-    fn test_element_compare_ignore_attributes_same_ignorable_in_self() {
-        let mut xot = Xot::new();
-        let a = xot.add_name("a");
-        let b = xot.add_name("b");
-
-        let mut alpha = Element {
-            name_id: a,
-            prefixes: Prefixes::new(),
-            attributes: Attributes::new(),
-        };
-        let mut beta = Element {
-            name_id: a,
-            prefixes: Prefixes::new(),
-            attributes: Attributes::new(),
-        };
-        alpha.set_attribute(a, "foo");
-        beta.set_attribute(a, "foo");
-        alpha.set_attribute(b, "bar");
-        assert!(alpha.compare_ignore_attributes(&beta, &[b]));
-        assert!(!alpha.compare_ignore_attributes(&beta, &[]));
-    }
-
-    #[test]
-    fn test_element_compare_ignore_attributes_same_ignorable_in_other() {
-        let mut xot = Xot::new();
-        let a = xot.add_name("a");
-        let b = xot.add_name("b");
-
-        let mut alpha = Element {
-            name_id: a,
-            prefixes: Prefixes::new(),
-            attributes: Attributes::new(),
-        };
-        let mut beta = Element {
-            name_id: a,
-            prefixes: Prefixes::new(),
-            attributes: Attributes::new(),
-        };
-        alpha.set_attribute(a, "foo");
-        beta.set_attribute(a, "foo");
-        beta.set_attribute(b, "bar");
-        assert!(alpha.compare_ignore_attributes(&beta, &[b]));
-        assert!(!alpha.compare_ignore_attributes(&beta, &[]));
-    }
-
-    #[test]
-    fn test_element_compare_ignore_attributes_different_value() {
-        let mut xot = Xot::new();
-        let a = xot.add_name("a");
-        let b = xot.add_name("b");
-
-        let mut alpha = Element {
-            name_id: a,
-            prefixes: Prefixes::new(),
-            attributes: Attributes::new(),
-        };
-        let mut beta = Element {
-            name_id: a,
-            prefixes: Prefixes::new(),
-            attributes: Attributes::new(),
-        };
-        alpha.set_attribute(a, "foo");
-        beta.set_attribute(a, "qux");
-        beta.set_attribute(b, "bar");
-        assert!(!alpha.compare_ignore_attributes(&beta, &[b]));
-        assert!(!alpha.compare_ignore_attributes(&beta, &[]));
-    }
-
-    #[test]
-    fn test_element_compare_ignore_attributes_ignorable_in_both() {
-        let mut xot = Xot::new();
-        let a = xot.add_name("a");
-        let b = xot.add_name("b");
-
-        let mut alpha = Element {
-            name_id: a,
-            prefixes: Prefixes::new(),
-            attributes: Attributes::new(),
-        };
-        let mut beta = Element {
-            name_id: a,
-            prefixes: Prefixes::new(),
-            attributes: Attributes::new(),
-        };
-        alpha.set_attribute(a, "foo");
-        alpha.set_attribute(b, "qux");
-        beta.set_attribute(a, "foo");
-        beta.set_attribute(b, "bar");
-        assert!(alpha.compare_ignore_attributes(&beta, &[b]));
-        assert!(!alpha.compare_ignore_attributes(&beta, &[]));
-    }
+    //     let mut alpha = Element {
+    //         name_id: a,
+    //         prefixes: Prefixes::new(),
+    //         attributes: Attributes::new(),
+    //     };
+    //     let mut beta = Element {
+    //         name_id: a,
+    //         prefixes: Prefixes::new(),
+    //         attributes: Attributes::new(),
+    //     };
+    //     alpha.set_attribute(a, "foo");
+    //     alpha.set_attribute(b, "qux");
+    //     beta.set_attribute(a, "foo");
+    //     beta.set_attribute(b, "bar");
+    //     assert!(alpha.compare_ignore_attributes(&beta, &[b]));
+    //     assert!(!alpha.compare_ignore_attributes(&beta, &[]));
+    // }
 }

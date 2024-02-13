@@ -1,7 +1,7 @@
 use crate::xmlvalue::{Namespace, Value, ValueCategory};
-use crate::{NamespaceId, Node, PrefixId, Xot};
+use crate::{NamespaceId, Node, PrefixId, Prefixes, Xot};
 
-use super::core::{category_predicate, NodeMap, ValueAdapter};
+use super::core::{category_predicate, MutableNodeMap, NodeMap, ValueAdapter};
 
 pub struct NamespaceAdapter {}
 
@@ -70,3 +70,15 @@ impl ValueAdapter<PrefixId, NamespaceId> for NamespaceAdapter {
 ///
 /// Access is linear time. Insertion order is preserved.
 pub type Namespaces<'a> = NodeMap<'a, PrefixId, NamespaceId, NamespaceAdapter>;
+
+/// A mutable map of namespace prefixes to namespace ids.
+pub type MutableNamespaces<'a> = MutableNodeMap<'a, PrefixId, NamespaceId, NamespaceAdapter>;
+
+/// Copies it into a prefixes hash table.
+pub(crate) fn to_prefixes(namespaces: &Namespaces) -> Prefixes {
+    let mut prefixes = Prefixes::new();
+    for (prefix, ns) in namespaces.iter() {
+        prefixes.insert(*prefix, *ns);
+    }
+    prefixes
+}

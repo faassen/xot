@@ -3,6 +3,7 @@ mod core;
 mod entry;
 mod namespace;
 
-pub use attribute::Attributes;
+pub use attribute::{Attributes, MutableAttributes};
 pub use entry::Entry;
-pub use namespace::Namespaces;
+pub(crate) use namespace::to_prefixes;
+pub use namespace::{MutableNamespaces, Namespaces};

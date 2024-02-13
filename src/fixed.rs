@@ -149,13 +149,17 @@ impl Element {
             .collect::<Vec<_>>();
 
         let element_node = xot.new_element(name);
-        let element_value = xot.element_mut(element_node).unwrap();
+
+        let mut namespaces_map = xot.namespaces_mut(element_node);
 
         for (prefix, ns) in prefixes {
-            element_value.set_prefix(prefix, ns);
+            namespaces_map.insert(prefix, ns);
         }
+
+        let mut attributes_map = xot.attributes_mut(element_node);
+
         for (name, value) in attributes {
-            element_value.set_attribute(name, value);
+            attributes_map.insert(name, value.clone());
         }
 
         let children = self

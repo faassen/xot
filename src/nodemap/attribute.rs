@@ -1,7 +1,7 @@
 use crate::xmlvalue::{Attribute, Value, ValueCategory};
 use crate::{NameId, Node, Xot};
 
-use super::core::{category_predicate, NodeMap, ValueAdapter};
+use super::core::{category_predicate, MutableNodeMap, NodeMap, ValueAdapter};
 
 pub struct AttributeAdapter {}
 
@@ -77,3 +77,6 @@ impl ValueAdapter<NameId, String> for AttributeAdapter {
 ///
 /// Access is linear time. Insertion order is preserved.
 pub type Attributes<'a> = NodeMap<'a, NameId, String, AttributeAdapter>;
+
+/// Mutable attributes of an element.
+pub type MutableAttributes<'a> = MutableNodeMap<'a, NameId, String, AttributeAdapter>;

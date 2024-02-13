@@ -18,9 +18,9 @@ fn test_manipulate_attribute() {
     let el_id = xot.document_element(doc).unwrap();
     let a = xot.name("a").unwrap();
 
-    if let Value::Element(element) = xot.value_mut(el_id) {
-        element.set_attribute(a, "Changed".to_string());
-    }
+    let mut attributes = xot.attributes_mut(el_id);
+    attributes.insert(a, "Changed".to_string());
+
     assert_eq!(xot.to_string(doc).unwrap(), r#"<doc a="Changed"/>"#);
 }
 
@@ -32,9 +32,9 @@ fn test_add_attribute() {
     assert!(xot.name("a").is_none());
     let a = xot.add_name("a");
 
-    if let Value::Element(element) = xot.value_mut(el_id) {
-        element.set_attribute(a, "Created".to_string());
-    }
+    let mut attributes = xot.attributes_mut(el_id);
+    attributes.insert(a, "Created".to_string());
+
     assert_eq!(xot.to_string(doc).unwrap(), r#"<doc a="Created"/>"#);
 }
 
@@ -48,9 +48,9 @@ fn test_manipulate_attribute_ns() {
     let ns = xot.namespace("http://example.com").unwrap();
     let a = xot.name_ns("a", ns).unwrap();
 
-    if let Value::Element(element) = xot.value_mut(el_id) {
-        element.set_attribute(a, "Changed".to_string());
-    }
+    let mut attributes = xot.attributes_mut(el_id);
+    attributes.insert(a, "Changed".to_string());
+
     assert_eq!(
         xot.to_string(doc).unwrap(),
         r#"<doc xmlns:ns="http://example.com" ns:a="Changed"/>"#
@@ -68,9 +68,8 @@ fn test_add_attribute_ns() {
     assert!(xot.name_ns("a", ns).is_none());
     let a = xot.add_name_ns("a", ns);
 
-    if let Value::Element(element) = xot.value_mut(el_id) {
-        element.set_attribute(a, "Created".to_string());
-    }
+    let mut attributes = xot.attributes_mut(el_id);
+    attributes.insert(a, "Created".to_string());
     assert_eq!(
         xot.to_string(doc).unwrap(),
         r#"<doc xmlns:foo="http://example.com" foo:a="Created"/>"#

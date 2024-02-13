@@ -1,4 +1,3 @@
-use next_gen::prelude::*;
 use std::io::Write;
 
 use crate::error::Error;
@@ -40,7 +39,7 @@ pub struct WithSerializeOptions<'a> {
 impl<'a> WithSerializeOptions<'a> {
     /// Write node as XML.
     pub fn write(&self, node: Node, w: &mut impl Write) -> Result<(), Error> {
-        mk_gen!(let outputs = gen_outputs(self.xot, node));
+        let outputs = gen_outputs(self.xot, node);
         let mut serializer = XmlSerializer::new(self.xot, node);
         if self.options.pretty {
             serializer.serialize_pretty(w, outputs)
@@ -147,8 +146,7 @@ impl Xot {
     /// namespaces have been expanded, and you have access to Xot names using
     /// familiar Xot APIs.
     pub fn outputs(&self, node: Node) -> impl Iterator<Item = (Node, Output)> {
-        mk_gen!(let outputs = box gen_outputs(self, node));
-        outputs
+        gen_outputs(self, node)
     }
 
     /// Serialize node into outputs and tokens.
@@ -157,7 +155,7 @@ impl Xot {
     /// can use this to write custom renderers that serialize the XML in
     /// a different way, for instance with inline styling.
     pub fn tokens(&self, node: Node) -> impl Iterator<Item = (Node, Output, OutputToken)> + '_ {
-        mk_gen!(let outputs = box gen_outputs(self, node));
+        let outputs = gen_outputs(self, node);
         let mut serializer = XmlSerializer::new(self, node);
         outputs.map(move |(node, output)| {
             let rendered = serializer.render_output(node, &output).unwrap();
@@ -174,7 +172,7 @@ impl Xot {
         &self,
         node: Node,
     ) -> impl Iterator<Item = (Node, Output, PrettyOutputToken)> + '_ {
-        mk_gen!(let outputs = box gen_outputs(self, node));
+        let outputs = gen_outputs(self, node);
         let mut serializer = XmlSerializer::new(self, node);
         let mut pretty = Pretty::new(self);
         outputs.map(move |(node, output)| {

@@ -1,4 +1,6 @@
-use next_gen::prelude::*;
+use genawaiter::rc::gen;
+use genawaiter::yield_;
+
 use std::collections::VecDeque;
 
 use crate::xotdata::{Node, Xot};
@@ -16,25 +18,28 @@ pub enum LevelOrder {
 
 // traverse the tree in level order, meaning subsequent children are traversed first
 // when a sequence of children comes to an end, a LevelOrder::End is yielded
-#[generator(yield(LevelOrder))]
-pub(crate) fn level_order_traverse(xot: &Xot, node: Node) {
-    let mut queue = VecDeque::new();
-    queue.push_back(node);
-    // we make last node the current node; that's okay as it's
-    // popped right away and thus has the same parent as the current node
-    let mut last_node = node;
-    while let Some(node) = queue.pop_front() {
-        if xot.parent(last_node) != xot.parent(node) {
-            yield_!(LevelOrder::End);
-        }
-        yield_!(LevelOrder::Node(node));
+// #[generator(yield(LevelOrder))]
+pub(crate) fn level_order_traverse(xot: &Xot, node: Node) -> impl Iterator<Item = LevelOrder> + '_ {
+    gen!({
+        let mut queue = VecDeque::new();
+        queue.push_back(node);
+        // we make last node the current node; that's okay as it's
+        // popped right away and thus has the same parent as the current node
+        let mut last_node = node;
+        while let Some(node) = queue.pop_front() {
+            if xot.parent(last_node) != xot.parent(node) {
+                yield_!(LevelOrder::End);
+            }
+            yield_!(LevelOrder::Node(node));
 
-        last_node = node;
-        for child in xot.children(node) {
-            queue.push_back(child);
+            last_node = node;
+            for child in xot.children(node) {
+                queue.push_back(child);
+            }
         }
-    }
-    yield_!(LevelOrder::End);
+        yield_!(LevelOrder::End);
+    })
+    .into_iter()
 }
 
 #[cfg(test)]
@@ -58,7 +63,7 @@ mod tests {
         let c1 = xot.next_sibling(c0).unwrap();
         let c2 = xot.next_sibling(c1).unwrap();
 
-        mk_gen!(let mut iter = level_order_traverse(&xot, root));
+        let mut iter = level_order_traverse(&xot, root).into_iter();
 
         let v = iter.collect::<Vec<_>>();
         assert_eq!(
@@ -97,7 +102,7 @@ mod tests {
         let b0 = xot.next_sibling(x1).unwrap();
         let x2 = xot.next_sibling(b0).unwrap();
 
-        mk_gen!(let mut iter = level_order_traverse(&xot, root));
+        let mut iter = level_order_traverse(&xot, root);
 
         let v = iter.collect::<Vec<_>>();
         assert_eq!(

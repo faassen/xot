@@ -1,5 +1,7 @@
-use next_gen::prelude::*;
+use genawaiter::rc::gen;
+use genawaiter::yield_;
 use std::io;
+use std::rc::Rc;
 
 use crate::access::NodeEdge;
 use crate::entity::{serialize_attribute, serialize_text};
@@ -7,6 +9,7 @@ use crate::error::Error;
 use crate::fullname::FullnameSerializer;
 use crate::name::NameId;
 use crate::namespace::NamespaceId;
+use crate::nodemap::to_prefixes;
 use crate::prefix::PrefixId;
 use crate::pretty::Pretty;
 use crate::xmlvalue::{Element, Prefixes};
@@ -23,19 +26,15 @@ use crate::xotdata::{Node, Xot};
 #[derive(Debug, PartialEq)]
 pub enum Output<'a> {
     /// Start tag open, i.e `<foo` or `<ns:foo`
-    StartTagOpen(&'a Element),
+    StartTagOpen(Element),
     /// Start tag close, either `>` or `/>`
-    StartTagClose(&'a Element),
+    StartTagClose,
     /// End tag, i.e. `</foo>` or `</ns:foo>`
-    EndTag(&'a Element),
+    EndTag(Element),
     /// Namespace declaration, i.e. `xmlns:foo="http://example.com"`
-    Prefix(&'a Element, PrefixId, NamespaceId),
-    /// Namespace declarations finished
-    PrefixesFinished(&'a Element),
+    Prefix(PrefixId, NamespaceId),
     /// Attribute, i.e. `foo="bar"`
-    Attribute(&'a Element, NameId, &'a str),
-    /// Attributes finished
-    AttributesFinished(&'a Element),
+    Attribute(NameId, &'a str),
     /// Text, i.e. `foo`
     Text(&'a str),
     /// Comment, i.e. `<!-- foo -->`
@@ -44,81 +43,92 @@ pub enum Output<'a> {
     ProcessingInstruction(&'a str, Option<&'a str>),
 }
 
-#[generator(yield((Node, Output<'a>)))]
-pub(crate) fn gen_outputs<'a>(xot: &'a Xot, node: Node) {
-    let extra_prefixes = get_extra_prefixes(xot, node);
-    for edge in xot.traverse(node) {
-        match edge {
-            NodeEdge::Start(current_node) => {
-                mk_gen!(let gen = gen_edge_start(xot, node, current_node, &extra_prefixes));
-                for output in gen {
-                    yield_!((current_node, output));
+pub(crate) fn gen_outputs<'a>(
+    xot: &'a Xot,
+    node: Node,
+) -> impl Iterator<Item = (Node, Output<'a>)> + 'a {
+    gen!({
+        let extra_prefixes = Rc::new(get_extra_prefixes(xot, node));
+        for edge in xot.traverse(node) {
+            match edge {
+                NodeEdge::Start(current_node) => {
+                    let gen = gen_edge_start(xot, node, current_node, extra_prefixes.clone());
+                    for output in gen {
+                        yield_!((current_node, output));
+                    }
                 }
-            }
-            NodeEdge::End(current_node) => {
-                mk_gen!(let gen = gen_edge_end(xot, current_node));
-                for output in gen {
-                    yield_!((current_node, output));
-                }
-            }
-        }
-    }
-}
-
-#[generator(yield(Output<'a>))]
-fn gen_edge_start<'a>(xot: &'a Xot, top_node: Node, node: Node, extra_prefixes: &Prefixes) {
-    let value = xot.value(node);
-    match value {
-        Value::Root => {}
-        Value::Element(element) => {
-            yield_!(Output::StartTagOpen(element));
-
-            // serialize any extra prefixes if this is the top element of
-            // a fragment and they aren't declared already
-            if node == top_node {
-                for (prefix_id, namespace_id) in extra_prefixes {
-                    if !element.prefixes.contains_key(prefix_id) {
-                        yield_!(Output::Prefix(element, *prefix_id, *namespace_id,));
+                NodeEdge::End(current_node) => {
+                    let gen = gen_edge_end(xot, current_node);
+                    for output in gen {
+                        yield_!((current_node, output));
                     }
                 }
             }
-
-            for (prefix_id, namespace_id) in element.prefixes() {
-                yield_!(Output::Prefix(element, *prefix_id, *namespace_id,));
-            }
-            yield_!(Output::PrefixesFinished(element));
-
-            for (name_id, value) in element.attributes() {
-                yield_!(Output::Attribute(element, *name_id, value));
-            }
-            yield_!(Output::AttributesFinished(element));
-
-            yield_!(Output::StartTagClose(element));
         }
-        Value::Text(text) => {
-            yield_!(Output::Text(text.get()));
-        }
-        Value::Comment(comment) => {
-            yield_!(Output::Comment(comment.get()));
-        }
-        Value::ProcessingInstruction(pi) => {
-            yield_!(Output::ProcessingInstruction(pi.target(), pi.data()));
-        }
-        Value::Attribute(_attribute) => {
-            // TODO: skip for now
-        }
-        Value::Namespace(_namespace) => {
-            // TODO: skip for now
-        }
-    }
+    })
+    .into_iter()
 }
 
-#[generator(yield(Output<'a>))]
-fn gen_edge_end<'a>(xot: &'a Xot, node: Node) {
-    let value = xot.value(node);
-    if let Value::Element(element) = value {
-        yield_!(Output::EndTag(element));
-    }
+fn gen_edge_start<'a>(
+    xot: &'a Xot,
+    top_node: Node,
+    node: Node,
+    extra_prefixes: Rc<Prefixes>,
+) -> impl Iterator<Item = Output<'a>> + 'a {
+    gen!({
+        let value = xot.value(node);
+
+        match value {
+            Value::Root => {}
+            Value::Element(element) => {
+                yield_!(Output::StartTagOpen(*element));
+
+                // serialize any extra prefixes if this is the top element of
+                // a fragment and they aren't declared already
+                let namespaces = xot.namespaces(node);
+                if node == top_node {
+                    for (prefix_id, namespace_id) in extra_prefixes.iter() {
+                        if !namespaces.contains_key(prefix_id) {
+                            yield_!(Output::Prefix(*prefix_id, *namespace_id,));
+                        }
+                    }
+                }
+
+                for (prefix_id, namespace_id) in namespaces.iter() {
+                    yield_!(Output::Prefix(*prefix_id, *namespace_id,));
+                }
+
+                // for (name_id, value) in xot.attributes_hack(node) {
+                //     yield_!(Output::Attribute(name_id, value));
+                // }
+
+                yield_!(Output::StartTagClose);
+            }
+            Value::Text(text) => {
+                yield_!(Output::Text(text.get()));
+            }
+            Value::Comment(comment) => {
+                yield_!(Output::Comment(comment.get()));
+            }
+            Value::ProcessingInstruction(pi) => {
+                yield_!(Output::ProcessingInstruction(pi.target(), pi.data()));
+            }
+            Value::Attribute(_) | Value::Namespace(_) => {
+                // handled in element
+            }
+        }
+    })
+    .into_iter()
+}
+
+fn gen_edge_end<'a>(xot: &'a Xot, node: Node) -> impl Iterator<Item = Output<'a>> + 'a {
+    gen!({
+        let value = xot.value(node);
+        if let Value::Element(element) = value {
+            yield_!(Output::EndTag(*element));
+        }
+    })
+    .into_iter()
 }
 
 pub(crate) struct XmlSerializer<'a> {
@@ -201,7 +211,8 @@ impl<'a> XmlSerializer<'a> {
         use Output::*;
         let r = match output {
             StartTagOpen(element) => {
-                self.fullname_serializer.push(&element.prefixes);
+                self.fullname_serializer
+                    .push(&to_prefixes(&self.xot.namespaces(node)));
                 OutputToken {
                     space: false,
                     text: format!(
@@ -210,7 +221,7 @@ impl<'a> XmlSerializer<'a> {
                     ),
                 }
             }
-            StartTagClose(_element) => {
+            StartTagClose => {
                 if self.xot.first_child(node).is_none() {
                     OutputToken {
                         space: false,
@@ -238,10 +249,10 @@ impl<'a> XmlSerializer<'a> {
                         text: "".to_string(),
                     }
                 };
-                self.fullname_serializer.pop(&element.prefixes);
+                self.fullname_serializer.pop();
                 r
             }
-            Prefix(_element, prefix_id, namespace_id) => {
+            Prefix(prefix_id, namespace_id) => {
                 let namespace = self.xot.namespace_str(*namespace_id);
                 if *prefix_id == self.xot.empty_prefix_id {
                     OutputToken {
@@ -256,21 +267,21 @@ impl<'a> XmlSerializer<'a> {
                     }
                 }
             }
-            PrefixesFinished(_element) => OutputToken {
-                space: false,
-                text: "".to_string(),
-            },
-            Attribute(_element, name_id, value) => {
+            // PrefixesFinished(_element) => OutputToken {
+            //     space: false,
+            //     text: "".to_string(),
+            // },
+            Attribute(name_id, value) => {
                 let fullname = self.fullname_serializer.fullname_attr_or_err(*name_id)?;
                 OutputToken {
                     space: true,
                     text: format!("{}=\"{}\"", fullname, serialize_attribute((*value).into())),
                 }
             }
-            AttributesFinished(_element) => OutputToken {
-                space: false,
-                text: "".to_string(),
-            },
+            // AttributesFinished(_element) => OutputToken {
+            //     space: false,
+            //     text: "".to_string(),
+            // },
             Text(text) => OutputToken {
                 space: false,
                 text: serialize_text((*text).into()).to_string(),
@@ -321,22 +332,18 @@ mod tests {
         let a_id = xot.add_name("a");
         let doc = xot.document_element(root).unwrap();
         let doc_el = xot.element(doc).unwrap();
-        mk_gen!(let mut iter = gen_outputs(&xot, doc));
+        let mut iter = gen_outputs(&xot, doc);
 
         let v = iter.next().unwrap().1;
-        assert_eq!(v, Output::StartTagOpen(doc_el));
+        assert_eq!(v, Output::StartTagOpen(*doc_el));
         let v = iter.next().unwrap().1;
-        assert_eq!(v, Output::PrefixesFinished(doc_el));
+        assert_eq!(v, Output::Attribute(a_id, "A"));
         let v = iter.next().unwrap().1;
-        assert_eq!(v, Output::Attribute(doc_el, a_id, "A"));
-        let v = iter.next().unwrap().1;
-        assert_eq!(v, Output::AttributesFinished(doc_el));
-        let v = iter.next().unwrap().1;
-        assert_eq!(v, Output::StartTagClose(doc_el));
+        assert_eq!(v, Output::StartTagClose);
         let v = iter.next().unwrap().1;
         assert_eq!(v, Output::Text("Text"));
         let v = iter.next().unwrap().1;
-        assert_eq!(v, Output::EndTag(doc_el));
+        assert_eq!(v, Output::EndTag(*doc_el));
         assert!(iter.next().is_none());
     }
 }

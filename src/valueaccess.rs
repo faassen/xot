@@ -645,18 +645,47 @@ impl Xot {
         let b_value = self.value(b);
         match (a_value, b_value) {
             (Value::Root, Value::Root) => true,
-            (Value::Element(a), Value::Element(b)) => a.advanced_compare(b, text_compare),
+            (Value::Element(a_element), Value::Element(b_element)) => {
+                if a_element.name() != b_element.name() {
+                    return false;
+                }
+                self.advanced_compare_attributes(a, b, text_compare)
+            }
             (Value::Text(a), Value::Text(b)) => text_compare(a.get(), b.get()),
             (Value::Comment(a), Value::Comment(b)) => a.get() == b.get(),
             (Value::ProcessingInstruction(a), Value::ProcessingInstruction(b)) => {
                 a.target() == b.target() && a.data() == b.data()
             }
-            // TODO: for now we ignore these.
+            // these are compared as part of the element
             (Value::Attribute(_), _) => true,
             (_, Value::Attribute(_)) => true,
             (Value::Namespace(_), _) => true,
             (_, Value::Namespace(_)) => true,
             _ => false,
         }
+    }
+
+    fn advanced_compare_attributes<C>(&self, a: Node, b: Node, text_compare: C) -> bool
+    where
+        C: Fn(&str, &str) -> bool,
+    {
+        let a_attributes = self.attributes(a);
+        let b_attributes = self.attributes(b);
+        if a_attributes.len() != b_attributes.len() {
+            return false;
+        }
+        // if we can't find a value for a key in a in b, then we
+        // know they aren't the same, given we already compared the length
+        for (key, value_a) in a_attributes.iter() {
+            let value_b = b_attributes.get(key);
+            if let Some(value_b) = value_b {
+                if !text_compare(value_a, value_b) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        true
     }
 }
