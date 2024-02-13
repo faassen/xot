@@ -58,6 +58,7 @@ mod manipulation;
 mod name;
 mod nameaccess;
 mod namespace;
+mod nodemap;
 mod parse;
 mod prefix;
 mod pretty;
