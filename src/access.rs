@@ -112,6 +112,10 @@ impl Xot {
         self.arena()[node.get()].parent().map(Node::new)
     }
 
+    pub(crate) fn all_children(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+        node.get().children(&self.arena).map(Node::new)
+    }
+
     fn normal_children(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
         node.get()
             .children(&self.arena)
