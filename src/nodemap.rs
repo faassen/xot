@@ -22,7 +22,8 @@ pub trait ValueAdapter<K, V> {
 #[derive(Debug)]
 pub struct NodeMap<'a, K, V, A: ValueAdapter<K, V>>
 where
-    K: PartialEq,
+    K: PartialEq + Clone,
+    V: Clone,
 {
     xot: &'a mut Xot,
     parent: Node,
@@ -33,7 +34,8 @@ where
 
 impl<'a, K, V, A: ValueAdapter<K, V>> NodeMap<'a, K, V, A>
 where
-    K: PartialEq,
+    K: PartialEq + Clone,
+    V: Clone,
 {
     fn new(xot: &'a mut Xot, parent: Node) -> Self {
         NodeMap {
@@ -122,6 +124,17 @@ where
 
     // todo: pop, remove, remove_entry
 
+    /// Insert a key-value pair in the map.
+    ///
+    /// If an equivalent key already exists in the map: the key remains and retains in its place
+    /// in the order, its corresponding value is updated with `value` and the older value is
+    /// returned inside `Some(_)`.
+    ///
+    /// If no equivalent key existed in the map: the new key-value pair is inserted, last in
+    /// order, and `None` is returned.
+    ///
+    /// See also [`entry`](#method.entry) if you you want to insert *or* modify or if you need to
+    /// get the index of the corresponding key-value pair.
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
         let node = self.get_node(&key);
         if let Some(node) = node {
@@ -148,6 +161,17 @@ where
         }
     }
 
+    // /// Get the given key's corresponding entry in the map for insertion and/or in-place
+    // /// manipulation.
+    // pub fn entry(&mut self, key: K) -> Entry<K, V> {
+    //     match self.get_index_of(&key) {
+    //         Some(index) => Entry::Occupied(OccupiedEntry::new(self, key, index)),
+    //         None => Entry::Vacant(VacantEntry::new(self, key)),
+    //     }
+    // }
+
+    /// An iterator visiting all key-value pairs in insertion order. The iterator element type is
+    /// `(&'a K, &'a V)`.
     fn iter(&self) -> impl Iterator<Item = (&K, &V)> + '_ {
         self.children().map(move |child| {
             let value = self.xot.value(child);
@@ -155,11 +179,18 @@ where
         })
     }
 
+    /// Copies the map entries into a new `Vec<(K, V)>`.
+    fn to_vec(&self) -> Vec<(K, V)> {
+        self.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
+    }
+
+    /// An iterator visiting all keys in insertion order. The iterator element type is `&'a K`.
     fn keys(&self) -> impl Iterator<Item = &K> + '_ {
         self.children()
             .map(move |child| A::key(self.xot.value(child)))
     }
 
+    /// An iterator visiting all values in insertion order. The iterator element type is `&'a V`.
     fn values(&self) -> impl Iterator<Item = &V> + '_ {
         self.children()
             .map(move |child| A::value(self.xot.value(child)))
