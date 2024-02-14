@@ -29,6 +29,16 @@
   * You can also update and add attributes and namespaces using `xot.
     attributes_mut()` and `xot.namespaces_mut()`, respectively.
 
+  * While `namespaces` and `attributes` return hashmap-like APIs, this API
+    is at present not as complete as the one provided by `vecmap-rs`.
+
+## Other changes
+
+- Internally, `next-gen` has been replaced with `genawaiter` to support
+  generators.
+
+- Eliminated `vecmap-rs` dependency.
+
 ## [0.20.0] - 2024-02-08
 
 ### Changes
