@@ -282,24 +282,6 @@ impl ProcessingInstruction {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
-pub struct Attribute {
-    pub(crate) name_id: NameId,
-    pub(crate) value: String,
-}
-
-impl Attribute {
-    /// Get value
-    pub fn value(&self) -> &str {
-        &self.value
-    }
-
-    /// Set value
-    pub fn set_value<S: Into<String>>(&mut self, value: S) {
-        self.value = value.into();
-    }
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Namespace {
     pub(crate) prefix_id: PrefixId,
     pub(crate) namespace_id: NamespaceId,
@@ -319,6 +301,29 @@ impl Namespace {
     /// Set namespace id
     pub fn set_namespace(&mut self, namespace_id: NamespaceId) {
         self.namespace_id = namespace_id;
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub struct Attribute {
+    pub(crate) name_id: NameId,
+    pub(crate) value: String,
+}
+
+impl Attribute {
+    /// Get name
+    pub fn name(&self) -> NameId {
+        self.name_id
+    }
+
+    /// Get value
+    pub fn value(&self) -> &str {
+        &self.value
+    }
+
+    /// Set value
+    pub fn set_value<S: Into<String>>(&mut self, value: S) {
+        self.value = value.into();
     }
 }
 
