@@ -104,6 +104,11 @@ impl Value {
 }
 
 /// A map of PrefixId to NamespaceId for namespace tracking.
+///
+/// This is a real hash map, thus providing constant time access and does not
+/// preserve order information.
+///
+/// It is used to return namespace information from various APIs.
 pub type Prefixes = AHashMap<PrefixId, NamespaceId>;
 
 /// XML element name.

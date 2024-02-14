@@ -69,9 +69,19 @@ impl ValueAdapter<PrefixId, NamespaceId> for NamespaceAdapter {
 /// nodes have a parent and can exist unattached.
 ///
 /// Access is linear time. Insertion order is preserved.
+///
+/// Obtained using [`Xot::namespaces`].
+///
+/// See [`NodeMap`] for details.
 pub type Namespaces<'a> = NodeMap<'a, PrefixId, NamespaceId, NamespaceAdapter>;
 
 /// A mutable map of namespace prefixes to namespace ids.
+///
+/// Obtained using [`Xot::namespaces_mut`].
+///
+/// See [`MutableNodeMap`] for details.
+///
+/// See also [`Namespaces`].
 pub type MutableNamespaces<'a> = MutableNodeMap<'a, PrefixId, NamespaceId, NamespaceAdapter>;
 
 /// Copies it into a prefixes hash table.

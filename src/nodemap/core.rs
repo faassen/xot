@@ -16,6 +16,10 @@ pub trait ValueAdapter<K, V> {
     fn update(value: &mut Value, value: V) -> Option<V>;
 }
 
+/// A `NodeMap` is a struct with a hash-map like API and is used to
+/// expose attribute and namespace prefix information.
+///
+/// You obtain one through the APIs [`Xot::attributes`] and [`Xot::namespaces`].
 #[derive(Debug)]
 pub struct NodeMap<'a, K, V, A: ValueAdapter<K, V>>
 where
@@ -117,6 +121,12 @@ where
     }
 }
 
+/// A `MutableNodeMap` is a struct with a hash-map like API and is used to
+/// expose attribute and namespace prefix information in a mutable way.
+///
+/// You obtain one through the APIs [`Xot::attributes_mut`] and
+/// [`Xot::namespaces_mut`].
+///
 #[derive(Debug)]
 pub struct MutableNodeMap<'a, K, V, A: ValueAdapter<K, V>>
 where
@@ -272,6 +282,9 @@ where
         }
     }
 
+    /// Remove a key-value pair from the map, if it exists.
+    ///
+    /// Returns the value corresponding to the key if the key was previously in the map.
     pub fn remove(&mut self, key: K) -> Option<V> {
         let node = self.get_node(key);
         if let Some(node) = node {

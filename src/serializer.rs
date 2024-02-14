@@ -264,10 +264,6 @@ impl<'a> XmlSerializer<'a> {
                     }
                 }
             }
-            // PrefixesFinished(_element) => OutputToken {
-            //     space: false,
-            //     text: "".to_string(),
-            // },
             Attribute(name_id, value) => {
                 let fullname = self.fullname_serializer.fullname_attr_or_err(*name_id)?;
                 OutputToken {
@@ -275,10 +271,6 @@ impl<'a> XmlSerializer<'a> {
                     text: format!("{}=\"{}\"", fullname, serialize_attribute((*value).into())),
                 }
             }
-            // AttributesFinished(_element) => OutputToken {
-            //     space: false,
-            //     text: "".to_string(),
-            // },
             Text(text) => OutputToken {
                 space: false,
                 text: serialize_text((*text).into()).to_string(),

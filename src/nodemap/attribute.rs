@@ -76,7 +76,17 @@ impl ValueAdapter<NameId, String> for AttributeAdapter {
 /// nodes have a parent and can exist unattached.
 ///
 /// Access is linear time. Insertion order is preserved.
+///
+/// Obtained using [`Xot::attributes`].
+///
+/// See [`NodeMap`] for details.
 pub type Attributes<'a> = NodeMap<'a, NameId, String, AttributeAdapter>;
 
 /// Mutable attributes of an element.
+///
+/// Obtained using [`Xot::attributes_mut`].
+///
+/// See [`MutableNodeMap`] for details.
+///
+/// See also [`Attributes`].
 pub type MutableAttributes<'a> = MutableNodeMap<'a, NameId, String, AttributeAdapter>;

@@ -18,9 +18,11 @@
   * The `Value` enum gains two new entries, `Attribute` and `Namespace`.
 
   * To access attributes, use `xot.attributes(node)`. This returns a
-    hashmap-like struct with as key the name id of the attribute, and as value as
-    string, that lets you access attributes using `get`, iterate over them,
-    etc.
+    hashmap-like struct (`NodeMap`). with as key the name id of the attribute,
+    and as value as string, that lets you access attributes using `get`,
+    iterate over them, etc. `NodeMap`, like `VecMap`, maintains order
+    information and access time is linear, not constant time like a real
+    hashmap.
 
   * To access namespaces, use `xot.namespaces(node)`. This returns a
     hashmap-like struct with as key the prefix id, and as value the namespace
@@ -31,6 +33,21 @@
 
   * While `namespaces` and `attributes` return hashmap-like APIs, this API
     is at present not as complete as the one provided by `vecmap-rs`.
+
+- `xot::Prefixes` is now a real hashmap, not a vecmap or the new nodemap, and
+   thus does not retain order information. It is returned from specific APIs
+   such as `xot.inherited_prefixes()`, 
+
+- The serializer `Output` enum has been simplified. 
+
+  * Any reference to `Element` has become a copy of `Element`, as element is
+    basically just a name and now copy.
+
+  * The `Output::Prefix` and `Output::Attribute` entries don't include the
+    element anymore.
+
+  * The enum entries `Output::PrefixesFinished` and
+    `Output::AttributesFinished` have been removed.
 
 ## Other changes
 

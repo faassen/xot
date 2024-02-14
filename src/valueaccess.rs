@@ -55,7 +55,7 @@ impl Xot {
     ///
     /// Note that if you already know the type of a node value or are
     /// only interested in a single type, you can use the convenience
-    /// methods like [`Xot::element_mut`]
+    /// methods like [`Xot::text_mut`]
     #[inline]
     pub fn value_mut(&mut self, node_id: Node) -> &mut Value {
         self.arena[node_id.get()].get_mut()
@@ -260,9 +260,6 @@ impl Xot {
     }
 
     /// If this node's value is an element, return a reference to it.
-    ///
-    /// See also [`Xot::element_mut()`] if you want to manipulate
-    /// an element.
     ///
     /// ```rust
     /// use xot::Xot;

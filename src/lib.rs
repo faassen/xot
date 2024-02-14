@@ -76,7 +76,9 @@ pub use error::Error;
 pub use levelorder::LevelOrder;
 pub use name::NameId;
 pub use namespace::NamespaceId;
-pub use nodemap::{Attributes, Entry, MutableAttributes, MutableNamespaces, Namespaces};
+pub use nodemap::{
+    Attributes, Entry, MutableAttributes, MutableNamespaces, MutableNodeMap, Namespaces, NodeMap,
+};
 pub use parse::{Span, SpanInfo, SpanInfoKey};
 pub use prefix::PrefixId;
 pub use serialize::{PrettyOutputToken, SerializeOptions, WithSerializeOptions};
