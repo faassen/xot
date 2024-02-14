@@ -94,7 +94,7 @@ where
 
     /// Copies the map entries into a new `Vec<(K, V)>`.
     pub fn to_vec(&self) -> Vec<(K, V)> {
-        self.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
+        self.iter().map(|(k, v)| (*k, v.clone())).collect()
     }
 
     /// An iterator visiting all keys in insertion order. The iterator element type is `&'a K`.

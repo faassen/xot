@@ -111,7 +111,7 @@ where
 
     /// Sets the value of the entry, and returns the entry's old value.
     pub fn insert(&mut self, value: V) -> V {
-        self.map.insert(self.key.clone(), value).unwrap()
+        self.map.insert(self.key, value).unwrap()
     }
 
     /// Takes the value of the entry out of the map, and returns it.
@@ -148,7 +148,7 @@ where
 
     /// Sets the value of the entry with the VacantEntry's key, and returns a mutable reference to it.
     pub fn insert(self, value: V) -> &'a mut V {
-        self.map.insert(self.key.clone(), value).unwrap();
+        self.map.insert(self.key, value).unwrap();
         self.map.get_mut(&self.key).unwrap()
     }
 
