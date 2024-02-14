@@ -39,43 +39,6 @@ impl ElementBuilder {
             span: Span::from_prefix_name(prefix, name),
         }
     }
-
-    // fn build_attributes(
-    //     &mut self,
-    //     document_builder: &mut DocumentBuilder,
-    //     xot: &mut Xot,
-    // ) -> Result<(Attributes, AttributeSpans), Error> {
-    //     let mut attributes = Attributes::new();
-    //     let mut attribute_spans = Vec::new();
-    //     for attribute_builder in self.attributes.drain(..) {
-    //         let name_id = document_builder.name_id_builder.attribute_name_id(
-    //             &attribute_builder.prefix,
-    //             &attribute_builder.name,
-    //             xot,
-    //         )?;
-    //         attributes.insert(name_id, attribute_builder.value);
-    //         attribute_spans.push((
-    //             name_id,
-    //             attribute_builder.name_span,
-    //             attribute_builder.value_span,
-    //         ));
-    //     }
-    //     Ok((attributes, attribute_spans))
-    // }
-
-    // fn into_element(
-    //     mut self,
-    //     document_builder: &mut DocumentBuilder,
-    //     xot: &mut Xot,
-    // ) -> Result<(Element, AttributeSpans), Error> {
-    //     document_builder.name_id_builder.push(&self.prefixes);
-    //     let (attributes, attribute_spans) = self.build_attributes(document_builder, xot)?;
-    //     let name_id =
-    //         document_builder
-    //             .name_id_builder
-    //             .element_name_id(&self.prefix, &self.name, xot)?;
-    //     Ok((Element { name_id }, attribute_spans))
-    // }
 }
 
 struct DocumentBuilder {
