@@ -127,11 +127,26 @@ impl Xot {
     /// Attributes accessor.
     ///
     /// Returns a map of attributes.
+    ///
+    /// Use this to access an attribute using a hashmap like API:
+    ///
+    /// ```rust
+    /// let mut xot = xot::Xot::new();
+    /// let a = xot.add_name("a");
+    /// let root = xot.parse(r#"<p a="A">Example</p>"#).unwrap();
+    /// let p = xot.document_element(root).unwrap();
+    /// let attributes = xot.attributes(p);
+    ///
+    /// assert_eq!(attributes.get(&a), Some(&"A".to_string()));
+    /// ```
     pub fn attributes(&self, node: Node) -> Attributes {
         Attributes::new(self, node)
     }
 
     /// Mutable attributes accessor
+    ///
+    /// Use this if you want to set an attribute using a hash map like
+    /// API:
     pub fn attributes_mut(&mut self, node: Node) -> MutableAttributes {
         MutableAttributes::new(self, node)
     }
