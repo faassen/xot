@@ -63,6 +63,8 @@
   * To access or manipulate an attribute node: `xot.attribute_node` and
     `xot.attribute_node_mut`.
 
+  * To access all attributes nodes, use `xot.attribute_nodes`.
+
 - `xot::Prefixes` is now a real hashmap, not a vecmap or the new nodemap, and
    thus does not retain order information. It is returned from specific APIs
    such as `xot.inherited_prefixes()`, 
