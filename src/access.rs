@@ -13,8 +13,10 @@ use crate::{MutableAttributes, MutableNamespaces};
 ///
 /// The axis behaviors are based on the XPath specification.
 ///
-/// Note that the namespace axis is not supported; it's tricky to support
-/// and has not been a requirement since XPath 2.0.
+/// Note that the namespace axis is not supported; it's tricky to support as it
+/// includes all namespace nodes in scope of an element, not just those
+/// namespaces defined on that element, and has not been a requirement since
+/// XPath 2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Axis {
     /// The children of the node. Equivalent to [`Xot::children`].
