@@ -53,7 +53,7 @@ impl DocumentBuilder {
         let root = xot.arena.new_node(Value::Root);
         let mut name_id_builder = NameIdBuilder::new(xot.base_prefixes().into_iter().collect());
         let base_prefixes = vec![(xot.empty_prefix_id, xot.no_namespace_id)];
-        name_id_builder.push(&base_prefixes);
+        name_id_builder.push(base_prefixes);
         DocumentBuilder {
             tree: root,
             current_node_id: root,
@@ -114,7 +114,8 @@ impl DocumentBuilder {
         let element_builder = self.element_builder.take().unwrap();
         let span = element_builder.span;
 
-        self.name_id_builder.push(&element_builder.namespaces);
+        self.name_id_builder
+            .push(element_builder.namespaces.clone());
 
         let name_id = self.name_id_builder.element_name_id(
             &element_builder.prefix,
@@ -228,11 +229,8 @@ impl NameIdBuilder {
         Self { namespace_stack }
     }
 
-    fn push(&mut self, namespaces: &Namespaces) {
-        // can always use top as there's a bottom entry
-        let mut entry = self.top().clone();
-        entry.extend(namespaces);
-        self.namespace_stack.push(entry);
+    fn push(&mut self, namespaces: Namespaces) {
+        self.namespace_stack.push(namespaces);
     }
 
     fn pop(&mut self) {
@@ -240,10 +238,10 @@ impl NameIdBuilder {
         self.namespace_stack.pop();
     }
 
-    #[inline]
-    fn top(&self) -> &Namespaces {
-        &self.namespace_stack[self.namespace_stack.len() - 1]
-    }
+    // #[inline]
+    // fn top(&self) -> &Namespaces {
+    //     &self.namespace_stack[self.namespace_stack.len() - 1]
+    // }
 
     fn element_name_id(
         &mut self,
@@ -286,14 +284,13 @@ impl NameIdBuilder {
         name: &str,
         xot: &mut Xot,
     ) -> Result<NameId, ()> {
-        let namespace_id = if !self.namespace_stack.is_empty() {
-            self.top()
-                .iter()
+        // go through namespace stack backwards, find the first namespace
+        // that matches this prefix
+        let namespace_id = self.namespace_stack.iter().rev().find_map(|ns| {
+            ns.iter()
                 .rev()
                 .find_map(|(p, ns)| if *p == prefix_id { Some(*ns) } else { None })
-        } else {
-            None
-        };
+        });
         let namespace_id = namespace_id.ok_or(())?;
         let name = Name::new(name.to_string(), namespace_id);
         Ok(xot.name_lookup.get_id_mut(&name))
