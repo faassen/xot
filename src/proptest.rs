@@ -139,7 +139,7 @@ fn unduplicate_prefixes(prefixes: &[fixed::Prefix]) -> Vec<fixed::Prefix> {
     let mut seen = HashSet::default();
     prefixes
         .iter()
-        .filter(|prefix| seen.insert(prefix.clone()))
+        .filter(|prefix| seen.insert(*prefix))
         .cloned()
         .collect()
 }

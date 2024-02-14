@@ -43,10 +43,7 @@ pub enum Output<'a> {
     ProcessingInstruction(&'a str, Option<&'a str>),
 }
 
-pub(crate) fn gen_outputs<'a>(
-    xot: &'a Xot,
-    node: Node,
-) -> impl Iterator<Item = (Node, Output<'a>)> + 'a {
+pub(crate) fn gen_outputs(xot: &Xot, node: Node) -> impl Iterator<Item = (Node, Output)> + '_ {
     gen!({
         let extra_prefixes = Rc::new(get_extra_prefixes(xot, node));
         for edge in xot.traverse(node) {
@@ -69,12 +66,12 @@ pub(crate) fn gen_outputs<'a>(
     .into_iter()
 }
 
-fn gen_edge_start<'a>(
-    xot: &'a Xot,
+fn gen_edge_start(
+    xot: &Xot,
     top_node: Node,
     node: Node,
     extra_prefixes: Rc<Prefixes>,
-) -> impl Iterator<Item = Output<'a>> + 'a {
+) -> impl Iterator<Item = Output> + '_ {
     gen!({
         let value = xot.value(node);
 
@@ -121,7 +118,7 @@ fn gen_edge_start<'a>(
     .into_iter()
 }
 
-fn gen_edge_end<'a>(xot: &'a Xot, node: Node) -> impl Iterator<Item = Output<'a>> + 'a {
+fn gen_edge_end(xot: &Xot, node: Node) -> impl Iterator<Item = Output> + '_ {
     gen!({
         let value = xot.value(node);
         if let Value::Element(element) = value {
