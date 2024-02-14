@@ -168,7 +168,7 @@ impl DocumentBuilder {
 
     fn close_element_immediate(&mut self, xot: &mut Xot) -> NodeId {
         let current_node = xot.arena.get(self.current_node_id).unwrap();
-        if let Value::Element(_) = current_node.get() {
+        if matches!(current_node.get(), Value::Element(_)) {
             self.name_id_builder.pop();
         }
         let closed_node_id = self.current_node_id;
