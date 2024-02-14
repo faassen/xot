@@ -128,7 +128,8 @@ impl Xot {
     ///
     /// Returns a map of attributes.
     ///
-    /// Use this to access attributes. You use a hashmap-like API:
+    /// Use this to access attributes through a hashmap-like API. Note that if
+    /// this is called on a non-element node, you get an empty map.
     ///
     /// ```rust
     /// let mut xot = xot::Xot::new();
@@ -144,6 +145,8 @@ impl Xot {
     }
 
     /// Mutable attributes accessor
+    ///
+    /// Panics if called on a non-element.
     ///
     /// Use this if you want to set an attribute. You use a hashmap-like API:
     ///
@@ -168,7 +171,8 @@ impl Xot {
     ///
     /// Returns a map of namespaces.
     ///
-    /// Use this to access namespaces by prefix. You use a hashmap-like API:
+    /// Use this to access namespace prefixes through a hashmap-like API. Note
+    /// that if this is called on a non-element node, you get an empty map.
     ///
     /// ```rust
     /// let mut xot = xot::Xot::new();
@@ -185,6 +189,8 @@ impl Xot {
     }
 
     /// Mutable namespaces accessor.
+    ///
+    /// Panics if called on a non-element.
     ///
     /// Use this to set namespace prefixes. You use a hashmap-like API:
     ///
