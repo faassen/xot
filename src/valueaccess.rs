@@ -1,6 +1,7 @@
 use crate::access::NodeEdge;
 use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value, ValueType};
 use crate::xotdata::{Node, Xot};
+use crate::NameId;
 
 /// ## Value and type access
 impl Xot {
@@ -669,5 +670,57 @@ impl Xot {
             }
         }
         true
+    }
+
+    /// Shallow compare two element nodes.
+    ///
+    /// Name and attributes must be the same, but some attributes
+    /// may be ignored.
+    ///
+    /// Child content of the elements is not considered.
+    ///
+    /// If provided with non-element nodes, returns false.
+    ///
+    /// Returns `true` if the elements compare equal.
+    pub fn compare_elements_ignore_attributes(
+        &self,
+        a: Node,
+        b: Node,
+        ignore_attributes: &[NameId],
+    ) -> bool {
+        if let (Some(a_element), Some(b_element)) = (self.element(a), self.element(b)) {
+            if a_element.name() != b_element.name() {
+                return false;
+            }
+
+            // count the amount of attributes we compare
+            let mut compare_attributes_count = 0;
+
+            let a_attributes = self.attributes(a);
+            let b_attributes = self.attributes(b);
+
+            for (key, value_a) in a_attributes.iter() {
+                if ignore_attributes.contains(&key) {
+                    continue;
+                }
+                let value_b = b_attributes.get(key);
+                if Some(value_a) != value_b {
+                    return false;
+                }
+                compare_attributes_count += 1;
+            }
+
+            let mut b_ignore_attributes = 0;
+            for ignore_attribute in ignore_attributes {
+                if b_attributes.get(*ignore_attribute).is_some() {
+                    b_ignore_attributes += 1;
+                }
+            }
+            // we expect the amount of non-ignored attributes in a to
+            // be the same as the amount of non-ignored attributes in b
+            compare_attributes_count == b_attributes.len() - b_ignore_attributes
+        } else {
+            false
+        }
     }
 }

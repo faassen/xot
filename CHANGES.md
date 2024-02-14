@@ -34,6 +34,11 @@
   * While `namespaces` and `attributes` return hashmap-like APIs, this API
     is at present not as complete as the one provided by `vecmap-rs`.
 
+  * Comparing two elements used to be possible through
+    `element.compare_ignore_attributes`. This has now been replaced by
+    `xot.compare_elements_ignore_attributes`, which needs to be provided with
+    two element nodes.
+
 - `xot::Prefixes` is now a real hashmap, not a vecmap or the new nodemap, and
    thus does not retain order information. It is returned from specific APIs
    such as `xot.inherited_prefixes()`, 
