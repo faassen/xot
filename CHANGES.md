@@ -98,6 +98,12 @@
 - Added `xot.node_name` function to retrieve name id of element, attribute or
   processing instruction target.
 
+- Added `xot.localname_str` to get the localname of a name id.
+
+- Added `xot.uri_str` to get the namespace of a name id.
+
+- Added `xot.string_value` accessor.
+
 ## [0.20.0] - 2024-02-08
 
 ### Changes

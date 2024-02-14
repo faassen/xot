@@ -117,24 +117,6 @@ impl Xot {
         self.name_lookup.get_id(&Name::new(name, namespace_id))
     }
 
-    /// Given a node, give back the name id of this node.
-    ///
-    /// For elements and attribute that is their name, for processing
-    /// instructions this is a name based on the target attribute.
-    ///
-    /// For anything else, it's `None`.
-    pub fn node_name(&self, node: Node) -> Option<NameId> {
-        match self.value(node) {
-            Value::Element(element) => Some(element.name()),
-            Value::Text(..) => None,
-            Value::ProcessingInstruction(pi) => Some(pi.target()),
-            Value::Comment(..) => None,
-            Value::Root => None,
-            Value::Attribute(attribute) => Some(attribute.name()),
-            Value::Namespace(_) => None,
-        }
-    }
-
     /// Add name with a namespace.
     ///
     /// If the name already exists, return its id.
@@ -278,6 +260,18 @@ impl Xot {
         (name.name.as_ref(), namespace)
     }
 
+    /// Get the localname of a name.
+    pub fn localname_str(&self, name: NameId) -> &str {
+        let name = self.name_lookup.get_value(name);
+        name.name.as_ref()
+    }
+
+    /// Get the namespace URI of a name
+    pub fn uri_str(&self, name: NameId) -> &str {
+        let name = self.name_lookup.get_value(name);
+        self.namespace_str(name.namespace_id)
+    }
+
     /// Look up namespace uri for namespace id
     ///
     /// An empty string slice indicates the no namespace.
@@ -308,6 +302,55 @@ impl Xot {
     /// ```
     pub fn namespace_for_name(&self, name: NameId) -> NamespaceId {
         self.name_lookup.get_value(name).namespace_id
+    }
+
+    /// Given a node, give back the name id of this node.
+    ///
+    /// For elements and attribute that is their name, for processing
+    /// instructions this is a name based on the target attribute.
+    ///
+    /// For anything else, it's `None`.
+    pub fn node_name(&self, node: Node) -> Option<NameId> {
+        match self.value(node) {
+            Value::Element(element) => Some(element.name()),
+            Value::Text(..) => None,
+            Value::ProcessingInstruction(pi) => Some(pi.target()),
+            Value::Comment(..) => None,
+            Value::Root => None,
+            Value::Attribute(attribute) => Some(attribute.name()),
+            Value::Namespace(_) => None,
+        }
+    }
+
+    /// Given a node, give back a string representation.
+    ///
+    /// For the root node and element nodes this gives back all text  node
+    /// descendant content, concatenated.
+    ///
+    /// For text nodes, it gives back the text.
+    ///
+    /// For comments, it gives back the comment text.
+    ///
+    /// For processing instructions, it gives back their content (data).
+    ///
+    /// For attribute nodes, it gives back the attribute value.
+    ///
+    /// For namespace nodes, it gives back the namespace URI.
+    ///
+    /// This is defined by the `string-value` property in
+    /// <https://www.w3.org/TR/xpath-datamodel-31>
+    pub fn string_value(&self, node: Node) -> String {
+        match self.value(node) {
+            Value::Root | Value::Element(_) => descendants_to_string(self, node),
+            Value::Text(text) => text.get().to_string(),
+            Value::ProcessingInstruction(pi) => pi.data().unwrap_or("").to_string(),
+            Value::Comment(comment) => comment.get().to_string(),
+            Value::Attribute(attribute) => attribute.value().to_string(),
+            Value::Namespace(namespace) => {
+                let namespace_id = namespace.namespace();
+                self.namespace_str(namespace_id).to_string()
+            }
+        }
     }
 
     /// Check whether a prefix is defined in node or its ancestors.
@@ -703,6 +746,15 @@ pub(crate) fn namespace_traverse(
         }
     })
     .into_iter()
+}
+
+fn descendants_to_string(xot: &Xot, node: Node) -> String {
+    let texts = xot.descendants(node).filter_map(|n| xot.text_str(n));
+    let mut r = String::new();
+    for text in texts {
+        r.push_str(text);
+    }
+    r
 }
 
 #[cfg(test)]
