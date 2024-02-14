@@ -11,6 +11,7 @@ use crate::nodemap::to_prefixes;
 use crate::prefix::PrefixId;
 use crate::xmlvalue::Prefixes;
 use crate::xotdata::{Node, Xot};
+use crate::Value;
 
 /// ## Names, namespaces and prefixes.
 ///
@@ -114,6 +115,24 @@ impl Xot {
     /// ```
     pub fn name_ns(&self, name: &str, namespace_id: NamespaceId) -> Option<NameId> {
         self.name_lookup.get_id(&Name::new(name, namespace_id))
+    }
+
+    /// Given a node, give back the name id of this node.
+    ///
+    /// For elements and attribute that is their name, for processing
+    /// instructions this is a name based on the target attribute.
+    ///
+    /// For anything else, it's `None`.
+    pub fn node_name(&self, node: Node) -> Option<NameId> {
+        match self.value(node) {
+            Value::Element(element) => Some(element.name()),
+            Value::Text(..) => None,
+            Value::ProcessingInstruction(pi) => Some(pi.target()),
+            Value::Comment(..) => None,
+            Value::Root => None,
+            Value::Attribute(attribute) => Some(attribute.name()),
+            Value::Namespace(_) => None,
+        }
     }
 
     /// Add name with a namespace.

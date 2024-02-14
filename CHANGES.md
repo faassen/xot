@@ -80,6 +80,8 @@
   * The enum entries `Output::PrefixesFinished` and
     `Output::AttributesFinished` have been removed.
 
+- Processing instruction `target` is now a `xot::NameId`, not a string.
+
 ## Other changes
 
 - Internally, `next-gen` has been replaced with `genawaiter` to support
@@ -92,6 +94,9 @@
 
 - New `xot.axis` method which lets you do traversal according to axis,
   following XPath.
+
+- Added `xot.node_name` function to retrieve name id of element, attribute or
+  processing instruction target.
 
 ## [0.20.0] - 2024-02-08
 

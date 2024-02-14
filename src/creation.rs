@@ -164,16 +164,17 @@ impl Xot {
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();
+    /// let target = xot.add_name("target");
     /// let root = xot.parse(r#"<doc/>"#)?;
     /// let doc_el = xot.document_element(root)?;
-    /// let pi = xot.new_processing_instruction("target", Some("data"));
+    /// let pi = xot.new_processing_instruction(target, Some("data"));
     /// xot.append(doc_el, pi)?;
     /// assert_eq!(xot.to_string(root)?, r#"<doc><?target data?></doc>"#);
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn new_processing_instruction(&mut self, target: &str, data: Option<&str>) -> Node {
+    pub fn new_processing_instruction(&mut self, target: NameId, data: Option<&str>) -> Node {
         let pi = Value::ProcessingInstruction(ProcessingInstruction::new(
-            target.to_string(),
+            target,
             data.map(|s| s.to_string()),
         ));
         self.new_node(pi)

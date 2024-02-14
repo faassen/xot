@@ -230,18 +230,18 @@ impl Comment {
 /// Example: `<?foo?>` or `<?foo bar?>`.
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct ProcessingInstruction {
-    pub(crate) target: String,
+    pub(crate) target: NameId,
     pub(crate) data: Option<String>,
 }
 
 impl ProcessingInstruction {
-    pub(crate) fn new(target: String, data: Option<String>) -> Self {
+    pub(crate) fn new(target: NameId, data: Option<String>) -> Self {
         ProcessingInstruction { target, data }
     }
 
     /// Get processing instruction target.
-    pub fn target(&self) -> &str {
-        &self.target
+    pub fn target(&self) -> NameId {
+        self.target
     }
 
     /// Get processing instruction data.
@@ -249,18 +249,8 @@ impl ProcessingInstruction {
         self.data.as_deref()
     }
 
-    /// Set target.
-    ///
-    /// Rejects any target that is the string `"xml"` (or case variations) as
-    /// it's reserved for XML.
-    pub fn set_target<S: Into<String>>(&mut self, target: S) -> Result<(), Error> {
-        let target = target.into();
-        if target.to_lowercase() == "xml" {
-            return Err(Error::InvalidTarget(target));
-        }
-        if target.is_empty() {
-            return Err(Error::InvalidTarget(target));
-        }
+    /// Set target
+    pub fn set_target<S: Into<String>>(&mut self, target: NameId) -> Result<(), Error> {
         // XXX Ideally check that name follows XML spec
         self.target = target;
         Ok(())

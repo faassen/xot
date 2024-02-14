@@ -31,6 +31,9 @@ pub enum Error {
     /// prefix is declared. Use [`Xot::create_missing_prefixes`](crate::xotdata::Xot::create_missing_prefixes)
     /// to fix this.
     MissingPrefix(NamespaceId),
+    /// It's not allowed to include a namespace prefix in a processing instruction
+    /// target name.
+    NamespaceInProcessingInstruction,
 
     // parser errors
     /// The XML is not well-formed - a tag is opened and never closed.
@@ -93,6 +96,9 @@ impl std::fmt::Display for Error {
             Error::NotElement(_) => write!(f, "Not an element"),
             Error::NodeError(e) => write!(f, "Node error: {}", e),
             Error::MissingPrefix(_) => write!(f, "Missing prefix"),
+            Error::NamespaceInProcessingInstruction => {
+                write!(f, "Namespace in processing instruction target")
+            }
             Error::UnclosedTag => write!(f, "Unclosed tag"),
             Error::InvalidCloseTag(s, s2) => write!(f, "Invalid close tag: {} {}", s, s2),
             Error::UnclosedEntity(s) => write!(f, "Unclosed entity: {}", s),

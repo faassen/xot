@@ -40,7 +40,7 @@ pub enum Output<'a> {
     /// Comment, i.e. `<!-- foo -->`
     Comment(&'a str),
     /// Processing instruction, i.e. `<?foo bar?>`
-    ProcessingInstruction(&'a str, Option<&'a str>),
+    ProcessingInstruction(NameId, Option<&'a str>),
 }
 
 pub(crate) fn gen_outputs(xot: &Xot, node: Node) -> impl Iterator<Item = (Node, Output)> + '_ {
@@ -280,6 +280,10 @@ impl<'a> XmlSerializer<'a> {
                 text: format!("<!--{}-->", text),
             },
             ProcessingInstruction(target, data) => {
+                let (target, ns) = self.xot.name_ns_str(*target);
+                if !ns.is_empty() {
+                    return Err(Error::NamespaceInProcessingInstruction);
+                }
                 if let Some(data) = data {
                     OutputToken {
                         space: false,

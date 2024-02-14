@@ -267,7 +267,7 @@ impl Xot {
     pub fn append_processing_instruction(
         &mut self,
         parent: Node,
-        target: &str,
+        target: NameId,
         data: Option<&str>,
     ) -> Result<(), Error> {
         let pi_node_id = self.new_processing_instruction(target, data);

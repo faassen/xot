@@ -177,7 +177,8 @@ impl Element {
 impl ProcessingInstruction {
     /// Turn a fixed processing instruction into a Xot node
     pub fn xotify(&self, xot: &mut Xot) -> Node {
-        xot.new_processing_instruction(&self.target, self.content.as_deref())
+        let target = xot.add_name(&self.target);
+        xot.new_processing_instruction(target, self.content.as_deref())
     }
 }
 

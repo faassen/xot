@@ -204,10 +204,11 @@ impl DocumentBuilder {
         xot: &mut Xot,
     ) -> Result<NodeId, Error> {
         // XXX are there illegal processing instructions, like those with
-        // ?> inside? or won't they pass the parser?
+        // ?> inside? or won't they pass the parser? What about those with xml?
+        let target = xot.add_name(target);
         Ok(self.add(
             Value::ProcessingInstruction(ProcessingInstruction::new(
-                target.to_string(),
+                target,
                 content.map(|s| s.to_string()),
             )),
             xot,
