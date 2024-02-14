@@ -433,6 +433,15 @@ impl Xot {
             .map(Node::new)
     }
 
+    /// All the descendants of this node.
+    ///
+    /// This includes this one, and namespace and attribute nodes,
+    /// all in document order, where namespace nodes come before
+    /// attribute nodes and attribute nodes come before normal children
+    pub fn all_descendants(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+        node.get().descendants(self.arena()).map(Node::new)
+    }
+
     /// Iterator over the following siblings of this node, including this one.
     ///
     /// In case of namespace or attribute nodes, includes the following sibling
