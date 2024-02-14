@@ -1,5 +1,4 @@
 // implements some of the HashMap API, based on nodes in the indextree
-use std::borrow::Borrow;
 
 use crate::{xmlvalue::ValueCategory, Node, Value, Xot};
 
@@ -49,13 +48,9 @@ where
         A::children(self.xot, self.parent)
     }
 
-    fn get_node_q<Q>(&self, key: &Q) -> Option<Node>
-    where
-        K: Borrow<Q>,
-        Q: Eq + ?Sized,
-    {
+    fn get_node_q(&self, key: &K) -> Option<Node> {
         self.children()
-            .find(|&child| A::key(self.xot.value(child)).borrow() == key)
+            .find(|&child| A::key(self.xot.value(child)) == key)
     }
 
     /// Returns the number of entries in the map, also referred to as its 'length'.
@@ -71,13 +66,9 @@ where
     // TODO: retain, drain, sort_keys, sort_unstable_keys, sort_by, sort_unstable_by,
 
     /// Return `true` if an equivalent to `key` exists in the map.
-    pub fn contains_key<Q>(&self, key: &Q) -> bool
-    where
-        K: Borrow<Q>,
-        Q: Eq + ?Sized,
-    {
+    pub fn contains_key(&self, key: &K) -> bool {
         for child in self.children() {
-            if A::key(self.xot.value(child)).borrow() == key {
+            if A::key(self.xot.value(child)) == key {
                 return true;
             }
         }
@@ -85,11 +76,7 @@ where
     }
 
     /// Return a reference to the value stored for `key`, if it is present, else `None`.
-    pub fn get<Q>(&self, key: &Q) -> Option<&V>
-    where
-        K: Borrow<Q>,
-        Q: Eq + ?Sized,
-    {
+    pub fn get(&self, key: &K) -> Option<&V> {
         let node = self.get_node_q(key)?;
         Some(A::value(self.xot.value(node)))
     }
@@ -154,13 +141,9 @@ where
         A::children(self.xot, self.parent)
     }
 
-    fn get_node_q<Q>(&self, key: &Q) -> Option<Node>
-    where
-        K: Borrow<Q>,
-        Q: Eq + ?Sized,
-    {
+    fn get_node_q(&self, key: &K) -> Option<Node> {
         self.children()
-            .find(|&child| A::key(self.xot.value(child)).borrow() == key)
+            .find(|&child| A::key(self.xot.value(child)) == key)
     }
 
     fn get_node(&self, key: &K) -> Option<Node> {
@@ -181,13 +164,9 @@ where
     // TODO: retain, drain, sort_keys, sort_unstable_keys, sort_by, sort_unstable_by,
 
     /// Return `true` if an equivalent to `key` exists in the map.
-    pub fn contains_key<Q>(&self, key: &Q) -> bool
-    where
-        K: Borrow<Q>,
-        Q: Eq + ?Sized,
-    {
+    pub fn contains_key(&self, key: &K) -> bool {
         for child in self.children() {
-            if A::key(self.xot.value(child)).borrow() == key {
+            if A::key(self.xot.value(child)) == key {
                 return true;
             }
         }
@@ -195,11 +174,7 @@ where
     }
 
     /// Return a reference to the value stored for `key`, if it is present, else `None`.
-    pub fn get<Q>(&self, key: &Q) -> Option<&V>
-    where
-        K: Borrow<Q>,
-        Q: Eq + ?Sized,
-    {
+    pub fn get(&self, key: &K) -> Option<&V> {
         let node = self.get_node_q(key)?;
         Some(A::value(self.xot.value(node)))
     }
@@ -233,11 +208,7 @@ where
     // TODO: end of duplication
 
     /// Return a mutable reference to the value stored for `key`, if it is present, else `None`.
-    pub fn get_mut<Q>(&mut self, key: &Q) -> Option<&mut V>
-    where
-        K: Borrow<Q>,
-        Q: Eq + ?Sized,
-    {
+    pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
         let node = self.get_node_q(key)?;
         Some(A::value_mut(self.xot.value_mut(node)))
     }
