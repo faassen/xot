@@ -164,6 +164,19 @@ impl Xot {
     /// Namespaces accessor.
     ///
     /// Returns a map of namespaces.
+    ///
+    /// Use this to access namespaces by prefix. You use a hashmap-like API:
+    ///
+    /// ```rust
+    /// let mut xot = xot::Xot::new();
+    /// let foo_prefix = xot.add_prefix("foo");
+    /// let foo_ns = xot.add_namespace("FOO");
+    /// let root = xot.parse(r#"<p xmlns:foo="FOO">Example</p>"#).unwrap();
+    /// let p = xot.document_element(root).unwrap();
+    /// let namespaces = xot.namespaces(p);
+    ///
+    /// assert_eq!(namespaces.get(foo_prefix), Some(&foo_ns));
+    /// ```
     pub fn namespaces(&self, node: Node) -> Namespaces {
         Namespaces::new(self, node)
     }
