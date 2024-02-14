@@ -7,10 +7,11 @@ use crate::entity::{parse_attribute, parse_text};
 use crate::error::Error;
 use crate::name::{Name, NameId};
 use crate::prefix::PrefixId;
-use crate::xmlvalue::{
-    Attribute, Comment, Element, Namespace, Prefixes, ProcessingInstruction, Text, Value,
-};
+use crate::xmlvalue::{Attribute, Comment, Element, Namespace, ProcessingInstruction, Text, Value};
 use crate::xotdata::{Node, Xot};
+use crate::NamespaceId;
+
+type Namespaces = Vec<(PrefixId, NamespaceId)>;
 
 struct AttributeBuilder {
     prefix: String,
@@ -23,7 +24,7 @@ struct AttributeBuilder {
 struct ElementBuilder {
     prefix: String,
     name: String,
-    prefixes: Prefixes,
+    namespaces: Namespaces,
     attributes: Vec<AttributeBuilder>,
     span: Span,
 }
@@ -33,7 +34,7 @@ impl ElementBuilder {
         ElementBuilder {
             prefix: prefix.to_string(),
             name: name.to_string(),
-            prefixes: Prefixes::new(),
+            namespaces: Namespaces::new(),
             attributes: Vec::new(),
             span: Span::from_prefix_name(prefix, name),
         }
@@ -87,9 +88,8 @@ struct DocumentBuilder {
 impl DocumentBuilder {
     fn new(xot: &mut Xot) -> Self {
         let root = xot.arena.new_node(Value::Root);
-        let mut name_id_builder = NameIdBuilder::new(xot.base_prefixes());
-        let mut base_prefixes = Prefixes::new();
-        base_prefixes.insert(xot.empty_prefix_id, xot.no_namespace_id);
+        let mut name_id_builder = NameIdBuilder::new(xot.base_prefixes().into_iter().collect());
+        let base_prefixes = vec![(xot.empty_prefix_id, xot.no_namespace_id)];
         name_id_builder.push(&base_prefixes);
         DocumentBuilder {
             tree: root,
@@ -109,8 +109,8 @@ impl DocumentBuilder {
         self.element_builder
             .as_mut()
             .unwrap()
-            .prefixes
-            .insert(prefix_id, namespace_id);
+            .namespaces
+            .push((prefix_id, namespace_id));
     }
 
     fn attribute(
@@ -151,7 +151,7 @@ impl DocumentBuilder {
         let element_builder = self.element_builder.take().unwrap();
         let span = element_builder.span;
 
-        self.name_id_builder.push(&element_builder.prefixes);
+        self.name_id_builder.push(&element_builder.namespaces);
 
         let name_id = self.name_id_builder.element_name_id(
             &element_builder.prefix,
@@ -163,7 +163,7 @@ impl DocumentBuilder {
         self.current_node_id = node_id;
 
         // add namespace nodes
-        for (prefix_id, namespace_id) in &element_builder.prefixes {
+        for (prefix_id, namespace_id) in &element_builder.namespaces {
             let namespace_node = xot.arena.new_node(Value::Namespace(Namespace {
                 prefix_id: *prefix_id,
                 namespace_id: *namespace_id,
@@ -205,7 +205,7 @@ impl DocumentBuilder {
 
     fn close_element_immediate(&mut self, xot: &mut Xot) -> NodeId {
         let current_node = xot.arena.get(self.current_node_id).unwrap();
-        if let Value::Element(element) = current_node.get() {
+        if let Value::Element(_) = current_node.get() {
             self.name_id_builder.pop();
         }
         let closed_node_id = self.current_node_id;
@@ -256,19 +256,19 @@ impl DocumentBuilder {
 }
 
 struct NameIdBuilder {
-    namespace_stack: Vec<Prefixes>,
+    namespace_stack: Vec<Namespaces>,
 }
 
 impl NameIdBuilder {
-    fn new(prefixes: Prefixes) -> Self {
+    fn new(prefixes: Namespaces) -> Self {
         let namespace_stack = vec![prefixes];
         Self { namespace_stack }
     }
 
-    fn push(&mut self, prefixes: &Prefixes) {
+    fn push(&mut self, namespaces: &Namespaces) {
         // can always use top as there's a bottom entry
         let mut entry = self.top().clone();
-        entry.extend(prefixes);
+        entry.extend(namespaces);
         self.namespace_stack.push(entry);
     }
 
@@ -278,7 +278,7 @@ impl NameIdBuilder {
     }
 
     #[inline]
-    fn top(&self) -> &Prefixes {
+    fn top(&self) -> &Namespaces {
         &self.namespace_stack[self.namespace_stack.len() - 1]
     }
 
@@ -324,12 +324,15 @@ impl NameIdBuilder {
         xot: &mut Xot,
     ) -> Result<NameId, ()> {
         let namespace_id = if !self.namespace_stack.is_empty() {
-            self.top().get(&prefix_id)
+            self.top()
+                .iter()
+                .rev()
+                .find_map(|(p, ns)| if *p == prefix_id { Some(*ns) } else { None })
         } else {
             None
         };
         let namespace_id = namespace_id.ok_or(())?;
-        let name = Name::new(name.to_string(), *namespace_id);
+        let name = Name::new(name.to_string(), namespace_id);
         Ok(xot.name_lookup.get_id_mut(&name))
     }
 }

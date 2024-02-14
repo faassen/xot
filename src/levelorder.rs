@@ -63,7 +63,7 @@ mod tests {
         let c1 = xot.next_sibling(c0).unwrap();
         let c2 = xot.next_sibling(c1).unwrap();
 
-        let mut iter = level_order_traverse(&xot, root).into_iter();
+        let iter = level_order_traverse(&xot, root);
 
         let v = iter.collect::<Vec<_>>();
         assert_eq!(
@@ -102,7 +102,7 @@ mod tests {
         let b0 = xot.next_sibling(x1).unwrap();
         let x2 = xot.next_sibling(b0).unwrap();
 
-        let mut iter = level_order_traverse(&xot, root);
+        let iter = level_order_traverse(&xot, root);
 
         let v = iter.collect::<Vec<_>>();
         assert_eq!(

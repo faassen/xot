@@ -98,9 +98,9 @@ fn gen_edge_start<'a>(
                     yield_!(Output::Prefix(*prefix_id, *namespace_id,));
                 }
 
-                // for (name_id, value) in xot.attributes_hack(node) {
-                //     yield_!(Output::Attribute(name_id, value));
-                // }
+                for (name_id, value) in xot.attributes(node).iter() {
+                    yield_!(Output::Attribute(*name_id, value));
+                }
 
                 yield_!(Output::StartTagClose);
             }

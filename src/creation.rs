@@ -107,10 +107,9 @@ impl Xot {
     /// // create name in namespace
     /// let doc_name = xot.add_name_ns("doc", ns);
     /// let doc_el = xot.new_element(doc_name);
-    /// let element = xot.element_mut(doc_el).unwrap();
-    ///
-    /// // set up namepace prefix in element so it serializes to XML nicely
-    /// element.set_prefix(ex, ns);
+
+    /// // set up namepace prefix for element so it serializes to XML nicely
+    /// xot.namespaces_mut(doc_el).insert(ex, ns);
     ///
     /// let root = xot.new_root(doc_el)?;
     ///

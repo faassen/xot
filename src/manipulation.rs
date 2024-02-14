@@ -405,7 +405,7 @@ impl Xot {
 
         let clone = self.clone(node);
         // add any prefixes from outer scope we may need
-        let mut namespaces = self.namespaces_mut(node);
+        let mut namespaces = self.namespaces_mut(clone);
         for (prefix, ns) in prefixes {
             if namespaces.contains_key(&prefix) {
                 continue;

@@ -41,12 +41,11 @@ impl Xot {
     ///
     /// let root = xot.parse("<doc>Example</doc>")?;
     /// let doc_el = xot.document_element(root).unwrap();
-    ///
-    /// let attr_name = xot.add_name("foo");
+    /// let text_node = xot.first_child(doc_el).unwrap();
     ///
     /// match xot.value_mut(doc_el) {
-    ///    Value::Element(element) => {
-    ///       element.set_attribute(attr_name, "Foo!")
+    ///    Value::Text(text) => {
+    ///       text.set("Changed");
     ///   }
     ///   _ => { }
     /// }
@@ -278,53 +277,10 @@ impl Xot {
     /// let child_name = xot.name("child").unwrap();
     /// assert_eq!(element.name(), child_name);
     ///
-    /// let a_name = xot.name("a").unwrap();
-    /// let attribute_value = element.get_attribute(a_name).unwrap();
-    /// assert_eq!(attribute_value, "A");
-    ///
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn element(&self, node: Node) -> Option<&Element> {
         let xml_node = self.value(node);
-        if let Value::Element(element) = xml_node {
-            Some(element)
-        } else {
-            None
-        }
-    }
-
-    /// If this node's value is an element, return a mutable reference to it.
-    ///
-    /// You can use this to add or remove attributes as well as
-    /// namespace declarations.
-    ///
-    /// ```rust
-    /// use xot::Xot;
-    ///
-    /// let mut xot = Xot::new();
-    /// let root = xot.parse(r#"<doc><child a="A"/></doc>"#)?;
-    /// let doc_el = xot.document_element(root)?;
-    /// let child_el = xot.first_child(doc_el).unwrap();
-    ///
-    /// let prefix = xot.add_prefix("ns");
-    /// let ns = xot.add_namespace("http://example.com");
-    /// let b_name = xot.add_name("b");
-    ///
-    /// let element = xot.element_mut(child_el).unwrap();
-    ///
-    /// element.set_attribute(b_name, "B");
-    ///
-    /// assert_eq!(xot.to_string(root)?, r#"<doc><child a="A" b="B"/></doc>"#);
-    ///
-    /// let element = xot.element_mut(child_el).unwrap();
-    ///
-    /// element.set_prefix(prefix, ns);
-    ///
-    /// assert_eq!(xot.to_string(root)?, r#"<doc><child xmlns:ns="http://example.com" a="A" b="B"/></doc>"#);
-    /// # Ok::<(), xot::Error>(())
-    /// ```
-    pub fn element_mut(&mut self, node: Node) -> Option<&mut Element> {
-        let xml_node = self.value_mut(node);
         if let Value::Element(element) = xml_node {
             Some(element)
         } else {

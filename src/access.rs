@@ -5,7 +5,7 @@ use crate::levelorder::{level_order_traverse, LevelOrder};
 use crate::nodemap::{Attributes, Namespaces};
 use crate::xmlvalue::{Value, ValueCategory, ValueType};
 use crate::xotdata::{Node, Xot};
-use crate::{MutableAttributes, MutableNamespaces, NameId};
+use crate::{MutableAttributes, MutableNamespaces};
 
 /// Node edges.
 ///
@@ -130,14 +130,6 @@ impl Xot {
     pub fn attributes(&self, node: Node) -> Attributes {
         Attributes::new(self, node)
     }
-
-    // pub(crate) fn attributes_hack<'a>(&'a self, node: Node) -> Vec<(NameId, &'a String)> {
-    //     let mut result = Vec::new();
-    //     for (name_id, value) in self.attributes(node).iter() {
-    //         result.push((*name_id, value));
-    //     }
-    //     result
-    // }
 
     /// Mutable attributes accessor
     pub fn attributes_mut(&mut self, node: Node) -> MutableAttributes {

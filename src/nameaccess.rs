@@ -397,8 +397,7 @@ impl Xot {
                     }
                 }
                 NodeEdge::End(node) => {
-                    let element = self.element(node);
-                    if let Some(element) = element {
+                    if self.is_element(node) {
                         fullname_serializer.pop();
                     }
                 }
