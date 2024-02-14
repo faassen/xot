@@ -182,6 +182,20 @@ impl Xot {
     }
 
     /// Mutable namespaces accessor.
+    ///
+    /// Use this to set namespace prefixes. You use a hashmap-like API:
+    ///
+    /// ```rust
+    /// let mut xot = xot::Xot::new();
+    /// let foo_prefix = xot.add_prefix("foo");
+    /// let foo_ns = xot.add_namespace("FOO");
+    /// let root = xot.parse(r#"<p>Example</p>"#).unwrap();
+    /// let p = xot.document_element(root).unwrap();
+    /// let mut namespaces = xot.namespaces_mut(p);
+    /// namespaces.insert(foo_prefix, foo_ns);
+    ///
+    /// assert_eq!(xot.to_string(root).unwrap(), r#"<p xmlns:foo="FOO">Example</p>"#);
+    /// ```
     pub fn namespaces_mut(&mut self, node: Node) -> MutableNamespaces {
         MutableNamespaces::new(self, node)
     }
