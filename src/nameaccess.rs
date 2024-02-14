@@ -520,6 +520,8 @@ impl Xot {
             }
         }
         // now actually fix up the nodes, removing superfluous namespaces
+        // TODO: this whole thing is a bit a multi-step mess. Perhaps
+        // direct namespace node access would help.
         let mut fixup_prefixes = Vec::new();
         for (node, to_remove) in fixup_nodes {
             let namespaces = self.namespaces(node);
