@@ -18,7 +18,6 @@ pub enum LevelOrder {
 
 // traverse the tree in level order, meaning subsequent children are traversed first
 // when a sequence of children comes to an end, a LevelOrder::End is yielded
-// #[generator(yield(LevelOrder))]
 pub(crate) fn level_order_traverse(xot: &Xot, node: Node) -> impl Iterator<Item = LevelOrder> + '_ {
     gen!({
         let mut queue = VecDeque::new();
