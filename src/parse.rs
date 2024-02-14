@@ -238,11 +238,6 @@ impl NameIdBuilder {
         self.namespace_stack.pop();
     }
 
-    // #[inline]
-    // fn top(&self) -> &Namespaces {
-    //     &self.namespace_stack[self.namespace_stack.len() - 1]
-    // }
-
     fn element_name_id(
         &mut self,
         prefix: &str,
