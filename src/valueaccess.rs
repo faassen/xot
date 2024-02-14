@@ -1,5 +1,7 @@
 use crate::access::NodeEdge;
-use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value, ValueType};
+use crate::xmlvalue::{
+    Attribute, Comment, Element, Namespace, ProcessingInstruction, Text, Value, ValueType,
+};
 use crate::xotdata::{Node, Xot};
 use crate::NameId;
 
@@ -177,6 +179,16 @@ impl Xot {
     /// Return true if node is a processing instruction.
     pub fn is_processing_instruction(&self, node: Node) -> bool {
         self.value_type(node) == ValueType::ProcessingInstruction
+    }
+
+    /// Return true if node is a namespace node.
+    pub fn is_namespace_node(&self, node: Node) -> bool {
+        self.value_type(node) == ValueType::Namespace
+    }
+
+    /// Return true if node is an attribute node.
+    pub fn is_attribute_node(&self, node: Node) -> bool {
+        self.value_type(node) == ValueType::Attribute
     }
 
     /// If this node's value is text, return a reference to it.
@@ -468,6 +480,46 @@ impl Xot {
         let xml_node = self.value_mut(node);
         if let Value::ProcessingInstruction(pi) = xml_node {
             Some(pi)
+        } else {
+            None
+        }
+    }
+
+    /// Access namespace node value
+    pub fn namespace_node(&self, node: Node) -> Option<&Namespace> {
+        let xml_node = self.value(node);
+        if let Value::Namespace(namespace) = xml_node {
+            Some(namespace)
+        } else {
+            None
+        }
+    }
+
+    /// Manipulate namespace node value
+    pub fn namespace_node_mut(&mut self, node: Node) -> Option<&mut Namespace> {
+        let xml_node = self.value_mut(node);
+        if let Value::Namespace(namespace) = xml_node {
+            Some(namespace)
+        } else {
+            None
+        }
+    }
+
+    /// Access attribute node value
+    pub fn attribute_node(&self, node: Node) -> Option<&Attribute> {
+        let xml_node = self.value(node);
+        if let Value::Attribute(attribute) = xml_node {
+            Some(attribute)
+        } else {
+            None
+        }
+    }
+
+    /// Manipulate attribute node value
+    pub fn attribute_node_mut(&mut self, node: Node) -> Option<&mut Attribute> {
+        let xml_node = self.value_mut(node);
+        if let Value::Attribute(attribute) = xml_node {
+            Some(attribute)
         } else {
             None
         }

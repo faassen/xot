@@ -6,6 +6,10 @@ use super::core::{category_predicate, MutableNodeMap, NodeMap, ValueAdapter};
 pub struct NamespaceAdapter {}
 
 impl ValueAdapter<PrefixId, NamespaceId> for NamespaceAdapter {
+    fn matches(value: &Value) -> bool {
+        matches!(value, Value::Namespace(_))
+    }
+
     fn children(xot: &Xot, node: Node) -> impl Iterator<Item = Node> + '_ {
         xot.all_children(node)
             .take_while(category_predicate(xot, ValueCategory::Namespace))

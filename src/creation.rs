@@ -1,7 +1,8 @@
 use crate::error::Error;
 use crate::name::NameId;
-use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value};
+use crate::xmlvalue::{Attribute, Comment, Element, Namespace, ProcessingInstruction, Text, Value};
 use crate::xotdata::{Node, Xot};
+use crate::{NamespaceId, PrefixId};
 
 /// ## Creation
 /// See also the convenience manipulation methods like [`Xot::append_element`]
@@ -176,5 +177,63 @@ impl Xot {
             data.map(|s| s.to_string()),
         ));
         self.new_node(pi)
+    }
+
+    /// Create a new, unattached attribute.
+    ///
+    /// You can then use [`Xot::append_attribute`] to add it to an element node.
+    ///
+    /// This method is useful in situations where attributes need to be created
+    /// independently of elements, but for many use cases you can use the
+    /// [`Xot::attributes_mut`] API to create attributes instead.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let foo = xot.add_name("foo");
+    /// let root = xot.parse(r#"<doc/>"#)?;
+    /// let doc_el = xot.document_element(root)?;
+    /// let attr = xot.new_attribute_node(foo, "FOO".to_string());
+    /// xot.append_attribute_node(doc_el, attr)?;
+    /// assert_eq!(xot.to_string(root)?, r#"<doc foo="FOO"/>"#);
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    pub fn new_attribute_node(&mut self, name: NameId, value: String) -> Node {
+        let attr = Value::Attribute(Attribute {
+            name_id: name,
+            value,
+        });
+        self.new_node(attr)
+    }
+
+    /// Create a new, unattached namespace declaration node.
+    ///
+    /// You can then use [`Xot::append_namespace`] to add it to an element node.
+    ///
+    /// This method is useful in situations where namespaces need to be created
+    /// independently of elements, but for many use cases you can use the
+    /// [`Xot::namespaces_mut`] API to create namespaces instead.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let foo = xot.add_prefix("foo");
+    /// let ns = xot.add_namespace("http://example.com");
+    /// let root = xot.parse(r#"<doc/>"#)?;
+    /// let doc_el = xot.document_element(root)?;
+    /// let ns = xot.new_namespace_node(foo, ns);
+    /// xot.append_namespace_node(doc_el, ns)?;
+    /// assert_eq!(xot.to_string(root)?, r#"<doc xmlns:foo="http://example.com"/>"#);
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    pub fn new_namespace_node(&mut self, prefix: PrefixId, namespace: NamespaceId) -> Node {
+        let ns = Value::Namespace(Namespace {
+            prefix_id: prefix,
+            namespace_id: namespace,
+        });
+        self.new_node(ns)
     }
 }

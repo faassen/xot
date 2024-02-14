@@ -92,6 +92,123 @@ impl Xot {
         Ok(())
     }
 
+    /// Append namespace node to parent node.
+    ///
+    /// If the namespace prefix already exists, instead of appending the node,
+    /// updates the existing node.
+    ///
+    /// Returns the node that was inserted, or if an existing node was updated,
+    /// this node.
+    ///
+    /// Note that an easier way to add namespace prefixes is through
+    /// [`Xot::namespaces_mut()`]. This method is only useful if you have
+    /// independent namespace nodes.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<doc/>"#)?;
+    /// let doc_el = xot.document_element(root)?;
+    ///
+    /// let prefix = xot.add_prefix("foo");
+    /// let namespace = xot.add_namespace("http://example.com");
+    /// let namespace2 = xot.add_namespace("http://example.com/2");
+    /// let node = xot.new_namespace_node(prefix, namespace);
+    /// let added_node = xot.append_namespace_node(doc_el, node)?;
+    ///
+    /// // since the node didn't yet exist, it's the node we got
+    /// assert_eq!(added_node, node);
+    ///
+    /// assert_eq!(xot.to_string(root).unwrap(), r#"<doc xmlns:foo="http://example.com"/>"#);
+    ///
+    /// // If we append a node with the same prefix, the existing one is
+    /// // updated.
+    ///
+    /// let new_node = xot.new_namespace_node(prefix, namespace2);
+    /// let updated_node = xot.append_namespace_node(doc_el, new_node)?;
+    ///
+    /// // the updated node is the original not, not the new node
+    /// assert_eq!(updated_node, node);
+    /// assert_ne!(updated_node, new_node);
+    ///
+    /// assert_eq!(xot.to_string(root).unwrap(), r#"<doc xmlns:foo="http://example.com/2"/>"#);
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    pub fn append_namespace_node(&mut self, parent: Node, child: Node) -> Result<Node, Error> {
+        if !self.is_element(parent) {
+            return Err(Error::InvalidOperation(
+                "Cannot add namespace node to non-element node".to_string(),
+            ));
+        }
+        if !self.is_namespace_node(child) {
+            return Err(Error::InvalidOperation(
+                "Cannot add non-namespace node as namespace".to_string(),
+            ));
+        }
+
+        let mut namespaces = self.namespaces_mut(parent);
+        Ok(namespaces.insert_node(child))
+    }
+
+    /// Append attribute node to parent node.
+    ///
+    /// If the attribute name already exists, instead of appending the node,
+    /// updates the existing node.
+    ///
+    /// Returns the node that was inserted, or if an existing node was updated,
+    /// this node.
+    ///
+    /// Note that an easier way to add attributes is through
+    /// [`Xot::attributes_mut()`]. This method is only useful if you have
+    /// independent attribute nodes.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<doc/>"#)?;
+    /// let doc_el = xot.document_element(root)?;
+    ///
+    /// let foo = xot.add_name("foo");
+
+    /// let node = xot.new_attribute_node(foo, "FOO".to_string());
+    /// let added_node = xot.append_attribute_node(doc_el, node)?;
+    ///
+    /// // Since the node didn't yet exist, it's the one we get
+    /// assert_eq!(added_node, node);
+    ///
+    /// assert_eq!(xot.to_string(root).unwrap(), r#"<doc foo="FOO"/>"#);
+    ///
+    /// // If we append a node with the same name, the existing one is
+    /// // updated.
+    ///
+    /// let new_node = xot.new_attribute_node(foo, "FOO2".to_string());
+    /// let updated_node = xot.append_attribute_node(doc_el, new_node)?;
+    ///
+    /// // the updated node is the original not, not the new node
+    /// assert_eq!(updated_node, node);
+    /// assert_ne!(updated_node, new_node);
+    ///
+    /// assert_eq!(xot.to_string(root).unwrap(), r#"<doc foo="FOO2"/>"#);
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    pub fn append_attribute_node(&mut self, parent: Node, child: Node) -> Result<Node, Error> {
+        if !self.is_element(parent) {
+            return Err(Error::InvalidOperation(
+                "Cannot add attribute node to non-element node".to_string(),
+            ));
+        }
+        if !self.is_attribute_node(child) {
+            return Err(Error::InvalidOperation(
+                "Cannot add non-attribute node as attribute".to_string(),
+            ));
+        }
+
+        let mut attributes = self.attributes_mut(parent);
+        Ok(attributes.insert_node(child))
+    }
+
     /// Append a text node to a parent node given text.
     ///
     /// ```rust

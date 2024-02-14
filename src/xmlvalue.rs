@@ -287,10 +287,39 @@ pub struct Attribute {
     pub(crate) value: String,
 }
 
+impl Attribute {
+    /// Get value
+    pub fn value(&self) -> &str {
+        &self.value
+    }
+
+    /// Set value
+    pub fn set_value<S: Into<String>>(&mut self, value: S) {
+        self.value = value.into();
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Namespace {
     pub(crate) prefix_id: PrefixId,
     pub(crate) namespace_id: NamespaceId,
+}
+
+impl Namespace {
+    /// Get prefix
+    pub fn prefix(&self) -> PrefixId {
+        self.prefix_id
+    }
+
+    /// Get namespace
+    pub fn namespace(&self) -> NamespaceId {
+        self.namespace_id
+    }
+
+    /// Set namespace id
+    pub fn set_namespace(&mut self, namespace_id: NamespaceId) {
+        self.namespace_id = namespace_id;
+    }
 }
 
 #[cfg(test)]
@@ -315,162 +344,4 @@ mod tests {
         assert_eq!(alpha_hash, beta_hash);
         assert_ne!(alpha_hash, gamma_hash);
     }
-
-    // #[test]
-    // fn test_element_compare_same() {
-    //     let mut xot = Xot::new();
-    //     let a = xot.add_name("a");
-
-    //     let mut alpha = Element {
-    //         name_id: a,
-    //         prefixes: Prefixes::new(),
-    //         attributes: Attributes::new(),
-    //     };
-    //     let mut beta = Element {
-    //         name_id: a,
-    //         prefixes: Prefixes::new(),
-    //         attributes: Attributes::new(),
-    //     };
-    //     alpha.set_attribute(a, "foo");
-    //     beta.set_attribute(a, "foo");
-
-    //     assert!(alpha.compare(&beta));
-    // }
-
-    // #[test]
-    // fn test_element_compare_different_value() {
-    //     let mut xot = Xot::new();
-    //     let a = xot.add_name("a");
-
-    //     let mut alpha = Element {
-    //         name_id: a,
-    //         prefixes: Prefixes::new(),
-    //         attributes: Attributes::new(),
-    //     };
-    //     let mut beta = Element {
-    //         name_id: a,
-    //         prefixes: Prefixes::new(),
-    //         attributes: Attributes::new(),
-    //     };
-    //     alpha.set_attribute(a, "foo");
-    //     beta.set_attribute(a, "bar");
-
-    //     assert!(!alpha.compare(&beta));
-    // }
-
-    // #[test]
-    // fn test_element_compare_overlap() {
-    //     let mut xot = Xot::new();
-    //     let a = xot.add_name("a");
-    //     let b = xot.add_name("b");
-
-    //     let mut alpha = Element {
-    //         name_id: a,
-    //         prefixes: Prefixes::new(),
-    //         attributes: Attributes::new(),
-    //     };
-    //     let mut beta = Element {
-    //         name_id: a,
-    //         prefixes: Prefixes::new(),
-    //         attributes: Attributes::new(),
-    //     };
-    //     alpha.set_attribute(a, "foo");
-    //     beta.set_attribute(a, "foo");
-    //     beta.set_attribute(b, "bar");
-
-    //     assert!(!alpha.compare(&beta));
-    // }
-
-    // #[test]
-    // fn test_element_compare_ignore_attributes_same_ignorable_in_self() {
-    //     let mut xot = Xot::new();
-    //     let a = xot.add_name("a");
-    //     let b = xot.add_name("b");
-
-    //     let mut alpha = Element {
-    //         name_id: a,
-    //         prefixes: Prefixes::new(),
-    //         attributes: Attributes::new(),
-    //     };
-    //     let mut beta = Element {
-    //         name_id: a,
-    //         prefixes: Prefixes::new(),
-    //         attributes: Attributes::new(),
-    //     };
-    //     alpha.set_attribute(a, "foo");
-    //     beta.set_attribute(a, "foo");
-    //     alpha.set_attribute(b, "bar");
-    //     assert!(alpha.compare_ignore_attributes(&beta, &[b]));
-    //     assert!(!alpha.compare_ignore_attributes(&beta, &[]));
-    // }
-
-    // #[test]
-    // fn test_element_compare_ignore_attributes_same_ignorable_in_other() {
-    //     let mut xot = Xot::new();
-    //     let a = xot.add_name("a");
-    //     let b = xot.add_name("b");
-
-    //     let mut alpha = Element {
-    //         name_id: a,
-    //         prefixes: Prefixes::new(),
-    //         attributes: Attributes::new(),
-    //     };
-    //     let mut beta = Element {
-    //         name_id: a,
-    //         prefixes: Prefixes::new(),
-    //         attributes: Attributes::new(),
-    //     };
-    //     alpha.set_attribute(a, "foo");
-    //     beta.set_attribute(a, "foo");
-    //     beta.set_attribute(b, "bar");
-    //     assert!(alpha.compare_ignore_attributes(&beta, &[b]));
-    //     assert!(!alpha.compare_ignore_attributes(&beta, &[]));
-    // }
-
-    // #[test]
-    // fn test_element_compare_ignore_attributes_different_value() {
-    //     let mut xot = Xot::new();
-    //     let a = xot.add_name("a");
-    //     let b = xot.add_name("b");
-
-    //     let mut alpha = Element {
-    //         name_id: a,
-    //         prefixes: Prefixes::new(),
-    //         attributes: Attributes::new(),
-    //     };
-    //     let mut beta = Element {
-    //         name_id: a,
-    //         prefixes: Prefixes::new(),
-    //         attributes: Attributes::new(),
-    //     };
-    //     alpha.set_attribute(a, "foo");
-    //     beta.set_attribute(a, "qux");
-    //     beta.set_attribute(b, "bar");
-    //     assert!(!alpha.compare_ignore_attributes(&beta, &[b]));
-    //     assert!(!alpha.compare_ignore_attributes(&beta, &[]));
-    // }
-
-    // #[test]
-    // fn test_element_compare_ignore_attributes_ignorable_in_both() {
-    //     let mut xot = Xot::new();
-    //     let a = xot.add_name("a");
-    //     let b = xot.add_name("b");
-
-    //     let mut alpha = Element {
-    //         name_id: a,
-    //         prefixes: Prefixes::new(),
-    //         attributes: Attributes::new(),
-    //     };
-    //     let mut beta = Element {
-    //         name_id: a,
-    //         prefixes: Prefixes::new(),
-    //         attributes: Attributes::new(),
-    //     };
-    //     alpha.set_attribute(a, "foo");
-    //     alpha.set_attribute(b, "qux");
-    //     beta.set_attribute(a, "foo");
-    //     beta.set_attribute(b, "bar");
-    //     assert!(alpha.compare_ignore_attributes(&beta, &[b]));
-    //     assert!(!alpha.compare_ignore_attributes(&beta, &[]));
-    // }
 }

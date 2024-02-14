@@ -39,6 +39,30 @@
     `xot.compare_elements_ignore_attributes`, which needs to be provided with
     two element nodes.
 
+- For the use case where you want to create and append namespace and attribute
+  nodes independently as opposed through going through the more convenient
+  `xot.attributes_mut` and `xot.namespaces_mut` APIs, you can use a new set of
+  APIs. These all have the postfix `_node` in them to remind you that you are
+  doing explicit node manipulation.
+
+  * To create a new namespace node: `xot.new_namespace_node()`.
+
+  * To create a new attribute node: `xot.new_attribute_node()`.
+
+  * To append a namespace node: `xot.append_namespace_node()`.
+
+  * To append an attribute node: `xot_append_attribute_node()`.
+
+  * To check whether something is a namespace node: `xot.is_namespace_node()`.
+
+  * To check whether something is an attribute node: `xot.is_attribute_node()`.
+
+  * To access or manipulate a namespace node: `xot.namespace_node` and
+    `xot.namespace_node_mut`.
+
+  * To access or manipulate an attribute node: `xot.attribute_node` and
+    `xot.attribute_node_mut`.
+
 - `xot::Prefixes` is now a real hashmap, not a vecmap or the new nodemap, and
    thus does not retain order information. It is returned from specific APIs
    such as `xot.inherited_prefixes()`, 

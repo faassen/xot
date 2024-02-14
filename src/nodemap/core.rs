@@ -5,6 +5,7 @@ use crate::{xmlvalue::ValueCategory, Node, Value, Xot};
 use super::entry::{Entry, OccupiedEntry, VacantEntry};
 
 pub trait ValueAdapter<K, V> {
+    fn matches(value: &Value) -> bool;
     fn children(xot: &Xot, parent: Node) -> impl Iterator<Item = Node> + '_;
     // new node insertion point is either node whether it should be inserted after,
     // or if None, prepend in the beginning
@@ -282,6 +283,46 @@ where
         }
     }
 
+    /// Insert a node into the map. This node has to be of the right type,
+    /// so a namespace node for a namespaces map, and an attribute node
+    /// for an attribute map, if not, this function will panic.
+    ///
+    /// If an equivalent key already exists in the map: existing node is updated
+    /// with the new value, and returned.
+    ///
+    /// If no equivalent key existed in the map: the new node is inserted, and
+    /// returned as the inserted node.
+    pub(crate) fn insert_node(&mut self, node: Node) -> Node {
+        let node_value = self.xot.value(node);
+        if !A::matches(node_value) {
+            panic!("Tried to insert unexpected node value into the node map");
+        }
+        let key = A::key(node_value);
+        let value = A::value(node_value).clone();
+
+        let existing_node = self.get_node(key);
+        if let Some(existing_node) = existing_node {
+            // if we already have a node
+            let node_value = self.xot.value_mut(existing_node);
+            A::update(node_value, value);
+            existing_node
+        } else {
+            let insertion_point = A::insertion_point(self.xot, self.parent);
+            if let Some(insertion_point) = insertion_point {
+                insertion_point
+                    .get()
+                    .checked_insert_after(node.get(), &mut self.xot.arena)
+                    .unwrap();
+            } else {
+                self.parent
+                    .get()
+                    .checked_prepend(node.get(), &mut self.xot.arena)
+                    .unwrap();
+            }
+            node
+        }
+    }
+
     /// Remove a key-value pair from the map, if it exists.
     ///
     /// Returns the value corresponding to the key if the key was previously in the map.
@@ -330,34 +371,79 @@ mod tests {
     #[test]
     fn test_attribute_insert() {
         let mut xot = Xot::new();
-        let root = xot.parse(r#"<doc a="A"></doc>"#);
+        let root = xot.parse(r#"<doc a="A"></doc>"#).unwrap();
         let a = xot.add_name("a");
-        let document_element = xot.document_element(root.unwrap()).unwrap();
+        let document_element = xot.document_element(root).unwrap();
         let mut attributes = xot.attributes_mut(document_element);
         attributes.insert(a, "B".to_string());
         assert_eq!(attributes.get(a), Some(&"B".to_string()));
+        assert_eq!(xot.to_string(root).unwrap(), r#"<doc a="B"/>"#);
+    }
+
+    #[test]
+    fn test_attribute_insert_node() {
+        let mut xot = Xot::new();
+        let root = xot.parse(r#"<doc a="A"></doc>"#).unwrap();
+        let a = xot.add_name("a");
+        let document_element = xot.document_element(root).unwrap();
+        let a_node = xot.new_attribute_node(a, "B".to_string());
+        let mut attributes = xot.attributes_mut(document_element);
+        let inserted_node = attributes.insert_node(a_node);
+        assert_ne!(inserted_node, a_node);
+        assert_eq!(attributes.get(a), Some(&"B".to_string()));
+        assert_eq!(xot.to_string(root).unwrap(), r#"<doc a="B"/>"#);
     }
 
     #[test]
     fn test_attribute_insert_new_blank() {
         let mut xot = Xot::new();
-        let root = xot.parse(r#"<doc></doc>"#);
+        let root = xot.parse(r#"<doc></doc>"#).unwrap();
         let a = xot.add_name("a");
-        let document_element = xot.document_element(root.unwrap()).unwrap();
+        let document_element = xot.document_element(root).unwrap();
         let mut attributes = xot.attributes_mut(document_element);
         attributes.insert(a, "A".to_string());
         assert_eq!(attributes.get(a), Some(&"A".to_string()));
+        assert_eq!(xot.to_string(root).unwrap(), r#"<doc a="A"/>"#);
+    }
+
+    #[test]
+    fn test_attribute_insert_node_new_blank() {
+        let mut xot = Xot::new();
+        let root = xot.parse(r#"<doc></doc>"#).unwrap();
+        let a = xot.add_name("a");
+        let document_element = xot.document_element(root).unwrap();
+        let a_node = xot.new_attribute_node(a, "A".to_string());
+        let mut attributes = xot.attributes_mut(document_element);
+        let inserted_node = attributes.insert_node(a_node);
+        assert_eq!(inserted_node, a_node);
+        assert_eq!(attributes.get(a), Some(&"A".to_string()));
+        assert_eq!(xot.to_string(root).unwrap(), r#"<doc a="A"/>"#);
     }
 
     #[test]
     fn test_attribute_insert_new_existing_attributes() {
         let mut xot = Xot::new();
-        let root = xot.parse(r#"<doc c="C"></doc>"#);
+        let root = xot.parse(r#"<doc c="C"></doc>"#).unwrap();
         let a = xot.add_name("a");
-        let document_element = xot.document_element(root.unwrap()).unwrap();
+        let document_element = xot.document_element(root).unwrap();
         let mut attributes = xot.attributes_mut(document_element);
         attributes.insert(a, "A".to_string());
         assert_eq!(attributes.get(a), Some(&"A".to_string()));
+        assert_eq!(xot.to_string(root).unwrap(), r#"<doc c="C" a="A"/>"#);
+    }
+
+    #[test]
+    fn test_attribute_insert_node_new_existing_attributes() {
+        let mut xot = Xot::new();
+        let root = xot.parse(r#"<doc c="C"></doc>"#).unwrap();
+        let a = xot.add_name("a");
+        let document_element = xot.document_element(root).unwrap();
+        let a_node = xot.new_attribute_node(a, "A".to_string());
+        let mut attributes = xot.attributes_mut(document_element);
+        let inserted_node = attributes.insert_node(a_node);
+        assert_eq!(inserted_node, a_node);
+        assert_eq!(attributes.get(a), Some(&"A".to_string()));
+        assert_eq!(xot.to_string(root).unwrap(), r#"<doc c="C" a="A"/>"#);
     }
 
     #[test]

@@ -6,6 +6,10 @@ use super::core::{category_predicate, MutableNodeMap, NodeMap, ValueAdapter};
 pub struct AttributeAdapter {}
 
 impl ValueAdapter<NameId, String> for AttributeAdapter {
+    fn matches(value: &Value) -> bool {
+        matches!(value, Value::Attribute(_))
+    }
+
     fn children(xot: &Xot, node: Node) -> impl Iterator<Item = Node> + '_ {
         xot.all_children(node)
             .skip_while(category_predicate(xot, ValueCategory::Namespace))
