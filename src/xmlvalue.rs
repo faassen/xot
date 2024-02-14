@@ -146,80 +146,10 @@ impl Element {
         self.name_id
     }
 
-    // /// Compare with other element for semantic equality.
-    // ///
-    // /// This ignores element prefixes.
-    // pub fn compare(&self, other: &Element) -> bool {
-    //     self.advanced_compare(other, |a, b| a == b)
-    // }
-
-    // /// Compare with other element for semantic equality.
-    // ///
-    // /// You configure this with a function that compares attribute text.
-    // ///
-    // /// This ignores element prefixes.
-    // pub fn advanced_compare<C>(&self, other: &Element, text_compare: C) -> bool
-    // where
-    //     C: Fn(&str, &str) -> bool,
-    // {
-    //     if self.name() != other.name() {
-    //         return false;
-    //     }
-    //     let self_attributes = self.attributes();
-    //     let other_attributes = other.attributes();
-    //     if self_attributes.len() != other_attributes.len() {
-    //         return false;
-    //     }
-    //     // if we can't find a value for a key in a in b, then we
-    //     // know they aren't the same, given we already compared the length
-    //     for (key, value_a) in self_attributes {
-    //         let value_b = other_attributes.get(key);
-    //         if let Some(value_b) = value_b {
-    //             if !text_compare(value_a, value_b) {
-    //                 return false;
-    //             }
-    //         } else {
-    //             return false;
-    //         }
-    //     }
-    //     true
-    // }
-
-    // /// Compare with other element for semantic equality, ignoring particular
-    // /// attributes in the comparison.
-    // ///
-    // /// This ignores element prefixes.
-    // pub fn compare_ignore_attributes(&self, other: &Element, ignore_attributes: &[NameId]) -> bool {
-    //     if self.name() != other.name() {
-    //         return false;
-    //     }
-    //     // count the amount of attributes we compare
-    //     let mut compare_attributes_count = 0;
-
-    //     let self_attributes = self.attributes();
-    //     let other_attributes = other.attributes();
-
-    //     for (key, value_a) in self_attributes {
-    //         if ignore_attributes.contains(key) {
-    //             continue;
-    //         }
-    //         let value_b = other_attributes.get(key);
-    //         if Some(value_a) != value_b {
-    //             return false;
-    //         }
-    //         compare_attributes_count += 1;
-    //     }
-
-    //     let mut other_ignore_attributes = 0;
-    //     for ignore_attribute in ignore_attributes {
-    //         if other_attributes.get(ignore_attribute).is_some() {
-    //             other_ignore_attributes += 1;
-    //         }
-    //     }
-    //     // we expect the amount of non-ignored attributes in self to
-    //     // be the same as the amount of non-ignored attributes in other
-    //     compare_attributes_count == other_attributes.len() - other_ignore_attributes
-    // }
+    /// Set the name of an element
+    pub fn set_name(&mut self, name_id: NameId) {
+        self.name_id = name_id;
+    }
 }
 
 /// XML text value.

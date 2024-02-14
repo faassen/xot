@@ -43,8 +43,8 @@
   * Any reference to `Element` has become a copy of `Element`, as element is
     basically just a name and now copy.
 
-  * The `Output::Prefix` and `Output::Attribute` entries don't include the
-    element anymore.
+  * The `Output::Prefix`, `Output::Attribute` `Output::StartTagClose` entries
+    don't include the element anymore.
 
   * The enum entries `Output::PrefixesFinished` and
     `Output::AttributesFinished` have been removed.
@@ -55,6 +55,9 @@
   generators.
 
 - Eliminated `vecmap-rs` dependency.
+
+- You can change the name of an element using `Element.set_name`, obtaining
+  the element via `xot.element_mut`.
 
 ## [0.20.0] - 2024-02-08
 

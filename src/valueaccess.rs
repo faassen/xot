@@ -285,6 +285,35 @@ impl Xot {
         }
     }
 
+    /// If this node's value is an element, return a mutable reference to it.
+    ///
+    /// You can use this to change an element's name.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let changed = xot.add_name("changed");
+    /// let root = xot.parse(r#"<doc><child/></doc>"#)?;
+    /// let doc_el = xot.document_element(root)?;
+    /// let child_el = xot.first_child(doc_el).unwrap();
+    ///
+    /// let element = xot.element_mut(child_el).unwrap();
+    /// element.set_name(changed);
+    ///
+    /// assert_eq!(xot.to_string(root)?, r#"<doc><changed/></doc>"#);
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    pub fn element_mut(&mut self, node: Node) -> Option<&mut Element> {
+        let xml_node = self.value_mut(node);
+        if let Value::Element(element) = xml_node {
+            Some(element)
+        } else {
+            None
+        }
+    }
+
     /// If this element has only a single text child, return a reference to it.
     ///
     /// If the element has no children or more than one child, return `None`.
