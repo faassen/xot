@@ -110,6 +110,11 @@ where
     pub fn values(&self) -> impl Iterator<Item = &'a V> + '_ {
         self.iter_value().map(move |value| A::value(value))
     }
+
+    /// An iterator visiting all the nodes in insertion order.
+    pub fn nodes(&self) -> impl Iterator<Item = Node> + '_ {
+        self.children()
+    }
 }
 
 #[derive(Debug)]
@@ -206,6 +211,11 @@ where
     /// An iterator visiting all values in insertion order. The iterator element type is `&'a V`.
     pub fn values(&'a self) -> impl Iterator<Item = &'a V> + '_ {
         self.iter_value().map(move |value| A::value(value))
+    }
+
+    /// An iterator visiting all the nodes in insertion order.
+    pub fn nodes(&self) -> impl Iterator<Item = Node> + '_ {
+        self.children()
     }
 
     // TODO: end of duplication
