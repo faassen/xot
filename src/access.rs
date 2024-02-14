@@ -126,10 +126,11 @@ impl Xot {
 
     /// Attributes accessor.
     ///
-    /// Returns a map of attributes.
+    /// Returns a map of [`Xot::NameId`] to a String reference representing the
+    /// attributes on the element.
     ///
-    /// Use this to access attributes through a hashmap-like API. Note that if
-    /// this is called on a non-element node, you get an empty map.
+    /// Note that if this is called on a non-element node, you get an empty
+    /// map.
     ///
     /// ```rust
     /// let mut xot = xot::Xot::new();
@@ -144,35 +145,13 @@ impl Xot {
         Attributes::new(self, node)
     }
 
-    /// Mutable attributes accessor
-    ///
-    /// Panics if called on a non-element.
-    ///
-    /// Use this if you want to set an attribute. You use a hashmap-like API:
-    ///
-    /// ```rust
-    /// let mut xot = xot::Xot::new();
-    /// let a = xot.add_name("a");
-    /// let root = xot.parse(r#"<p>Example</p>"#).unwrap();
-    /// let p = xot.document_element(root).unwrap();
-    /// let mut attributes = xot.attributes_mut(p);
-    /// attributes.insert(a, "A".to_string());
-    ///
-    /// assert_eq!(xot.to_string(root).unwrap(), r#"<p a="A">Example</p>"#);
-    /// ```
-    pub fn attributes_mut(&mut self, node: Node) -> MutableAttributes {
-        if !self.is_element(node) {
-            panic!("Node is not an element, so cannot set attributes");
-        }
-        MutableAttributes::new(self, node)
-    }
-
     /// Namespaces accessor.
     ///
-    /// Returns a map of namespaces.
+    /// Returns a map of [`Xot::PrefixId`] to [`Xot::NamespaceId`] representing
+    /// the namespace declarations on the element.
     ///
-    /// Use this to access namespace prefixes through a hashmap-like API. Note
-    /// that if this is called on a non-element node, you get an empty map.
+    /// Note that if this is called on a non-element node, you get an empty
+    /// map.
     ///
     /// ```rust
     /// let mut xot = xot::Xot::new();
@@ -192,7 +171,8 @@ impl Xot {
     ///
     /// Panics if called on a non-element.
     ///
-    /// Use this to set namespace prefixes. You use a hashmap-like API:
+    /// Use this to set namespace prefix declarations on an element. You use a
+    /// hashmap-like API:
     ///
     /// ```rust
     /// let mut xot = xot::Xot::new();
@@ -211,6 +191,30 @@ impl Xot {
         }
 
         MutableNamespaces::new(self, node)
+    }
+
+    /// Mutable attributes accessor
+    ///
+    /// Panics if called on a non-element.
+    ///
+    /// Use this if you want to set an attribute on an element. You use a
+    /// hashmap-like API:
+    ///
+    /// ```rust
+    /// let mut xot = xot::Xot::new();
+    /// let a = xot.add_name("a");
+    /// let root = xot.parse(r#"<p>Example</p>"#).unwrap();
+    /// let p = xot.document_element(root).unwrap();
+    /// let mut attributes = xot.attributes_mut(p);
+    /// attributes.insert(a, "A".to_string());
+    ///
+    /// assert_eq!(xot.to_string(root).unwrap(), r#"<p a="A">Example</p>"#);
+    /// ```
+    pub fn attributes_mut(&mut self, node: Node) -> MutableAttributes {
+        if !self.is_element(node) {
+            panic!("Node is not an element, so cannot set attributes");
+        }
+        MutableAttributes::new(self, node)
     }
 
     /// Get first child.

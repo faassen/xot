@@ -179,9 +179,9 @@ impl Xot {
         self.new_node(pi)
     }
 
-    /// Create a new, unattached attribute.
+    /// Create a new, unattached attribute node.
     ///
-    /// You can then use [`Xot::append_attribute`] to add it to an element node.
+    /// You can then use [`Xot::append_attribute_node`] to add it to an element node.
     ///
     /// This method is useful in situations where attributes need to be created
     /// independently of elements, but for many use cases you can use the
@@ -209,7 +209,8 @@ impl Xot {
 
     /// Create a new, unattached namespace declaration node.
     ///
-    /// You can then use [`Xot::append_namespace`] to add it to an element node.
+    /// You can then use [`Xot::append_namespace_node`] to add it to an element
+    /// node.
     ///
     /// This method is useful in situations where namespaces need to be created
     /// independently of elements, but for many use cases you can use the
