@@ -361,6 +361,36 @@ mod tests {
     }
 
     #[test]
+    fn test_attribute_entry_modify() {
+        let mut xot = Xot::new();
+        let root = xot.parse(r#"<doc c="C"></doc>"#);
+        let c = xot.add_name("c");
+        let document_element = xot.document_element(root.unwrap()).unwrap();
+        let mut attributes = xot.attributes_mut(document_element);
+        attributes
+            .entry(c)
+            .and_modify(|e| *e = "C!".to_string())
+            .or_insert("New".to_string());
+        let attributes = xot.attributes(document_element);
+        assert_eq!(attributes.get(c), Some(&"C!".to_string()));
+    }
+
+    #[test]
+    fn test_attribute_entry_create() {
+        let mut xot = Xot::new();
+        let root = xot.parse(r#"<doc></doc>"#);
+        let c = xot.add_name("c");
+        let document_element = xot.document_element(root.unwrap()).unwrap();
+        let mut attributes = xot.attributes_mut(document_element);
+        attributes
+            .entry(c)
+            .and_modify(|e| *e = "C!".to_string())
+            .or_insert("New".to_string());
+        let attributes = xot.attributes(document_element);
+        assert_eq!(attributes.get(c), Some(&"New".to_string()));
+    }
+
+    #[test]
     fn test_attributes_and_namespaces() {
         let mut xot = Xot::new();
 

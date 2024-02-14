@@ -148,7 +148,7 @@ where
 
     /// Sets the value of the entry with the VacantEntry's key, and returns a mutable reference to it.
     pub fn insert(self, value: V) -> &'a mut V {
-        self.map.insert(self.key, value).unwrap();
+        self.map.insert(self.key, value);
         self.map.get_mut(self.key).unwrap()
     }
 
