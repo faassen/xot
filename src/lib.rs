@@ -82,7 +82,7 @@ mod valueaccess;
 mod xmlvalue;
 mod xotdata;
 
-pub use access::NodeEdge;
+pub use access::{Axis, NodeEdge};
 pub use error::Error;
 pub use levelorder::LevelOrder;
 pub use name::NameId;

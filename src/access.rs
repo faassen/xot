@@ -2,10 +2,46 @@ use indextree::NodeEdge as IndexTreeNodeEdge;
 
 use crate::error::Error;
 use crate::levelorder::{level_order_traverse, LevelOrder};
-use crate::nodemap::{Attributes, Namespaces};
+use crate::nodemap::{category_predicate, Attributes, Namespaces};
 use crate::xmlvalue::{Value, ValueCategory, ValueType};
 use crate::xotdata::{Node, Xot};
 use crate::{MutableAttributes, MutableNamespaces};
+
+/// Traversal axis.
+///
+/// This can be used with `[Xot::Axis]` to traverse the tree in different ways.
+///
+/// The axis behaviors are based on the XPath specification.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Axis {
+    /// The children of the node. Equivalent to [`Xot::children`].
+    Child,
+    /// The descendants of the node, without the current node itself.
+    Descendant,
+    /// The parent of the node, or an empty iterator.
+    Parent,
+    /// The ancestors of the node, without the current node itself.
+    Ancestor,
+    /// The siblings following the node, without the current sibling.
+    /// Equivalent to [`Xot::following_siblings`].
+    FollowingSibling,
+    /// The siblings preceding the node, without the current sibling.
+    /// Equivalent to [`Xot::preceding_siblings`].
+    PrecedingSibling,
+    /// The nodes following the node. Equivalent to [`Xot::following`].
+    Following,
+    /// The nodes preceding the node. Equivalent to [`Xot::preceding`].
+    Preceding,
+    /// The attributes nodes of this node. Equivalent to [`Xot::attribute_nodes`].
+    Attribute,
+    /// The node itself as an iterator.
+    Self_,
+    /// The node and its descendants, in document order. Equivalent to
+    /// [`Xot::descendants`].
+    DescendantOrSelf,
+    /// The node and its ancestors. Equivalent to [`Xot::ancestors`].
+    AncestorOrSelf,
+}
 
 /// Node edges.
 ///
@@ -126,7 +162,7 @@ impl Xot {
 
     /// Attributes accessor.
     ///
-    /// Returns a map of [`Xot::NameId`] to a String reference representing the
+    /// Returns a map of [`crate::NameId`] to a String reference representing the
     /// attributes on the element.
     ///
     /// Note that if this is called on a non-element node, you get an empty
@@ -147,7 +183,7 @@ impl Xot {
 
     /// Namespaces accessor.
     ///
-    /// Returns a map of [`Xot::PrefixId`] to [`Xot::NamespaceId`] representing
+    /// Returns a map of [`crate::PrefixId`] to [`crate::NamespaceId`] representing
     /// the namespace declarations on the element.
     ///
     /// Note that if this is called on a non-element node, you get an empty
@@ -215,6 +251,13 @@ impl Xot {
             panic!("Node is not an element, so cannot set attributes");
         }
         MutableAttributes::new(self, node)
+    }
+
+    /// Access the attribute nodes directly.
+    pub fn attribute_nodes(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+        self.all_children(node)
+            .skip_while(category_predicate(self, ValueCategory::Namespace))
+            .take_while(category_predicate(self, ValueCategory::Attribute))
     }
 
     /// Get first child.
@@ -593,5 +636,61 @@ impl Xot {
     /// ```
     pub fn level_order(&self, node: Node) -> impl Iterator<Item = LevelOrder> + '_ {
         level_order_traverse(self, node)
+    }
+
+    /// Axis-based traversal.
+    ///
+    /// Use an [`crate::Axis`] to traverse the tree in a way defined by
+    /// XPath.
+    ///
+    /// `<https://developer.mozilla.org/en-US/docs/Web/XPath/Axes>`
+    pub fn axis(&self, axis: Axis, node: Node) -> Box<dyn Iterator<Item = Node> + '_> {
+        use Axis::*;
+        match axis {
+            Child => Box::new(self.children(node)),
+            Descendant => {
+                let mut descendants = self.descendants(node);
+                // since this includes self we get rid of it here
+                descendants.next();
+                Box::new(descendants)
+            }
+            Parent => {
+                if let Some(parent) = self.parent(node) {
+                    Box::new(std::iter::once(parent))
+                } else {
+                    Box::new(std::iter::empty())
+                }
+            }
+            Ancestor => {
+                let parent = self.parent(node);
+                if let Some(parent) = parent {
+                    // the ancestors of the parent include self, which is
+                    // what we want as the parent is already taken
+                    // We can't get a Node::Attribute or Node::Namespace
+                    // because we just took the parent
+                    Box::new(self.ancestors(parent))
+                } else {
+                    Box::new(std::iter::empty())
+                }
+            }
+            FollowingSibling => {
+                let mut following = self.following_siblings(node);
+                // consume the self sibling
+                following.next();
+                Box::new(following)
+            }
+            PrecedingSibling => {
+                let mut preceding = self.preceding_siblings(node);
+                // consume the self sibling
+                preceding.next();
+                Box::new(preceding)
+            }
+            Following => Box::new(self.following(node)),
+            Preceding => Box::new(self.preceding(node)),
+            Axis::Self_ => Box::new(std::iter::once(node)),
+            DescendantOrSelf => Box::new(self.descendants(node)),
+            AncestorOrSelf => Box::new(self.ancestors(node)),
+            Attribute => Box::new(self.attribute_nodes(node)),
+        }
     }
 }
