@@ -9,7 +9,7 @@ pub trait ValueAdapter<K, V> {
     // new node insertion point is either node whether it should be inserted after,
     // or if None, prepend in the beginning
     fn insertion_point(xot: &Xot, parent: Node) -> Option<Node>;
-    fn key(value: &Value) -> &K;
+    fn key(value: &Value) -> K;
     fn value(value: &Value) -> &V;
     fn value_mut(value: &mut Value) -> &mut V;
     fn create(key: K, value: V) -> Value;
@@ -48,7 +48,7 @@ where
         A::children(self.xot, self.parent)
     }
 
-    fn get_node_q(&self, key: &K) -> Option<Node> {
+    fn get_node(&self, key: K) -> Option<Node> {
         self.children()
             .find(|&child| A::key(self.xot.value(child)) == key)
     }
@@ -66,7 +66,7 @@ where
     // TODO: retain, drain, sort_keys, sort_unstable_keys, sort_by, sort_unstable_by,
 
     /// Return `true` if an equivalent to `key` exists in the map.
-    pub fn contains_key(&self, key: &K) -> bool {
+    pub fn contains_key(&self, key: K) -> bool {
         for child in self.children() {
             if A::key(self.xot.value(child)) == key {
                 return true;
@@ -76,8 +76,8 @@ where
     }
 
     /// Return a reference to the value stored for `key`, if it is present, else `None`.
-    pub fn get(&self, key: &K) -> Option<&V> {
-        let node = self.get_node_q(key)?;
+    pub fn get(&self, key: K) -> Option<&V> {
+        let node = self.get_node(key)?;
         Some(A::value(self.xot.value(node)))
     }
 
@@ -87,18 +87,18 @@ where
 
     /// An iterator visiting all key-value pairs in insertion order. The iterator element type is
     /// `(&'a K, &'a V)`.
-    pub fn iter(&self) -> impl Iterator<Item = (&'a K, &'a V)> + '_ {
+    pub fn iter(&self) -> impl Iterator<Item = (K, &'a V)> + '_ {
         self.iter_value()
             .map(|value| (A::key(value), A::value(value)))
     }
 
     /// Copies the map entries into a new `Vec<(K, V)>`.
     pub fn to_vec(&self) -> Vec<(K, V)> {
-        self.iter().map(|(k, v)| (*k, v.clone())).collect()
+        self.iter().map(|(k, v)| (k, v.clone())).collect()
     }
 
     /// An iterator visiting all keys in insertion order. The iterator element type is `&'a K`.
-    pub fn keys(&self) -> impl Iterator<Item = &'a K> + '_ {
+    pub fn keys(&self) -> impl Iterator<Item = K> + '_ {
         self.iter_value().map(move |value| A::key(value))
     }
 
@@ -141,12 +141,7 @@ where
         A::children(self.xot, self.parent)
     }
 
-    fn get_node_q(&self, key: &K) -> Option<Node> {
-        self.children()
-            .find(|&child| A::key(self.xot.value(child)) == key)
-    }
-
-    fn get_node(&self, key: &K) -> Option<Node> {
+    fn get_node(&self, key: K) -> Option<Node> {
         self.children()
             .find(|&child| A::key(self.xot.value(child)) == key)
     }
@@ -164,7 +159,7 @@ where
     // TODO: retain, drain, sort_keys, sort_unstable_keys, sort_by, sort_unstable_by,
 
     /// Return `true` if an equivalent to `key` exists in the map.
-    pub fn contains_key(&self, key: &K) -> bool {
+    pub fn contains_key(&self, key: K) -> bool {
         for child in self.children() {
             if A::key(self.xot.value(child)) == key {
                 return true;
@@ -174,8 +169,8 @@ where
     }
 
     /// Return a reference to the value stored for `key`, if it is present, else `None`.
-    pub fn get(&self, key: &K) -> Option<&V> {
-        let node = self.get_node_q(key)?;
+    pub fn get(&self, key: K) -> Option<&V> {
+        let node = self.get_node(key)?;
         Some(A::value(self.xot.value(node)))
     }
 
@@ -185,18 +180,18 @@ where
 
     /// An iterator visiting all key-value pairs in insertion order. The iterator element type is
     /// `(&'a K, &'a V)`.
-    pub fn iter(&'a self) -> impl Iterator<Item = (&'a K, &'a V)> + '_ {
+    pub fn iter(&'a self) -> impl Iterator<Item = (K, &'a V)> + '_ {
         self.iter_value()
             .map(move |value| (A::key(value), A::value(value)))
     }
 
     /// Copies the map entries into a new `Vec<(K, V)>`.
     pub fn to_vec(&self) -> Vec<(K, V)> {
-        self.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
+        self.iter().map(|(k, v)| (k, v.clone())).collect()
     }
 
     /// An iterator visiting all keys in insertion order. The iterator element type is `&'a K`.
-    pub fn keys(&'a self) -> impl Iterator<Item = &'a K> + '_ {
+    pub fn keys(&'a self) -> impl Iterator<Item = K> + '_ {
         self.iter_value().map(move |value| A::key(value))
     }
 
@@ -208,8 +203,8 @@ where
     // TODO: end of duplication
 
     /// Return a mutable reference to the value stored for `key`, if it is present, else `None`.
-    pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
-        let node = self.get_node_q(key)?;
+    pub fn get_mut(&mut self, key: K) -> Option<&mut V> {
+        let node = self.get_node(key)?;
         Some(A::value_mut(self.xot.value_mut(node)))
     }
 
@@ -234,7 +229,7 @@ where
     /// See also [`entry`](#method.entry) if you you want to insert *or* modify or if you need to
     /// get the index of the corresponding key-value pair.
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
-        let node = self.get_node(&key);
+        let node = self.get_node(key);
         if let Some(node) = node {
             // if we already have a node
             let node_value = self.xot.value_mut(node);
@@ -259,7 +254,7 @@ where
         }
     }
 
-    pub fn remove(&mut self, key: &K) -> Option<V> {
+    pub fn remove(&mut self, key: K) -> Option<V> {
         let node = self.get_node(key);
         if let Some(node) = node {
             let value = A::value(self.xot.value(node)).clone();
@@ -273,7 +268,7 @@ where
     /// Get the given key's corresponding entry in the map for insertion and/or in-place
     /// manipulation.
     pub fn entry(&'a mut self, key: K) -> Entry<'a, K, V, A> {
-        match self.get(&key) {
+        match self.get(key) {
             Some(_value) => Entry::Occupied(OccupiedEntry::new(self, key)),
             None => Entry::Vacant(VacantEntry::new(self, key)),
         }
@@ -298,7 +293,7 @@ mod tests {
         let a = xot.add_name("a");
         let document_element = xot.document_element(root.unwrap()).unwrap();
         let attributes = xot.attributes(document_element);
-        assert_eq!(attributes.get(&a), Some(&"A".to_string()));
+        assert_eq!(attributes.get(a), Some(&"A".to_string()));
     }
 
     #[test]
@@ -309,7 +304,7 @@ mod tests {
         let document_element = xot.document_element(root.unwrap()).unwrap();
         let mut attributes = xot.attributes_mut(document_element);
         attributes.insert(a, "B".to_string());
-        assert_eq!(attributes.get(&a), Some(&"B".to_string()));
+        assert_eq!(attributes.get(a), Some(&"B".to_string()));
     }
 
     #[test]
@@ -320,7 +315,7 @@ mod tests {
         let document_element = xot.document_element(root.unwrap()).unwrap();
         let mut attributes = xot.attributes_mut(document_element);
         attributes.insert(a, "A".to_string());
-        assert_eq!(attributes.get(&a), Some(&"A".to_string()));
+        assert_eq!(attributes.get(a), Some(&"A".to_string()));
     }
 
     #[test]
@@ -331,7 +326,7 @@ mod tests {
         let document_element = xot.document_element(root.unwrap()).unwrap();
         let mut attributes = xot.attributes_mut(document_element);
         attributes.insert(a, "A".to_string());
-        assert_eq!(attributes.get(&a), Some(&"A".to_string()));
+        assert_eq!(attributes.get(a), Some(&"A".to_string()));
     }
 
     #[test]
@@ -344,8 +339,8 @@ mod tests {
         let foo_ns = xot.add_namespace("FOO");
         let document_element = xot.document_element(root.unwrap()).unwrap();
         let attributes = xot.attributes(document_element);
-        assert_eq!(attributes.get(&a), Some(&"A".to_string()));
+        assert_eq!(attributes.get(a), Some(&"A".to_string()));
         let namespaces = xot.namespaces(document_element);
-        assert_eq!(namespaces.get(&foo_prefix), Some(&foo_ns));
+        assert_eq!(namespaces.get(foo_prefix), Some(&foo_ns));
     }
 }

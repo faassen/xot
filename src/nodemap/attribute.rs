@@ -29,9 +29,9 @@ impl ValueAdapter<NameId, String> for AttributeAdapter {
         None
     }
 
-    fn key(value: &Value) -> &NameId {
+    fn key(value: &Value) -> NameId {
         match value {
-            Value::Attribute(Attribute { name_id, .. }) => name_id,
+            Value::Attribute(Attribute { name_id, .. }) => *name_id,
             _ => unreachable!(),
         }
     }

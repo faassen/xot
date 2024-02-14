@@ -28,7 +28,7 @@ fn in_preserve_space(xot: &Xot, node: Node) -> bool {
     let space = xot.xml_space_name();
     for ancestor in xot.ancestors(node) {
         let attributes = xot.attributes(ancestor);
-        if let Some(value) = attributes.get(&space) {
+        if let Some(value) = attributes.get(space) {
             return value == "preserve";
         }
     }

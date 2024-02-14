@@ -95,18 +95,18 @@ where
 
     /// Gets a reference to the value in the entry.
     pub fn get(&self) -> &V {
-        self.map.get(&self.key).unwrap()
+        self.map.get(self.key).unwrap()
     }
 
     /// Gets a mutable reference to the value in the entry.
     pub fn get_mut(&mut self) -> &mut V {
-        self.map.get_mut(&self.key).unwrap()
+        self.map.get_mut(self.key).unwrap()
     }
 
     /// Converts the entry into a mutable reference to the value in the entry with a lifetime bound
     /// to the map itself.
     pub fn into_mut(self) -> &'a mut V {
-        self.map.get_mut(&self.key).unwrap()
+        self.map.get_mut(self.key).unwrap()
     }
 
     /// Sets the value of the entry, and returns the entry's old value.
@@ -116,7 +116,7 @@ where
 
     /// Takes the value of the entry out of the map, and returns it.
     pub fn remove(self) -> V {
-        self.map.remove(&self.key).unwrap()
+        self.map.remove(self.key).unwrap()
     }
 
     /// Gets a reference to the key in the entry.
@@ -149,7 +149,7 @@ where
     /// Sets the value of the entry with the VacantEntry's key, and returns a mutable reference to it.
     pub fn insert(self, value: V) -> &'a mut V {
         self.map.insert(self.key, value).unwrap();
-        self.map.get_mut(&self.key).unwrap()
+        self.map.get_mut(self.key).unwrap()
     }
 
     /// Gets a reference to the key that would be used when inserting a value through the VacantEntry.

@@ -100,7 +100,7 @@ impl<'a> Pretty<'a> {
                     if !self.has_text_child(node) {
                         let attributes = self.xot.attributes(node);
                         let space = attributes
-                            .get(&self.xot.xml_space_name())
+                            .get(self.xot.xml_space_name())
                             .map(|s| s.as_str());
                         match space {
                             Some("preserve") => self.unmixed(Space::Preserve),

@@ -21,9 +21,9 @@ impl ValueAdapter<PrefixId, NamespaceId> for NamespaceAdapter {
         None
     }
 
-    fn key(value: &Value) -> &PrefixId {
+    fn key(value: &Value) -> PrefixId {
         match value {
-            Value::Namespace(Namespace { prefix_id, .. }) => prefix_id,
+            Value::Namespace(Namespace { prefix_id, .. }) => *prefix_id,
             _ => unreachable!(),
         }
     }
@@ -78,7 +78,7 @@ pub type MutableNamespaces<'a> = MutableNodeMap<'a, PrefixId, NamespaceId, Names
 pub(crate) fn to_prefixes(namespaces: &Namespaces) -> Prefixes {
     let mut prefixes = Prefixes::new();
     for (prefix, ns) in namespaces.iter() {
-        prefixes.insert(*prefix, *ns);
+        prefixes.insert(prefix, *ns);
     }
     prefixes
 }

@@ -85,18 +85,18 @@ fn gen_edge_start(
                 let namespaces = xot.namespaces(node);
                 if node == top_node {
                     for (prefix_id, namespace_id) in extra_prefixes.iter() {
-                        if !namespaces.contains_key(prefix_id) {
+                        if !namespaces.contains_key(*prefix_id) {
                             yield_!(Output::Prefix(*prefix_id, *namespace_id,));
                         }
                     }
                 }
 
                 for (prefix_id, namespace_id) in namespaces.iter() {
-                    yield_!(Output::Prefix(*prefix_id, *namespace_id,));
+                    yield_!(Output::Prefix(prefix_id, *namespace_id,));
                 }
 
                 for (name_id, value) in xot.attributes(node).iter() {
-                    yield_!(Output::Attribute(*name_id, value));
+                    yield_!(Output::Attribute(name_id, value));
                 }
 
                 yield_!(Output::StartTagClose);

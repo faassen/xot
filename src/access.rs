@@ -137,7 +137,7 @@ impl Xot {
     /// let p = xot.document_element(root).unwrap();
     /// let attributes = xot.attributes(p);
     ///
-    /// assert_eq!(attributes.get(&a), Some(&"A".to_string()));
+    /// assert_eq!(attributes.get(a), Some(&"A".to_string()));
     /// ```
     pub fn attributes(&self, node: Node) -> Attributes {
         Attributes::new(self, node)
