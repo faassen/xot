@@ -7,7 +7,7 @@ fn test_compare_elements_same() {
     let a = xot.parse(r#"<a foo="FOO"/>"#).unwrap();
     let b = xot.parse(r#"<a foo="FOO"/>"#).unwrap();
 
-    assert!(xot.compare(a, b));
+    assert!(xot.deep_equal(a, b));
 }
 
 #[test]
@@ -17,7 +17,7 @@ fn test_compare_elements_different_value() {
     let a = xot.parse(r#"<a foo="FOO"/>"#).unwrap();
     let b = xot.parse(r#"<a foo="BAR"/>"#).unwrap();
 
-    assert!(!xot.compare(a, b));
+    assert!(!xot.deep_equal(a, b));
 }
 
 #[test]
@@ -27,7 +27,7 @@ fn test_compare_elements_attribute_order_unimportant() {
     let a = xot.parse(r#"<a foo="FOO" bar="BAR"/>"#).unwrap();
     let b = xot.parse(r#"<a bar="BAR" foo="FOO"/>"#).unwrap();
 
-    assert!(xot.compare(a, b));
+    assert!(xot.deep_equal(a, b));
 }
 
 #[test]
@@ -37,7 +37,7 @@ fn test_compare_elements_compare_overlap() {
     let a = xot.parse(r#"<a foo="FOO" />"#).unwrap();
     let b = xot.parse(r#"<a foo="FOO" bar="BAR"/>"#).unwrap();
 
-    assert!(!xot.compare(a, b));
+    assert!(!xot.deep_equal(a, b));
 }
 
 #[test]
@@ -51,8 +51,8 @@ fn test_compare_elements_ignore_attributes_different_value() {
     let a = xot.document_element(a).unwrap();
     let b = xot.document_element(b).unwrap();
 
-    assert!(xot.compare_elements_ignore_attributes(a, b, &[bar]));
-    assert!(!xot.compare_elements_ignore_attributes(b, a, &[]));
+    assert!(xot.shallow_equal_ignore_attributes(a, b, &[bar]));
+    assert!(!xot.shallow_equal_ignore_attributes(b, a, &[]));
 }
 
 #[test]
@@ -66,8 +66,8 @@ fn test_compare_elements_ignore_attributes_ignorable_in_a() {
     let a = xot.document_element(a).unwrap();
     let b = xot.document_element(b).unwrap();
 
-    assert!(xot.compare_elements_ignore_attributes(a, b, &[bar]));
-    assert!(!xot.compare_elements_ignore_attributes(b, a, &[]));
+    assert!(xot.shallow_equal_ignore_attributes(a, b, &[bar]));
+    assert!(!xot.shallow_equal_ignore_attributes(b, a, &[]));
 }
 
 #[test]
@@ -81,6 +81,6 @@ fn test_compare_elements_ignore_attributes_ignorable_in_b() {
     let a = xot.document_element(a).unwrap();
     let b = xot.document_element(b).unwrap();
 
-    assert!(xot.compare_elements_ignore_attributes(a, b, &[bar]));
-    assert!(!xot.compare_elements_ignore_attributes(b, a, &[]));
+    assert!(xot.shallow_equal_ignore_attributes(a, b, &[bar]));
+    assert!(!xot.shallow_equal_ignore_attributes(b, a, &[]));
 }

@@ -427,6 +427,49 @@ fn test_clone_root_after_insert_no_consolidation_for_insert_consolidation_for_cl
 }
 
 #[test]
+fn test_clone_attributes() {
+    let mut xot = Xot::new();
+    let root = xot.parse(r#"<doc><a f="F">Hello!</a></doc>"#).unwrap();
+    let doc_id = xot.document_element(root).unwrap();
+    let a_id = xot.first_child(doc_id).unwrap();
+    let a_id_clone = xot.clone(a_id);
+    // change original won't affect the clone
+    xot.text_mut(xot.first_child(a_id).unwrap())
+        .unwrap()
+        .set("Goodbye!");
+    assert_eq!(
+        xot.to_string(root).unwrap(),
+        r#"<doc><a f="F">Goodbye!</a></doc>"#
+    );
+    assert!(!xot.is_removed(a_id_clone));
+    assert_eq!(xot.to_string(a_id_clone).unwrap(), r#"<a f="F">Hello!</a>"#);
+}
+
+#[test]
+fn test_clone_namespaces() {
+    let mut xot = Xot::new();
+    let root = xot
+        .parse(r#"<doc><a xmlns:f="F">Hello!</a></doc>"#)
+        .unwrap();
+    let doc_id = xot.document_element(root).unwrap();
+    let a_id = xot.first_child(doc_id).unwrap();
+    let a_id_clone = xot.clone(a_id);
+    // change original won't affect the clone
+    xot.text_mut(xot.first_child(a_id).unwrap())
+        .unwrap()
+        .set("Goodbye!");
+    assert_eq!(
+        xot.to_string(root).unwrap(),
+        r#"<doc><a xmlns:f="F">Goodbye!</a></doc>"#
+    );
+    assert!(!xot.is_removed(a_id_clone));
+    assert_eq!(
+        xot.to_string(a_id_clone).unwrap(),
+        r#"<a xmlns:f="F">Hello!</a>"#
+    );
+}
+
+#[test]
 fn test_insert_after_consolidation() {
     let mut xot = Xot::new();
     let root = xot.parse("<doc>hello <i>world</i>!</doc>").unwrap();

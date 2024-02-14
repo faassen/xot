@@ -525,7 +525,7 @@ impl Xot {
         }
     }
 
-    /// Compare two nodes for semantic equality.
+    /// Check two nodes for semantic equality.
     ///
     /// This is a deep comparison of the nodes and their children.
     /// The trees have to have the same structure.
@@ -548,7 +548,7 @@ impl Xot {
     /// let root0 = xot.parse("<doc><a>Example</a><b/></doc>")?;
     /// let root1 = xot.parse("<doc><a>Example</a><b/></doc>")?;
     ///
-    /// assert!(xot.compare(root0, root1));
+    /// assert!(xot.deep_equal(root0, root1));
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
@@ -563,7 +563,7 @@ impl Xot {
     /// let root0 = xot.parse("<doc xmlns:foo='http://example.com'><foo:a/></doc>")?;
     /// let root1 = xot.parse("<doc xmlns:bar='http://example.com'><bar:a/></doc>")?;
     ///
-    /// assert!(xot.compare(root0, root1));
+    /// assert!(xot.deep_equal(root0, root1));
     /// # Ok::<(), xot::Error>(())
     /// ```
     ///
@@ -576,7 +576,7 @@ impl Xot {
     /// let root0 = xot.parse("<doc>Example</doc>")?;
     /// let root1 = xot.parse("<doc>Changed</doc>")?;
     ///
-    /// assert!(!xot.compare(root0, root1));
+    /// assert!(!xot.deep_equal(root0, root1));
     /// # Ok::<(), xot::Error>(())
     /// ```
     ///
@@ -592,13 +592,63 @@ impl Xot {
     /// let b_el = xot.next_sibling(a_el).unwrap();
     /// let a2_el = xot.next_sibling(b_el).unwrap();
     ///
-    /// assert!(xot.compare(a_el, a2_el));
-    /// assert!(!xot.compare(a_el, b_el));
+    /// assert!(xot.deep_equal(a_el, a2_el));
+    /// assert!(!xot.deep_equal(a_el, b_el));
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn compare(&self, a: Node, b: Node) -> bool {
-        self.advanced_compare(a, b, |_| true, |a, b| a == b)
+    pub fn deep_equal(&self, a: Node, b: Node) -> bool {
+        self.advanced_deep_equal(a, b, |_| true, |a, b| a == b)
+    }
+
+    /// Compare the children of two nodes
+    ///
+    /// If the children are the same semantically, return true. It ignores
+    /// the name and attributes of the `a` and `b` nodes themselves.
+    pub fn deep_equal_children(&self, a: Node, b: Node) -> bool {
+        let mut b_children = self.children(b);
+        for a_child in self.children(a) {
+            if let Some(b_child) = b_children.next() {
+                // if the child is different, the element is different
+                if !self.deep_equal(a_child, b_child) {
+                    return false;
+                }
+            } else {
+                // we cannot find a b child for an a child
+                return false;
+            }
+        }
+        b_children.next().is_none()
+    }
+
+    /// XPath deep equal
+    /// Comparison of two nodes as defined by the XPath deep-equal function:
+    ///
+    /// <https://www.w3.org/TR/xpath-functions-31/#func-deep-equal>
+    ///
+    /// We ignore anything about typed content in that definition.
+    pub fn deep_equal_xpath(
+        &self,
+        a: Node,
+        b: Node,
+        text_compare: impl Fn(&str, &str) -> bool,
+    ) -> bool {
+        // the top level comparison needs to compare the node, even if
+        // processing instruction or a comment, though for elements, we want to
+        // compare the structure and filter comments and processing
+        // instructions out.
+        use Value::*;
+        match (self.value(a), self.value(b)) {
+            (Element(_), Element(_)) | (Root, Root) => self.advanced_deep_equal(
+                a,
+                b,
+                // we need to only consider elements and text nodes for
+                // root/element content comparison
+                |node| self.is_element(node) || self.is_text(node),
+                text_compare,
+            ),
+            _ => self.advanced_compare_value(a, b, text_compare),
+        }
     }
 
     /// Compare two nodes for semantic equality with custom text compare and
@@ -617,14 +667,16 @@ impl Xot {
     /// using the filter function.
     ///
     /// Text nodes and attributes are compared using the provided comparison function.
-    pub fn advanced_compare<F, C>(&self, a: Node, b: Node, filter: F, text_compare: C) -> bool
+    pub fn advanced_deep_equal<F, C>(&self, a: Node, b: Node, filter: F, text_compare: C) -> bool
     where
         F: Fn(Node) -> bool,
         C: Fn(&str, &str) -> bool,
     {
-        let filter_edge = |edge: &NodeEdge| match edge {
-            NodeEdge::Start(node) => filter(*node),
-            NodeEdge::End(node) => filter(*node),
+        let filter_edge = |edge: &NodeEdge| {
+            let node = match edge {
+                NodeEdge::Start(node) | NodeEdge::End(node) => *node,
+            };
+            filter(node)
         };
 
         let mut edges_a = self.traverse(a).filter(filter_edge);
@@ -652,26 +704,6 @@ impl Xot {
         true
     }
 
-    /// Compare the children of two nodes
-    ///
-    /// If the children are the same semantically, return true. It ignores
-    /// the name and attributes of the `a` and `b` nodes themselves.
-    pub fn compare_children(&self, a: Node, b: Node) -> bool {
-        let mut b_children = self.children(b);
-        for a_child in self.children(a) {
-            if let Some(b_child) = b_children.next() {
-                // if the child is different, the element is different
-                if !self.compare(a_child, b_child) {
-                    return false;
-                }
-            } else {
-                // we cannot find a b child for an a child
-                return false;
-            }
-        }
-        b_children.next().is_none()
-    }
-
     pub(crate) fn advanced_compare_value<C>(&self, a: Node, b: Node, text_compare: C) -> bool
     where
         C: Fn(&str, &str) -> bool,
@@ -681,21 +713,27 @@ impl Xot {
         match (a_value, b_value) {
             (Value::Root, Value::Root) => true,
             (Value::Element(a_element), Value::Element(b_element)) => {
-                if a_element.name() != b_element.name() {
-                    return false;
-                }
-                self.advanced_compare_attributes(a, b, text_compare)
+                a_element.name() == b_element.name()
+                    && self.advanced_compare_attributes(a, b, text_compare)
             }
             (Value::Text(a), Value::Text(b)) => text_compare(a.get(), b.get()),
             (Value::Comment(a), Value::Comment(b)) => a.get() == b.get(),
             (Value::ProcessingInstruction(a), Value::ProcessingInstruction(b)) => {
-                a.target() == b.target() && a.data() == b.data()
+                if a.target() != b.target() {
+                    return false;
+                }
+                match (a.data(), b.data()) {
+                    (Some(a_content), Some(b_content)) => text_compare(a_content, b_content),
+                    (None, None) => true,
+                    _ => false,
+                }
             }
-            // these are compared as part of the element
-            (Value::Attribute(_), _) => true,
-            (_, Value::Attribute(_)) => true,
-            (Value::Namespace(_), _) => true,
-            (_, Value::Namespace(_)) => true,
+            (Value::Attribute(a), Value::Attribute(b)) => {
+                a.name() == b.name() && text_compare(a.value(), b.value())
+            }
+            (Value::Namespace(a), Value::Namespace(b)) => {
+                a.prefix() == b.prefix() && a.namespace() == b.namespace()
+            }
             _ => false,
         }
     }
@@ -724,17 +762,20 @@ impl Xot {
         true
     }
 
-    /// Shallow compare two element nodes.
+    /// Shallow compare two nodes.
     ///
-    /// Name and attributes must be the same, but some attributes
-    /// may be ignored.
+    /// Does not consider content of any nodes, but does compare
+    /// attributes.
+    pub fn shallow_equal(&self, a: Node, b: Node) -> bool {
+        self.shallow_equal_ignore_attributes(a, b, &[])
+    }
+
+    /// Shallow compare two nodes, with possibility to ignore attributes.
     ///
-    /// Child content of the elements is not considered.
+    /// Attributes of elements are compared, except those listed to ignore.
     ///
-    /// If provided with non-element nodes, returns false.
-    ///
-    /// Returns `true` if the elements compare equal.
-    pub fn compare_elements_ignore_attributes(
+    /// Child content of the root or elements is not considered.
+    pub fn shallow_equal_ignore_attributes(
         &self,
         a: Node,
         b: Node,
@@ -772,7 +813,7 @@ impl Xot {
             // be the same as the amount of non-ignored attributes in b
             compare_attributes_count == b_attributes.len() - b_ignore_attributes
         } else {
-            false
+            self.advanced_compare_value(a, b, |a, b| a == b)
         }
     }
 }

@@ -30,7 +30,7 @@ fn test_compare() {
     let doc1 = xot.parse(r#"<a>text</a>"#).unwrap();
     let doc2 = xot.parse(r#"<a>text</a>"#).unwrap();
 
-    assert!(xot.compare(doc1, doc2));
+    assert!(xot.deep_equal(doc1, doc2));
 }
 
 #[test]
@@ -39,7 +39,7 @@ fn test_compare_different_text() {
     let doc1 = xot.parse(r#"<a>text A</a>"#).unwrap();
     let doc2 = xot.parse(r#"<a>text B</a>"#).unwrap();
 
-    assert!(!xot.compare(doc1, doc2));
+    assert!(!xot.deep_equal(doc1, doc2));
 }
 
 #[test]
@@ -48,7 +48,7 @@ fn test_compare_different_structure() {
     let doc1 = xot.parse(r#"<a></a>"#).unwrap();
     let doc2 = xot.parse(r#"<a><b/></a>"#).unwrap();
 
-    assert!(!xot.compare(doc1, doc2));
+    assert!(!xot.deep_equal(doc1, doc2));
 }
 
 #[test]
@@ -61,7 +61,7 @@ fn test_compare_different_namespace() {
         .parse(r#"<a xmlns="http://example.com/b"></a>"#)
         .unwrap();
 
-    assert!(!xot.compare(doc1, doc2));
+    assert!(!xot.deep_equal(doc1, doc2));
 }
 
 #[test]
@@ -70,7 +70,7 @@ fn test_compare_same_attributes() {
     let doc1 = xot.parse(r#"<a x="X"></a>"#).unwrap();
     let doc2 = xot.parse(r#"<a x="X"></a>"#).unwrap();
 
-    assert!(xot.compare(doc1, doc2));
+    assert!(xot.deep_equal(doc1, doc2));
 }
 
 #[test]
@@ -79,7 +79,7 @@ fn test_compare_different_attributes() {
     let doc1 = xot.parse(r#"<a x="X"></a>"#).unwrap();
     let doc2 = xot.parse(r#"<a x="Y"></a>"#).unwrap();
 
-    assert!(!xot.compare(doc1, doc2));
+    assert!(!xot.deep_equal(doc1, doc2));
 }
 
 #[test]
@@ -88,7 +88,7 @@ fn test_compare_different_attributes_extra() {
     let doc1 = xot.parse(r#"<a x="X"></a>"#).unwrap();
     let doc2 = xot.parse(r#"<a x="X" y="Y"></a>"#).unwrap();
 
-    assert!(!xot.compare(doc1, doc2));
+    assert!(!xot.deep_equal(doc1, doc2));
 }
 
 #[test]
@@ -97,7 +97,7 @@ fn test_compare_value_the_same_structure_different() {
     let doc1 = xot.parse(r#"<article><body><sec id="1"><sec id="2"><title>T1</title><p>P1</p><p>P2</p></sec></sec><sec id="3"><title>T2</title><p>P3</p></sec></body></article>"#
     ).unwrap();
     let doc2 = xot.parse(r#"<article><body><sec id="1"><sec id="2"><title>T1</title><p>P1</p><p>P2</p></sec><sec id="3"><title>T2</title><p>P3</p></sec></sec></body></article>"#).unwrap();
-    assert!(!xot.compare(doc1, doc2));
+    assert!(!xot.deep_equal(doc1, doc2));
 }
 
 #[test]
@@ -113,8 +113,8 @@ fn test_compare_children() {
     let doc1_b1 = xot.next_sibling(doc1_b0).unwrap();
     let doc2_b0 = xot.first_child(doc2).unwrap();
 
-    assert!(xot.compare_children(doc1_b0, doc2_b0));
-    assert!(!xot.compare_children(doc1_b1, doc2_b0));
+    assert!(xot.deep_equal_children(doc1_b0, doc2_b0));
+    assert!(!xot.deep_equal_children(doc1_b1, doc2_b0));
 }
 
 #[test]
@@ -123,7 +123,7 @@ fn test_advanced_compare_text() {
     let doc1 = xot.parse(r#"<a>text</a>"#).unwrap();
     let doc2 = xot.parse(r#"<a>TEXT</a>"#).unwrap();
     // case insensitive compare
-    assert!(xot.advanced_compare(
+    assert!(xot.advanced_deep_equal(
         doc1,
         doc2,
         |_| true,
@@ -138,7 +138,7 @@ fn test_advanced_compare_text2() {
     let doc2 = xot.parse(r#"<a>different</a>"#).unwrap();
 
     // case insensitive compare doesn't matter, it's still different
-    assert!(!xot.advanced_compare(
+    assert!(!xot.advanced_deep_equal(
         doc1,
         doc2,
         |_| true,
@@ -152,7 +152,7 @@ fn test_advanced_compare_attribute_text() {
     let doc1 = xot.parse(r#"<a alpha="alpha">text</a>"#).unwrap();
     let doc2 = xot.parse(r#"<a alpha="ALPHA">text</a>"#).unwrap();
     // no text compares as equal, so this is not equal
-    assert!(xot.advanced_compare(
+    assert!(xot.advanced_deep_equal(
         doc1,
         doc2,
         |_| true,
@@ -166,7 +166,7 @@ fn test_advanced_compare_filter() {
     let doc1 = xot.parse(r#"<a>text<!--comment--></a>"#).unwrap();
     let doc2 = xot.parse(r#"<a>text</a>"#).unwrap();
     // compare, disregarding comments
-    assert!(xot.advanced_compare(doc1, doc2, |node| !xot.is_comment(node), |a, b| a == b));
+    assert!(xot.advanced_deep_equal(doc1, doc2, |node| !xot.is_comment(node), |a, b| a == b));
 }
 
 #[test]

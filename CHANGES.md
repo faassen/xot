@@ -51,7 +51,10 @@
 
   * To append a namespace node: `xot.append_namespace_node()`.
 
-  * To append an attribute node: `xot_append_attribute_node()`.
+  * To append an attribute node: `xot.append_attribute_node()`.
+
+  * To append any node, including namespace and attribute nodes, use
+    `xot.any_append()` 
 
   * To check whether something is a namespace node: `xot.is_namespace_node()`.
 
@@ -82,6 +85,13 @@
 
 - Processing instruction `target` is now a `xot::NameId`, not a string.
 
+- Renamed `compare` to `deep_equal`, `advanced_compare` to `advanced_deep_equal`,
+  `compare_children` to `deep_equal_children`.
+
+- Introduced `xot.shallow_compare` and
+  `xot.shallow_equal_elements_ignore_attributes` to replace removed
+  `compare_ignore_attributes` on `Element`.
+
 ## Other changes
 
 - Internally, `next-gen` has been replaced with `genawaiter` to support
@@ -103,6 +113,10 @@
 - Added `xot.uri_str` to get the namespace of a name id.
 
 - Added `xot.string_value` accessor.
+
+- Added `xot.all_traverse` iterator which includes name and attribute nodes.
+
+- Added `xot.deep_equal_xpath` which compares nodes as defined by XPath.
 
 ## [0.20.0] - 2024-02-08
 

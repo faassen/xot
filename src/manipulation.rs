@@ -209,6 +209,24 @@ impl Xot {
         Ok(attributes.insert_node(child))
     }
 
+    /// Append any node, including namespace and attribute nodes.
+    ///
+    /// Namespace and attributes are appended in their respective places, and
+    /// normal child nodes are appended in the end.
+    ///
+    /// Returns the node that was appended or, in case of attributes or
+    /// namespaces that already existed, updated.
+    pub fn any_append(&mut self, parent: Node, child: Node) -> Result<Node, Error> {
+        match self.value_type(child) {
+            ValueType::Namespace => self.append_namespace_node(parent, child),
+            ValueType::Attribute => self.append_attribute_node(parent, child),
+            _ => {
+                self.append(parent, child)?;
+                Ok(child)
+            }
+        }
+    }
+
     /// Append a text node to a parent node given text.
     ///
     /// ```rust
@@ -428,24 +446,24 @@ impl Xot {
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();
-    /// let root = xot.parse(r#"<doc><a><b><c/></b></a></doc>"#)?;
+    /// let root = xot.parse(r#"<doc><a f="F"><b><c/></b></a></doc>"#)?;
     /// let doc_el = xot.document_element(root)?;
     /// let a_el = xot.first_child(doc_el).unwrap();
     ///
     /// let cloned = xot.clone(a_el);
     ///
-    /// assert_eq!(xot.to_string(root)?, r#"<doc><a><b><c/></b></a></doc>"#);
+    /// assert_eq!(xot.to_string(root)?, r#"<doc><a f="F"><b><c/></b></a></doc>"#);
     ///
     /// // cloned is not attached to anything
     /// assert!(xot.parent(cloned).is_none());
     ///
     /// // cloned is a new fragment
-    /// assert_eq!(xot.to_string(cloned)?, r#"<a><b><c/></b></a>"#);
+    /// assert_eq!(xot.to_string(cloned)?, r#"<a f="F"><b><c/></b></a>"#);
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn clone(&mut self, node: Node) -> Node {
-        let edges = self.traverse(node).collect::<Vec<_>>();
+        let edges = self.all_traverse(node).collect::<Vec<_>>();
 
         // we need to create a top node
         let top = if self.is_root(node) {
@@ -468,7 +486,7 @@ impl Xot {
                         continue;
                     }
                     let new_node = self.new_node(value.clone());
-                    self.append(current, new_node).unwrap();
+                    self.any_append(current, new_node).unwrap();
                     if value_type == ValueType::Element {
                         current = new_node;
                     }

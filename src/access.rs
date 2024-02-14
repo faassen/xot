@@ -407,6 +407,16 @@ impl Xot {
         |node_id| self.arena[*node_id].get().is_normal()
     }
 
+    fn normal_edge_filter(&self) -> impl Fn(&indextree::NodeEdge) -> bool + '_ {
+        move |edge| {
+            let node_id = match edge {
+                indextree::NodeEdge::Start(node_id) => node_id,
+                indextree::NodeEdge::End(node_id) => node_id,
+            };
+            self.arena[*node_id].get().is_normal()
+        }
+    }
+
     fn category_filter(&self, category: ValueCategory) -> impl Fn(&indextree::NodeId) -> bool + '_ {
         move |node_id| self.arena[*node_id].get().value_category() == category
     }
@@ -573,7 +583,7 @@ impl Xot {
     /// For value types other than element or root, the start and end always
     /// come as pairs without any intervening edges.
     ///
-    /// This includes edges for namespace and attribute nodes.
+    /// This does not include edges for namespace and attribute nodes.
     ///
     /// ```rust
     /// let mut xot = xot::Xot::new();
@@ -592,6 +602,17 @@ impl Xot {
     /// ]);
     /// ```
     pub fn traverse(&self, node: Node) -> impl Iterator<Item = NodeEdge> + '_ {
+        node.get()
+            .traverse(self.arena())
+            .filter(self.normal_edge_filter())
+            .map(|edge| match edge {
+                IndexTreeNodeEdge::Start(node_id) => NodeEdge::Start(Node::new(node_id)),
+                IndexTreeNodeEdge::End(node_id) => NodeEdge::End(Node::new(node_id)),
+            })
+    }
+
+    /// Traverse nodes, including namespace and attribute nodes.
+    pub fn all_traverse(&self, node: Node) -> impl Iterator<Item = NodeEdge> + '_ {
         node.get().traverse(self.arena()).map(|edge| match edge {
             IndexTreeNodeEdge::Start(node_id) => NodeEdge::Start(Node::new(node_id)),
             IndexTreeNodeEdge::End(node_id) => NodeEdge::End(Node::new(node_id)),
@@ -604,6 +625,7 @@ impl Xot {
     pub fn reverse_traverse(&self, node: Node) -> impl Iterator<Item = NodeEdge> + '_ {
         node.get()
             .reverse_traverse(self.arena())
+            .filter(self.normal_edge_filter())
             .map(|edge| match edge {
                 IndexTreeNodeEdge::Start(node_id) => NodeEdge::Start(Node::new(node_id)),
                 IndexTreeNodeEdge::End(node_id) => NodeEdge::End(Node::new(node_id)),
