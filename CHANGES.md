@@ -88,6 +88,9 @@
 - You can change the name of an element using `Element.set_name`, obtaining
   the element via `xot.element_mut`.
 
+- New `xot.axis` method which lets you do traversal according to axis,
+  following XPath.
+
 ## [0.20.0] - 2024-02-08
 
 ### Changes
