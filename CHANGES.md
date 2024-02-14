@@ -2,6 +2,33 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Breaking changes
+
+- The way attributes and namespace prefixes are handled has changed entirely in
+  this release. Instead of maintaining this information on the `Element` value
+  (as a vecmap), the information is now entirely handled in-tree. This means
+  that attributes and namespace prefixes are now addressable as nodes, with as
+  their parent the element node.
+
+  This means some significant breaking API changes:
+
+  * The `Element` value does not maintain attributes and namespace prefixes
+    anymore, except for its `name()`.
+
+  * The `Value` enum gains two new entries, `Attribute` and `Namespace`.
+
+  * To access attributes, use `xot.attributes(node)`. This returns a
+    hashmap-like struct with as key the name id of the attribute, and as value as
+    string, that lets you access attributes using `get`, iterate over them,
+    etc.
+
+  * To access namespaces, use `xot.namespaces(node)`. This returns a
+    hashmap-like struct with as key the prefix id, and as value the namespace
+    id.
+  
+  * You can also update and add attributes and namespaces using `xot.
+    attributes_mut()` and `xot.namespaces_mut()`, respectively.
+
 ## [0.20.0] - 2024-02-08
 
 ### Changes

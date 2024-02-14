@@ -48,7 +48,11 @@ where
         A::children(self.xot, self.parent)
     }
 
-    fn get_node(&self, key: K) -> Option<Node> {
+    /// Get the node representing the value in the map.
+    ///
+    /// This is an attribute or namespace node. This node has the
+    /// element node as a parent, even though it's not in `xot.children(parent)`.
+    pub fn get_node(&self, key: K) -> Option<Node> {
         self.children()
             .find(|&child| A::key(self.xot.value(child)) == key)
     }
@@ -141,7 +145,11 @@ where
         A::children(self.xot, self.parent)
     }
 
-    fn get_node(&self, key: K) -> Option<Node> {
+    /// Get the node representing the value in the map.
+    ///
+    /// This is an attribute or namespace node. This node has the
+    /// element node as a parent, even though it's not in `xot.children(parent)`.
+    pub fn get_node(&self, key: K) -> Option<Node> {
         self.children()
             .find(|&child| A::key(self.xot.value(child)) == key)
     }
