@@ -12,6 +12,9 @@ use crate::{MutableAttributes, MutableNamespaces};
 /// This can be used with `[Xot::Axis]` to traverse the tree in different ways.
 ///
 /// The axis behaviors are based on the XPath specification.
+///
+/// Note that the namespace axis is not supported; it's tricky to support
+/// and has not been a requirement since XPath 2.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Axis {
     /// The children of the node. Equivalent to [`Xot::children`].
