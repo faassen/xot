@@ -279,6 +279,60 @@ impl Xot {
         namespace
     }
 
+    /// Full name.
+    ///
+    /// Given a context node, determine the full name string of the given name.
+    ///
+    /// If the name doesn't have a namespace, that's identical to the localname.
+    /// If the name is in a namespace, a prefix is looked up. If no prefix
+    /// exists, that's an error.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// // prefixed
+    /// let mut xot = Xot::new();
+    /// let doc = xot.parse(r#"<foo:doc xmlns:foo="http://example.com"/>"#)?;
+    /// let doc_el = xot.document_element(doc).unwrap();
+    /// let name = xot.node_name(doc_el).unwrap();
+    /// let full_name = xot.full_name(doc_el, name)?;
+    /// assert_eq!(full_name, "foo:doc");
+    ///
+    /// // default namespace
+    /// let doc = xot.parse(r#"<doc xmlns="http://example.com"/>"#)?;
+    /// let doc_el = xot.document_element(doc).unwrap();
+    /// let name = xot.node_name(doc_el).unwrap();
+    /// let full_name = xot.full_name(doc_el, name)?;
+    /// assert_eq!(full_name, "doc");
+    ///
+    /// // no namespace
+    /// let doc = xot.parse(r#"<doc/>"#)?;
+    /// let doc_el = xot.document_element(doc).unwrap();
+    /// let name = xot.node_name(doc_el).unwrap();
+    /// let full_name = xot.full_name(doc_el, name)?;
+    /// assert_eq!(full_name, "doc");
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    pub fn full_name(&self, node: Node, name: NameId) -> Result<String, Error> {
+        let namespace = self.namespace_for_name(name);
+        let local_name = self.localname_str(name);
+        if namespace == self.no_namespace() {
+            return Ok(local_name.to_string());
+        }
+        // look up the prefix for the namespace
+        if let Some(prefix) = self.prefix_for_namespace(node, namespace) {
+            let prefix = self.prefix_str(prefix);
+            if !prefix.is_empty() {
+                Ok(format!("{}:{}", prefix, local_name))
+            } else {
+                Ok(local_name.to_string())
+            }
+        } else {
+            Err(Error::MissingPrefix(namespace))
+        }
+    }
+
     /// Look up string slice for prefix id
     ///
     /// If the prefix id is the empty prefix, the string slice is the empty string.
