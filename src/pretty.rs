@@ -95,10 +95,13 @@ impl<'a> Pretty<'a> {
         match output_token {
             StartTagOpen(_) => (self.get_indentation(), false),
             Comment(_) | ProcessingInstruction(..) => (self.get_indentation(), self.get_newline()),
-            StartTagClose(element) => {
+            StartTagClose => {
                 let newline = if self.xot.first_child(node).is_some() {
                     if !self.has_text_child(node) {
-                        let space = element.get_attribute(self.xot.xml_space_name());
+                        let attributes = self.xot.attributes(node);
+                        let space = attributes
+                            .get(self.xot.xml_space_name())
+                            .map(|s| s.as_str());
                         match space {
                             Some("preserve") => self.unmixed(Space::Preserve),
                             Some("default") => self.unmixed(Space::Default),
@@ -161,10 +164,10 @@ mod tests {
     ) {
         let (name, xml) = value;
         let mut xot = Xot::new();
-        let root = xot.parse(xml).unwrap();
+        let document = xot.parse(xml).unwrap();
         let output_xml = xot
             .with_serialize_options(SerializeOptions { pretty: true })
-            .to_string(root)
+            .to_string(document)
             .unwrap();
         assert_snapshot!(name, output_xml, xml);
     }

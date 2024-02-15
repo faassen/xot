@@ -19,8 +19,6 @@ use proptest::prelude::*;
 
 use crate::fixed;
 
-// use crate::fixed::{Content, Element, Name, Prefix, ProcessingInstruction, Root, RootContent};
-
 const NAMESPACES: &[&str] = &["", "http://example.com/x", "http://example.com/y"];
 const PREFIXES: &[&str] = &["", "x", "y"];
 const ELEMENT_NAMES: &[&str] = &["a", "b", "c", "d", "e"];
@@ -139,7 +137,7 @@ fn unduplicate_prefixes(prefixes: &[fixed::Prefix]) -> Vec<fixed::Prefix> {
     let mut seen = HashSet::default();
     prefixes
         .iter()
-        .filter(|prefix| seen.insert(prefix.clone()))
+        .filter(|prefix| seen.insert(*prefix))
         .cloned()
         .collect()
 }
@@ -152,22 +150,22 @@ fn unduplicate_prefixes(prefixes: &[fixed::Prefix]) -> Vec<fixed::Prefix> {
 /// Example:
 ///
 /// ```notrust
-/// use xot::proptest::arb_xml_root;
+/// use xot::proptest::arb_xml_document;
 /// use xot::Xot;
 ///
 /// proptest! {
 ///   #[test]
-///   fn test_arb_xml_can_serialize_parse(root in arb_xml_root()) {
+///   fn test_arb_xml_can_serialize_parse(document in arb_xml_document()) {
 ///     let mut xot = Xot::new();
-///     let node = root.xotify(&mut xot);
+///     let node = document.xotify(&mut xot);
 ///     let serialized = xot.serialize_to_string(node);
 ///     let parsed = xot.parse(&serialized);
 ///     prop_assert!(parsed.is_ok(), "Cannot parse: {} {} {:?}", serialized, parsed.err().unwrap(), serialized);
 ///   }
 /// }
 /// ```
-pub fn arb_xml_root() -> impl Strategy<Value = fixed::Root> {
-    arb_xml_root_with_config(Config {
+pub fn arb_xml_document() -> impl Strategy<Value = fixed::Document> {
+    arb_xml_document_with_config(Config {
         comments_and_pi_outside_document_element: true,
     })
 }
@@ -183,21 +181,21 @@ pub struct Config {
 ///
 /// This produces a value that can be converted into a `Xot` node using its
 /// `xotify` method.
-pub fn arb_xml_root_with_config(config: Config) -> BoxedStrategy<fixed::Root> {
+pub fn arb_xml_document_with_config(config: Config) -> BoxedStrategy<fixed::Document> {
     if config.comments_and_pi_outside_document_element {
         let before = prop::collection::vec(
             prop_oneof![
-                arb_comment().prop_map(fixed::RootContent::Comment),
+                arb_comment().prop_map(fixed::DocumentContent::Comment),
                 arb_processing_instruction().prop_map(|(target, content)| {
                     let processing_instruction = fixed::ProcessingInstruction { target, content };
-                    fixed::RootContent::ProcessingInstruction(processing_instruction)
+                    fixed::DocumentContent::ProcessingInstruction(processing_instruction)
                 }),
             ],
             0..10,
         );
         let after = before.clone();
         (before, arb_fixed_element(), after)
-            .prop_map(|(before, document_element, after)| fixed::Root {
+            .prop_map(|(before, document_element, after)| fixed::Document {
                 before,
                 document_element,
                 after,
@@ -205,7 +203,7 @@ pub fn arb_xml_root_with_config(config: Config) -> BoxedStrategy<fixed::Root> {
             .boxed()
     } else {
         arb_fixed_element()
-            .prop_map(|document_element| fixed::Root {
+            .prop_map(|document_element| fixed::Document {
                 before: vec![],
                 document_element,
                 after: vec![],
@@ -221,7 +219,7 @@ mod tests {
 
     proptest! {
         #[test]
-        fn test_arb_xml_can_serialize_parse(fixed_root in arb_xml_root()) {
+        fn test_arb_xml_can_serialize_parse(fixed_root in arb_xml_document()) {
             let mut xot = Xot::new();
             let node = fixed_root.xotify(&mut xot);
             xot.create_missing_prefixes(node).unwrap();
@@ -233,7 +231,7 @@ mod tests {
 
     proptest! {
         #[test]
-        fn test_arb_xml_can_serialize_parse2(fixed_root in arb_xml_root_with_config(Config::default())) {
+        fn test_arb_xml_can_serialize_parse2(fixed_root in arb_xml_document_with_config(Config::default())) {
             let mut xot = Xot::new();
             let node = fixed_root.xotify(&mut xot);
             xot.create_missing_prefixes(node).unwrap();

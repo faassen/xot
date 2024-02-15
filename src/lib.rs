@@ -40,7 +40,18 @@
 //! XML names and namespaces in Xot are referenced by ids. In order to
 //! construct or compare an element, you first need to get hold of a name. To
 //! access a name, use [`Xot::name`]. To create a new name if necessary, use
-//! [`Xot::add_name`].
+//! [`Xot::add_name`]. To construct a name with a namespace, use [`Xot::add_namespace`] and then
+//! [`Xot::add_name_ns`]. To create a namespace prefix, use
+//! [`Xot::add_prefix`].
+//!
+//! Attributes and namespace access is most conveniently done through the
+//! [`Xot::attributes`] and [`Xot::namespaces`] accessors. Manipulation is most
+//! conveniently done through their mutable variants [`Xot::attributes_mut`]
+//! and [`Xot::namespaces_mut`].
+//!
+//! In some cases however you may want to be able to create namespace and
+//! attribute nodes directly. This can be done through the
+//! [`Xot::new_namespace_node`] and [`Xot::new_attribute_node`] APIs.
 //!
 //! You can also create Xot nodes from a fixed structure, the [`fixed`]
 //! submodule.
@@ -58,6 +69,7 @@ mod manipulation;
 mod name;
 mod nameaccess;
 mod namespace;
+mod nodemap;
 mod parse;
 mod prefix;
 mod pretty;
@@ -70,16 +82,17 @@ mod valueaccess;
 mod xmlvalue;
 mod xotdata;
 
-pub use access::NodeEdge;
+pub use access::{Axis, NodeEdge};
 pub use error::Error;
 pub use levelorder::LevelOrder;
 pub use name::NameId;
 pub use namespace::NamespaceId;
+pub use nodemap::{
+    Attributes, Entry, MutableAttributes, MutableNamespaces, MutableNodeMap, Namespaces, NodeMap,
+};
 pub use parse::{Span, SpanInfo, SpanInfoKey};
 pub use prefix::PrefixId;
 pub use serialize::{PrettyOutputToken, SerializeOptions, WithSerializeOptions};
 pub use serializer::{Output, OutputToken};
-pub use xmlvalue::{
-    Attributes, Comment, Element, Prefixes, ProcessingInstruction, Text, Value, ValueType,
-};
+pub use xmlvalue::{Comment, Element, Prefixes, ProcessingInstruction, Text, Value, ValueType};
 pub use xotdata::{Node, Xot};

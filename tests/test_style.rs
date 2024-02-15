@@ -144,13 +144,13 @@ fn test_style_attribute() -> Result<(), Error> {
             result.push(Style::Text(" ".to_string()));
         }
 
-        if let Output::Attribute(_element, name, _value) = output {
+        if let Output::Attribute(name, _value) = output {
             if name == name_a {
                 result.push(Style::Start);
             }
         }
         result.push(Style::Text(rendered.text));
-        if let Output::Attribute(_element, name, _value) = output {
+        if let Output::Attribute(name, _value) = output {
             if name == name_a {
                 result.push(Style::End);
             }
@@ -178,4 +178,3 @@ fn test_style_attribute() -> Result<(), Error> {
     );
     Ok(())
 }
-

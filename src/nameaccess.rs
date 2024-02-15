@@ -1,5 +1,6 @@
 use ahash::{HashMap, HashSet};
-use next_gen::prelude::*;
+use genawaiter::rc::gen;
+use genawaiter::yield_;
 
 use crate::access::NodeEdge;
 use crate::error::Error;
@@ -7,8 +8,9 @@ use crate::fullname::{Fullname, FullnameSerializer};
 use crate::name::{Name, NameId};
 use crate::namespace::NamespaceId;
 use crate::prefix::PrefixId;
-use crate::xmlvalue::{Element, Prefixes};
+use crate::xmlvalue::Prefixes;
 use crate::xotdata::{Node, Xot};
+use crate::Value;
 
 /// ## Names, namespaces and prefixes.
 ///
@@ -177,6 +179,7 @@ impl Xot {
     ///
     /// Returns the namespace id used when an element or attribute
     /// isn't in any namespace.
+    #[inline]
     pub fn no_namespace(&self) -> NamespaceId {
         self.no_namespace_id
     }
@@ -185,6 +188,7 @@ impl Xot {
     ///
     /// Returns the prefix id used when an element or attribute
     /// doesn't have a prefix.
+    #[inline]
     pub fn empty_prefix(&self) -> PrefixId {
         self.empty_prefix_id
     }
@@ -192,6 +196,7 @@ impl Xot {
     /// XML prefix
     ///
     /// The prefix `xml` used for the XML namespace.
+    #[inline]
     pub fn xml_prefix(&self) -> PrefixId {
         self.xml_prefix_id
     }
@@ -201,6 +206,7 @@ impl Xot {
     /// Returns the namespace id used for the XML namespace.
     ///
     /// Also known as `http://wwww.w3.org/XML/1998/namespace`
+    #[inline]
     pub fn xml_namespace(&self) -> NamespaceId {
         self.xml_namespace_id
     }
@@ -208,6 +214,7 @@ impl Xot {
     /// xml:space
     ///
     /// Returns the name id used for the `xml:space` attribute.
+    #[inline]
     pub fn xml_space_name(&self) -> NameId {
         self.xml_space_id
     }
@@ -251,15 +258,31 @@ impl Xot {
     /// assert_eq!(namespace, "http://example.com");
     /// # Ok::<(), xot::Error>(())
     /// ```
+    #[inline]
     pub fn name_ns_str(&self, name: NameId) -> (&str, &str) {
         let name = self.name_lookup.get_value(name);
         let namespace = self.namespace_lookup.get_value(name.namespace_id);
         (name.name.as_ref(), namespace)
     }
 
+    /// Get the localname of a name.
+    #[inline]
+    pub fn local_name_str(&self, name: NameId) -> &str {
+        let name = self.name_lookup.get_value(name);
+        name.name.as_ref()
+    }
+
+    /// Get the namespace URI of a name
+    #[inline]
+    pub fn uri_str(&self, name: NameId) -> &str {
+        let name = self.name_lookup.get_value(name);
+        self.namespace_str(name.namespace_id)
+    }
+
     /// Look up namespace uri for namespace id
     ///
     /// An empty string slice indicates the no namespace.
+    #[inline]
     pub fn namespace_str(&self, namespace: NamespaceId) -> &str {
         let namespace = self.namespace_lookup.get_value(namespace);
         namespace
@@ -268,6 +291,7 @@ impl Xot {
     /// Look up string slice for prefix id
     ///
     /// If the prefix id is the empty prefix, the string slice is the empty string.
+    #[inline]
     pub fn prefix_str(&self, prefix: PrefixId) -> &str {
         let prefix = self.prefix_lookup.get_value(prefix);
         prefix
@@ -285,17 +309,88 @@ impl Xot {
     /// assert_eq!(xot.namespace_for_name(name), ns);
     /// # Ok::<(), xot::Error>(())
     /// ```
+    #[inline]
     pub fn namespace_for_name(&self, name: NameId) -> NamespaceId {
         self.name_lookup.get_value(name).namespace_id
+    }
+
+    /// Full name.
+    ///
+    /// Given a context node, determine the full name string of the given name.
+    ///
+    /// If the name doesn't have a namespace, that's identical to the localname.
+    /// If the name is in a namespace, a prefix is looked up. If no prefix
+    /// exists, that's an error.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// // prefixed
+    /// let mut xot = Xot::new();
+    /// let doc = xot.parse(r#"<foo:doc xmlns:foo="http://example.com"/>"#)?;
+    /// let doc_el = xot.document_element(doc).unwrap();
+    /// let name = xot.node_name(doc_el).unwrap();
+    /// let full_name = xot.full_name(doc_el, name)?;
+    /// assert_eq!(full_name, "foo:doc");
+    ///
+    /// // default namespace
+    /// let doc = xot.parse(r#"<doc xmlns="http://example.com"/>"#)?;
+    /// let doc_el = xot.document_element(doc).unwrap();
+    /// let name = xot.node_name(doc_el).unwrap();
+    /// let full_name = xot.full_name(doc_el, name)?;
+    /// assert_eq!(full_name, "doc");
+    ///
+    /// // no namespace
+    /// let doc = xot.parse(r#"<doc/>"#)?;
+    /// let doc_el = xot.document_element(doc).unwrap();
+    /// let name = xot.node_name(doc_el).unwrap();
+    /// let full_name = xot.full_name(doc_el, name)?;
+    /// assert_eq!(full_name, "doc");
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    pub fn full_name(&self, node: Node, name: NameId) -> Result<String, Error> {
+        let namespace = self.namespace_for_name(name);
+        let local_name = self.local_name_str(name);
+        if namespace == self.no_namespace() {
+            return Ok(local_name.to_string());
+        }
+        // look up the prefix for the namespace
+        if let Some(prefix) = self.prefix_for_namespace(node, namespace) {
+            let prefix = self.prefix_str(prefix);
+            if !prefix.is_empty() {
+                Ok(format!("{}:{}", prefix, local_name))
+            } else {
+                Ok(local_name.to_string())
+            }
+        } else {
+            Err(Error::MissingPrefix(namespace))
+        }
+    }
+
+    /// Given a node, give back the name id of this node.
+    ///
+    /// For elements and attribute that is their name, for processing
+    /// instructions this is a name based on the target attribute.
+    ///
+    /// For anything else, it's `None`.
+    pub fn node_name(&self, node: Node) -> Option<NameId> {
+        match self.value(node) {
+            Value::Element(element) => Some(element.name()),
+            Value::Text(..) => None,
+            Value::ProcessingInstruction(pi) => Some(pi.target()),
+            Value::Comment(..) => None,
+            Value::Document => None,
+            Value::Attribute(attribute) => Some(attribute.name()),
+            Value::Namespace(_) => None,
+        }
     }
 
     /// Check whether a prefix is defined in node or its ancestors.
     pub fn is_prefix_defined(&self, node: Node, prefix: PrefixId) -> bool {
         for ancestor in self.ancestors(node) {
-            if let Some(element) = self.element(ancestor) {
-                if element.prefixes().contains_key(&prefix) {
-                    return true;
-                }
+            if self.namespaces(ancestor).contains_key(prefix) {
+                return true;
             }
         }
         if self.base_prefixes().contains_key(&prefix) {
@@ -324,11 +419,9 @@ impl Xot {
     /// Returns `None` if no prefix is defined for the namespace.
     pub fn prefix_for_namespace(&self, node: Node, namespace: NamespaceId) -> Option<PrefixId> {
         for ancestor in self.ancestors(node) {
-            if let Some(element) = self.element(ancestor) {
-                for (key, value) in element.prefixes() {
-                    if *value == namespace {
-                        return Some(*key);
-                    }
+            for (key, value) in self.namespaces(ancestor).iter() {
+                if *value == namespace {
+                    return Some(key);
                 }
             }
         }
@@ -345,10 +438,8 @@ impl Xot {
     /// Return `None` if no namespace is defined for the prefix.
     pub fn namespace_for_prefix(&self, node: Node, prefix: PrefixId) -> Option<NamespaceId> {
         for ancestor in self.ancestors(node) {
-            if let Some(element) = self.element(ancestor) {
-                if let Some(namespace) = element.prefixes().get(&prefix) {
-                    return Some(*namespace);
-                }
+            if let Some(namespace) = self.namespaces(ancestor).get(prefix) {
+                return Some(*namespace);
             }
         }
         for (key, value) in self.base_prefixes() {
@@ -371,7 +462,7 @@ impl Xot {
     /// You can use this function just before serializing the tree to XML
     /// using [`Xot::write`] or [`Xot::to_string`].
     pub fn create_missing_prefixes(&mut self, node: Node) -> Result<(), Error> {
-        let node = if self.is_root(node) {
+        let node = if self.is_document(node) {
             self.document_element(node).unwrap()
         } else {
             node
@@ -386,13 +477,13 @@ impl Xot {
                 NodeEdge::Start(node) => {
                     let element = self.element(node);
                     if let Some(element) = element {
-                        fullname_serializer.push(&element.prefixes);
+                        fullname_serializer.push(&self.prefixes(node));
                         let element_fullname = fullname_serializer.fullname(element.name_id);
                         if let Fullname::MissingPrefix(namespace_id) = element_fullname {
                             missing_namespace_ids.insert(namespace_id);
                         }
-                        for name_id in element.attributes.keys() {
-                            let attribute_fullname = fullname_serializer.fullname_attr(*name_id);
+                        for name_id in self.attributes(node).keys() {
+                            let attribute_fullname = fullname_serializer.fullname_attr(name_id);
                             if let Fullname::MissingPrefix(namespace_id) = attribute_fullname {
                                 missing_namespace_ids.insert(namespace_id);
                             }
@@ -400,9 +491,8 @@ impl Xot {
                     }
                 }
                 NodeEdge::End(node) => {
-                    let element = self.element(node);
-                    if let Some(element) = element {
-                        fullname_serializer.pop(&element.prefixes);
+                    if self.is_element(node) {
+                        fullname_serializer.pop();
                     }
                 }
             }
@@ -413,9 +503,10 @@ impl Xot {
             let prefix_id = self.add_prefix(&prefix);
             prefixes_to_add.insert(prefix_id, namespace_id);
         }
-        let value = self.element_mut(node).unwrap();
+        let mut namespaces = self.namespaces_mut(node);
+
         for (prefix_id, namespace_id) in prefixes_to_add {
-            value.prefixes.insert(prefix_id, *namespace_id);
+            namespaces.insert(prefix_id, *namespace_id);
         }
         Ok(())
     }
@@ -478,34 +569,32 @@ impl Xot {
         for edge in self.traverse(node) {
             match edge {
                 NodeEdge::Start(node) => {
-                    let element = self.element(node);
-                    if let Some(element) = element {
+                    if self.is_element(node) {
                         // an attribute in a namespace *has* to have a non-empty
                         // prefix. This means we cannot remove a prefix if that
                         // prefix overlaps with a previously defined default
                         // namespace: that's fine for elements which fall
                         // in the default namespace, but not for attributes.
                         // The tracker keeps track of all this.
-                        deduplicate_tracker.push(self, element);
+                        deduplicate_tracker.push(self, node);
                         // we don't need to remove the fixed up prefixes because
                         // as duplicates they will definitely exist.
                         // In fact if we remove them first the push will fail to create
                         // a new entry in the namespace stack, as prefixes can become empty
-                        fullname_serializer.push(&element.prefixes);
+                        fullname_serializer.push(&self.prefixes(node));
                     }
                 }
                 NodeEdge::End(node) => {
-                    let element = self.element(node);
-                    if let Some(element) = element {
+                    if self.is_element(node) {
                         // to_prefix is only used to determine whether to pop
                         // so should be okay to send here
-                        fullname_serializer.pop(&element.prefixes);
+                        fullname_serializer.pop();
                         deduplicate_tracker.pop();
                         // if we already know a namespace, remove it
                         // we do this at the end so the deduplicate tracker
                         // has had a change to do its work for sub-elements
-                        let to_remove = element
-                            .prefixes()
+                        let namespaces = self.namespaces(node);
+                        let to_remove = namespaces
                             .iter()
                             .filter_map(|(_, namespace_id)| {
                                 if fullname_serializer.is_namespace_known(*namespace_id)
@@ -525,10 +614,23 @@ impl Xot {
             }
         }
         // now actually fix up the nodes, removing superfluous namespaces
+        // TODO: this whole thing is a bit a multi-step mess. Perhaps
+        // direct namespace node access would help.
+        let mut fixup_prefixes = Vec::new();
         for (node, to_remove) in fixup_nodes {
-            let element = self.element_mut(node).unwrap();
+            let namespaces = self.namespaces(node);
             for namespace_id in to_remove {
-                element.remove_namespace(namespace_id)
+                let prefixes_to_remove = namespaces
+                    .iter()
+                    .filter(|(_, ns)| **ns == namespace_id)
+                    .map(|(prefix, _)| prefix);
+                fixup_prefixes.push((node, prefixes_to_remove.collect::<Vec<_>>()));
+            }
+        }
+        for (node, prefix) in fixup_prefixes {
+            let mut namespaces = self.namespaces_mut(node);
+            for prefix in prefix {
+                namespaces.remove(prefix);
             }
         }
     }
@@ -536,15 +638,13 @@ impl Xot {
     pub(crate) fn prefixes_in_scope(&self, node: Node) -> Prefixes {
         let mut prefixes = Prefixes::new();
         for ancestor in self.ancestors(node) {
-            let element = self.element(ancestor);
-            if let Some(element) = element {
-                for (prefix_id, namespace_id) in element.prefixes() {
-                    // prefixes defined later override those defined earlier
-                    if prefixes.contains_key(prefix_id) {
-                        continue;
-                    }
-                    prefixes.insert(*prefix_id, *namespace_id);
+            let namespaces = self.namespaces(ancestor);
+            for (prefix_id, namespace_id) in namespaces.iter() {
+                // prefixes defined later override those defined earlier
+                if prefixes.contains_key(&prefix_id) {
+                    continue;
                 }
+                prefixes.insert(prefix_id, *namespace_id);
             }
         }
         prefixes
@@ -562,13 +662,13 @@ impl Xot {
                 NodeEdge::Start(node) => {
                     let element = self.element(node);
                     if let Some(element) = element {
-                        fullname_serializer.push(&element.prefixes);
+                        fullname_serializer.push(&self.prefixes(node));
                         let namespace_id = self.namespace_for_name(element.name());
                         if !fullname_serializer.is_namespace_known(namespace_id) {
                             namespaces.push(namespace_id);
                         }
-                        for name in element.attributes().keys() {
-                            let namespace_id = self.namespace_for_name(*name);
+                        for name in self.attributes(node).keys() {
+                            let namespace_id = self.namespace_for_name(name);
                             if !fullname_serializer.is_namespace_known(namespace_id) {
                                 namespaces.push(namespace_id);
                             }
@@ -576,9 +676,8 @@ impl Xot {
                     }
                 }
                 NodeEdge::End(node) => {
-                    let element = self.element(node);
-                    if let Some(element) = element {
-                        fullname_serializer.pop(&element.prefixes);
+                    if self.is_element(node) {
+                        fullname_serializer.pop();
                     }
                 }
             }
@@ -590,9 +689,11 @@ impl Xot {
     ///
     /// Once a prefix has been yielded, it's not yielded again, as the
     /// overriding prefix has already been yielded.
-    pub fn namespaces(&self, node: Node) -> impl Iterator<Item = (PrefixId, NamespaceId)> + '_ {
-        mk_gen!(let namespaces = box namespace_traverse(self, node));
-        namespaces
+    pub fn namespaces_in_scope(
+        &self,
+        node: Node,
+    ) -> impl Iterator<Item = (PrefixId, NamespaceId)> + '_ {
+        namespace_traverse(self, node)
     }
 
     pub(crate) fn base_prefixes(&self) -> Prefixes {
@@ -616,14 +717,15 @@ impl DeduplicateTracker {
         Self { stack: Vec::new() }
     }
 
-    fn push(&mut self, xot: &Xot, element: &Element) {
-        let default_namespace = element.prefixes().get(&xot.empty_prefix());
+    fn push(&mut self, xot: &Xot, node: Node) {
+        let namespaces = xot.namespaces(node);
+        let default_namespace = namespaces.get(xot.empty_prefix());
         self.stack.push(DeduplicateTrackerEntry {
             default_namespace: default_namespace.copied(),
             in_use_by_attribute: false,
         });
-        for attribute_name in element.attributes().keys() {
-            self.attribute_name(xot, *attribute_name);
+        for attribute_name in xot.attributes(node).keys() {
+            self.attribute_name(xot, attribute_name);
         }
     }
 
@@ -651,33 +753,35 @@ impl DeduplicateTracker {
     }
 }
 
-#[generator(yield((PrefixId, NamespaceId)))]
-pub(crate) fn namespace_traverse(xot: &Xot, node: Node) {
-    let mut seen: Vec<PrefixId> = Vec::new();
-    for ancestor in xot.ancestors(node) {
-        if let Some(element) = xot.element(ancestor) {
-            for (prefix_id, namespace_id) in element.prefixes() {
-                if seen.contains(prefix_id) {
+pub(crate) fn namespace_traverse(
+    xot: &Xot,
+    node: Node,
+) -> impl Iterator<Item = (PrefixId, NamespaceId)> + '_ {
+    gen!({
+        let mut seen: Vec<PrefixId> = Vec::new();
+        for ancestor in xot.ancestors(node) {
+            let namespaces = xot.namespaces(ancestor);
+            for (prefix_id, namespace_id) in namespaces.iter() {
+                if seen.contains(&prefix_id) {
                     continue;
                 }
-                seen.push(*prefix_id);
-                yield_!((*prefix_id, *namespace_id));
+                seen.push(prefix_id);
+                yield_!((prefix_id, *namespace_id));
             }
         }
-    }
-    for (prefix_id, namespace_id) in xot.base_prefixes() {
-        if seen.contains(&prefix_id) {
-            continue;
+        for (prefix_id, namespace_id) in xot.base_prefixes() {
+            if seen.contains(&prefix_id) {
+                continue;
+            }
+            seen.push(prefix_id);
+            yield_!((prefix_id, namespace_id));
         }
-        seen.push(prefix_id);
-        yield_!((prefix_id, namespace_id));
-    }
+    })
+    .into_iter()
 }
 
 #[cfg(test)]
 mod tests {
-    use vecmap::VecMap;
-
     use super::*;
 
     #[test]
@@ -698,14 +802,17 @@ mod tests {
 
         assert_eq!(
             xot.prefixes_in_scope(doc_el),
-            VecMap::from_iter(vec![(foo, ns)])
+            Prefixes::from_iter(vec![(foo, ns)])
         );
 
-        assert_eq!(xot.prefixes_in_scope(a), VecMap::from_iter(vec![(foo, ns)]));
+        assert_eq!(
+            xot.prefixes_in_scope(a),
+            Prefixes::from_iter(vec![(foo, ns)])
+        );
 
         assert_eq!(
             xot.prefixes_in_scope(b),
-            VecMap::from_iter(vec![(foo, ns_foo), (bar, ns_bar)])
+            Prefixes::from_iter(vec![(foo, ns_foo), (bar, ns_bar)])
         );
     }
 }

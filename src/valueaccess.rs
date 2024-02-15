@@ -1,6 +1,9 @@
 use crate::access::NodeEdge;
-use crate::xmlvalue::{Comment, Element, ProcessingInstruction, Text, Value, ValueType};
+use crate::xmlvalue::{
+    Attribute, Comment, Element, Namespace, ProcessingInstruction, Text, Value, ValueType,
+};
 use crate::xotdata::{Node, Xot};
+use crate::NameId;
 
 /// ## Value and type access
 impl Xot {
@@ -41,12 +44,11 @@ impl Xot {
     ///
     /// let root = xot.parse("<doc>Example</doc>")?;
     /// let doc_el = xot.document_element(root).unwrap();
-    ///
-    /// let attr_name = xot.add_name("foo");
+    /// let text_node = xot.first_child(doc_el).unwrap();
     ///
     /// match xot.value_mut(doc_el) {
-    ///    Value::Element(element) => {
-    ///       element.set_attribute(attr_name, "Foo!")
+    ///    Value::Text(text) => {
+    ///       text.set("Changed");
     ///   }
     ///   _ => { }
     /// }
@@ -56,7 +58,7 @@ impl Xot {
     ///
     /// Note that if you already know the type of a node value or are
     /// only interested in a single type, you can use the convenience
-    /// methods like [`Xot::element_mut`]
+    /// methods like [`Xot::text_mut`]
     #[inline]
     pub fn value_mut(&mut self, node_id: Node) -> &mut Value {
         self.arena[node_id.get()].get_mut()
@@ -67,7 +69,7 @@ impl Xot {
         self.value(node).value_type()
     }
 
-    /// Return true if node is directly under the document root.
+    /// Return true if node is directly under the document node.
     /// This means it's either the document element or a comment or
     /// processing instruction.
     ///
@@ -79,14 +81,14 @@ impl Xot {
     /// let doc_el = xot.document_element(root).unwrap();
     /// let text_node = xot.first_child(doc_el).unwrap();
     ///
-    /// assert!(xot.is_under_root(doc_el));
-    /// assert!(!xot.is_under_root(text_node));
+    /// assert!(xot.has_document_parent(doc_el));
+    /// assert!(!xot.has_document_parent(text_node));
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn is_under_root(&self, node: Node) -> bool {
+    pub fn has_document_parent(&self, node: Node) -> bool {
         if let Some(parent_id) = self.parent(node) {
-            self.value_type(parent_id) == ValueType::Root
+            self.value_type(parent_id) == ValueType::Document
         } else {
             false
         }
@@ -108,14 +110,14 @@ impl Xot {
     /// ```
     pub fn is_document_element(&self, node: Node) -> bool {
         if let Some(parent_id) = self.parent(node) {
-            self.value_type(parent_id) == ValueType::Root
+            self.value_type(parent_id) == ValueType::Document
                 && self.value_type(node) == ValueType::Element
         } else {
             false
         }
     }
 
-    /// Return true if node is the document root.
+    /// Return true if node is the document node.
     ///
     /// ```rust
     /// use xot::Xot;
@@ -124,12 +126,12 @@ impl Xot {
     /// let root = xot.parse("<doc>Example</doc>")?;
     /// let doc_el = xot.document_element(root).unwrap();
     ///
-    /// assert!(xot.is_root(root));
-    /// assert!(!xot.is_root(doc_el));
+    /// assert!(xot.is_document(root));
+    /// assert!(!xot.is_document(doc_el));
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn is_root(&self, node: Node) -> bool {
-        self.value_type(node) == ValueType::Root
+    pub fn is_document(&self, node: Node) -> bool {
+        self.value_type(node) == ValueType::Document
     }
 
     /// Return true if node is an element.
@@ -177,6 +179,16 @@ impl Xot {
     /// Return true if node is a processing instruction.
     pub fn is_processing_instruction(&self, node: Node) -> bool {
         self.value_type(node) == ValueType::ProcessingInstruction
+    }
+
+    /// Return true if node is a namespace node.
+    pub fn is_namespace_node(&self, node: Node) -> bool {
+        self.value_type(node) == ValueType::Namespace
+    }
+
+    /// Return true if node is an attribute node.
+    pub fn is_attribute_node(&self, node: Node) -> bool {
+        self.value_type(node) == ValueType::Attribute
     }
 
     /// If this node's value is text, return a reference to it.
@@ -262,9 +274,6 @@ impl Xot {
 
     /// If this node's value is an element, return a reference to it.
     ///
-    /// See also [`Xot::element_mut()`] if you want to manipulate
-    /// an element.
-    ///
     /// ```rust
     /// use xot::Xot;
     ///
@@ -277,10 +286,6 @@ impl Xot {
     ///
     /// let child_name = xot.name("child").unwrap();
     /// assert_eq!(element.name(), child_name);
-    ///
-    /// let a_name = xot.name("a").unwrap();
-    /// let attribute_value = element.get_attribute(a_name).unwrap();
-    /// assert_eq!(attribute_value, "A");
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
@@ -295,32 +300,22 @@ impl Xot {
 
     /// If this node's value is an element, return a mutable reference to it.
     ///
-    /// You can use this to add or remove attributes as well as
-    /// namespace declarations.
+    /// You can use this to change an element's name.
     ///
     /// ```rust
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();
-    /// let root = xot.parse(r#"<doc><child a="A"/></doc>"#)?;
+    /// let changed = xot.add_name("changed");
+    /// let root = xot.parse(r#"<doc><child/></doc>"#)?;
     /// let doc_el = xot.document_element(root)?;
     /// let child_el = xot.first_child(doc_el).unwrap();
     ///
-    /// let prefix = xot.add_prefix("ns");
-    /// let ns = xot.add_namespace("http://example.com");
-    /// let b_name = xot.add_name("b");
-    ///
     /// let element = xot.element_mut(child_el).unwrap();
+    /// element.set_name(changed);
     ///
-    /// element.set_attribute(b_name, "B");
+    /// assert_eq!(xot.to_string(root)?, r#"<doc><changed/></doc>"#);
     ///
-    /// assert_eq!(xot.to_string(root)?, r#"<doc><child a="A" b="B"/></doc>"#);
-    ///
-    /// let element = xot.element_mut(child_el).unwrap();
-    ///
-    /// element.set_prefix(prefix, ns);
-    ///
-    /// assert_eq!(xot.to_string(root)?, r#"<doc><child xmlns:ns="http://example.com" a="A" b="B"/></doc>"#);
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn element_mut(&mut self, node: Node) -> Option<&mut Element> {
@@ -490,7 +485,78 @@ impl Xot {
         }
     }
 
-    /// Compare two nodes for semantic equality.
+    /// Access namespace node value
+    pub fn namespace_node(&self, node: Node) -> Option<&Namespace> {
+        let xml_node = self.value(node);
+        if let Value::Namespace(namespace) = xml_node {
+            Some(namespace)
+        } else {
+            None
+        }
+    }
+
+    /// Manipulate namespace node value
+    pub fn namespace_node_mut(&mut self, node: Node) -> Option<&mut Namespace> {
+        let xml_node = self.value_mut(node);
+        if let Value::Namespace(namespace) = xml_node {
+            Some(namespace)
+        } else {
+            None
+        }
+    }
+
+    /// Access attribute node value
+    pub fn attribute_node(&self, node: Node) -> Option<&Attribute> {
+        let xml_node = self.value(node);
+        if let Value::Attribute(attribute) = xml_node {
+            Some(attribute)
+        } else {
+            None
+        }
+    }
+
+    /// Manipulate attribute node value
+    pub fn attribute_node_mut(&mut self, node: Node) -> Option<&mut Attribute> {
+        let xml_node = self.value_mut(node);
+        if let Value::Attribute(attribute) = xml_node {
+            Some(attribute)
+        } else {
+            None
+        }
+    }
+
+    /// Given a node, give back a string representation.
+    ///
+    /// For the root node and element nodes this gives back all text node
+    /// descendant content, concatenated.
+    ///
+    /// For text nodes, it gives back the text.
+    ///
+    /// For comments, it gives back the comment text.
+    ///
+    /// For processing instructions, it gives back their content (data).
+    ///
+    /// For attribute nodes, it gives back the attribute value.
+    ///
+    /// For namespace nodes, it gives back the namespace URI.
+    ///
+    /// This is defined by the `string-value` property in
+    /// <https://www.w3.org/TR/xpath-datamodel-31>
+    pub fn string_value(&self, node: Node) -> String {
+        match self.value(node) {
+            Value::Document | Value::Element(_) => descendants_to_string(self, node),
+            Value::Text(text) => text.get().to_string(),
+            Value::ProcessingInstruction(pi) => pi.data().unwrap_or("").to_string(),
+            Value::Comment(comment) => comment.get().to_string(),
+            Value::Attribute(attribute) => attribute.value().to_string(),
+            Value::Namespace(namespace) => {
+                let namespace_id = namespace.namespace();
+                self.namespace_str(namespace_id).to_string()
+            }
+        }
+    }
+
+    /// Check two nodes for semantic equality.
     ///
     /// This is a deep comparison of the nodes and their children.
     /// The trees have to have the same structure.
@@ -513,7 +579,7 @@ impl Xot {
     /// let root0 = xot.parse("<doc><a>Example</a><b/></doc>")?;
     /// let root1 = xot.parse("<doc><a>Example</a><b/></doc>")?;
     ///
-    /// assert!(xot.compare(root0, root1));
+    /// assert!(xot.deep_equal(root0, root1));
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
@@ -528,7 +594,7 @@ impl Xot {
     /// let root0 = xot.parse("<doc xmlns:foo='http://example.com'><foo:a/></doc>")?;
     /// let root1 = xot.parse("<doc xmlns:bar='http://example.com'><bar:a/></doc>")?;
     ///
-    /// assert!(xot.compare(root0, root1));
+    /// assert!(xot.deep_equal(root0, root1));
     /// # Ok::<(), xot::Error>(())
     /// ```
     ///
@@ -541,7 +607,7 @@ impl Xot {
     /// let root0 = xot.parse("<doc>Example</doc>")?;
     /// let root1 = xot.parse("<doc>Changed</doc>")?;
     ///
-    /// assert!(!xot.compare(root0, root1));
+    /// assert!(!xot.deep_equal(root0, root1));
     /// # Ok::<(), xot::Error>(())
     /// ```
     ///
@@ -557,13 +623,63 @@ impl Xot {
     /// let b_el = xot.next_sibling(a_el).unwrap();
     /// let a2_el = xot.next_sibling(b_el).unwrap();
     ///
-    /// assert!(xot.compare(a_el, a2_el));
-    /// assert!(!xot.compare(a_el, b_el));
+    /// assert!(xot.deep_equal(a_el, a2_el));
+    /// assert!(!xot.deep_equal(a_el, b_el));
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn compare(&self, a: Node, b: Node) -> bool {
-        self.advanced_compare(a, b, |_| true, |a, b| a == b)
+    pub fn deep_equal(&self, a: Node, b: Node) -> bool {
+        self.advanced_deep_equal(a, b, |_| true, |a, b| a == b)
+    }
+
+    /// Compare the children of two nodes
+    ///
+    /// If the children are the same semantically, return true. It ignores
+    /// the name and attributes of the `a` and `b` nodes themselves.
+    pub fn deep_equal_children(&self, a: Node, b: Node) -> bool {
+        let mut b_children = self.children(b);
+        for a_child in self.children(a) {
+            if let Some(b_child) = b_children.next() {
+                // if the child is different, the element is different
+                if !self.deep_equal(a_child, b_child) {
+                    return false;
+                }
+            } else {
+                // we cannot find a b child for an a child
+                return false;
+            }
+        }
+        b_children.next().is_none()
+    }
+
+    /// XPath deep equal
+    /// Comparison of two nodes as defined by the XPath deep-equal function:
+    ///
+    /// <https://www.w3.org/TR/xpath-functions-31/#func-deep-equal>
+    ///
+    /// We ignore anything about typed content in that definition.
+    pub fn deep_equal_xpath(
+        &self,
+        a: Node,
+        b: Node,
+        text_compare: impl Fn(&str, &str) -> bool,
+    ) -> bool {
+        // the top level comparison needs to compare the node, even if
+        // processing instruction or a comment, though for elements, we want to
+        // compare the structure and filter comments and processing
+        // instructions out.
+        use Value::*;
+        match (self.value(a), self.value(b)) {
+            (Element(_), Element(_)) | (Document, Document) => self.advanced_deep_equal(
+                a,
+                b,
+                // we need to only consider elements and text nodes for
+                // root/element content comparison
+                |node| self.is_element(node) || self.is_text(node),
+                text_compare,
+            ),
+            _ => self.advanced_compare_value(a, b, text_compare),
+        }
     }
 
     /// Compare two nodes for semantic equality with custom text compare and
@@ -582,14 +698,16 @@ impl Xot {
     /// using the filter function.
     ///
     /// Text nodes and attributes are compared using the provided comparison function.
-    pub fn advanced_compare<F, C>(&self, a: Node, b: Node, filter: F, text_compare: C) -> bool
+    pub fn advanced_deep_equal<F, C>(&self, a: Node, b: Node, filter: F, text_compare: C) -> bool
     where
         F: Fn(Node) -> bool,
         C: Fn(&str, &str) -> bool,
     {
-        let filter_edge = |edge: &NodeEdge| match edge {
-            NodeEdge::Start(node) => filter(*node),
-            NodeEdge::End(node) => filter(*node),
+        let filter_edge = |edge: &NodeEdge| {
+            let node = match edge {
+                NodeEdge::Start(node) | NodeEdge::End(node) => *node,
+            };
+            filter(node)
         };
 
         let mut edges_a = self.traverse(a).filter(filter_edge);
@@ -617,26 +735,6 @@ impl Xot {
         true
     }
 
-    /// Compare the children of two nodes
-    ///
-    /// If the children are the same semantically, return true. It ignores
-    /// the name and attributes of the `a` and `b` nodes themselves.
-    pub fn compare_children(&self, a: Node, b: Node) -> bool {
-        let mut b_children = self.children(b);
-        for a_child in self.children(a) {
-            if let Some(b_child) = b_children.next() {
-                // if the child is different, the element is different
-                if !self.compare(a_child, b_child) {
-                    return false;
-                }
-            } else {
-                // we cannot find a b child for an a child
-                return false;
-            }
-        }
-        b_children.next().is_none()
-    }
-
     pub(crate) fn advanced_compare_value<C>(&self, a: Node, b: Node, text_compare: C) -> bool
     where
         C: Fn(&str, &str) -> bool,
@@ -644,14 +742,118 @@ impl Xot {
         let a_value = self.value(a);
         let b_value = self.value(b);
         match (a_value, b_value) {
-            (Value::Root, Value::Root) => true,
-            (Value::Element(a), Value::Element(b)) => a.advanced_compare(b, text_compare),
+            (Value::Document, Value::Document) => true,
+            (Value::Element(a_element), Value::Element(b_element)) => {
+                a_element.name() == b_element.name()
+                    && self.advanced_compare_attributes(a, b, text_compare)
+            }
             (Value::Text(a), Value::Text(b)) => text_compare(a.get(), b.get()),
             (Value::Comment(a), Value::Comment(b)) => a.get() == b.get(),
             (Value::ProcessingInstruction(a), Value::ProcessingInstruction(b)) => {
-                a.target() == b.target() && a.data() == b.data()
+                if a.target() != b.target() {
+                    return false;
+                }
+                match (a.data(), b.data()) {
+                    (Some(a_content), Some(b_content)) => text_compare(a_content, b_content),
+                    (None, None) => true,
+                    _ => false,
+                }
+            }
+            (Value::Attribute(a), Value::Attribute(b)) => {
+                a.name() == b.name() && text_compare(a.value(), b.value())
+            }
+            (Value::Namespace(a), Value::Namespace(b)) => {
+                a.prefix() == b.prefix() && a.namespace() == b.namespace()
             }
             _ => false,
         }
     }
+
+    fn advanced_compare_attributes<C>(&self, a: Node, b: Node, text_compare: C) -> bool
+    where
+        C: Fn(&str, &str) -> bool,
+    {
+        let a_attributes = self.attributes(a);
+        let b_attributes = self.attributes(b);
+        if a_attributes.len() != b_attributes.len() {
+            return false;
+        }
+        // if we can't find a value for a key in a in b, then we
+        // know they aren't the same, given we already compared the length
+        for (key, value_a) in a_attributes.iter() {
+            let value_b = b_attributes.get(key);
+            if let Some(value_b) = value_b {
+                if !text_compare(value_a, value_b) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// Shallow compare two nodes.
+    ///
+    /// Does not consider content of any nodes, but does compare
+    /// attributes.
+    pub fn shallow_equal(&self, a: Node, b: Node) -> bool {
+        self.shallow_equal_ignore_attributes(a, b, &[])
+    }
+
+    /// Shallow compare two nodes, with possibility to ignore attributes.
+    ///
+    /// Attributes of elements are compared, except those listed to ignore.
+    ///
+    /// Child content of the root or elements is not considered.
+    pub fn shallow_equal_ignore_attributes(
+        &self,
+        a: Node,
+        b: Node,
+        ignore_attributes: &[NameId],
+    ) -> bool {
+        if let (Some(a_element), Some(b_element)) = (self.element(a), self.element(b)) {
+            if a_element.name() != b_element.name() {
+                return false;
+            }
+
+            // count the amount of attributes we compare
+            let mut compare_attributes_count = 0;
+
+            let a_attributes = self.attributes(a);
+            let b_attributes = self.attributes(b);
+
+            for (key, value_a) in a_attributes.iter() {
+                if ignore_attributes.contains(&key) {
+                    continue;
+                }
+                let value_b = b_attributes.get(key);
+                if Some(value_a) != value_b {
+                    return false;
+                }
+                compare_attributes_count += 1;
+            }
+
+            let mut b_ignore_attributes = 0;
+            for ignore_attribute in ignore_attributes {
+                if b_attributes.get(*ignore_attribute).is_some() {
+                    b_ignore_attributes += 1;
+                }
+            }
+            // we expect the amount of non-ignored attributes in a to
+            // be the same as the amount of non-ignored attributes in b
+            compare_attributes_count == b_attributes.len() - b_ignore_attributes
+        } else {
+            self.advanced_compare_value(a, b, |a, b| a == b)
+        }
+    }
+}
+
+fn descendants_to_string(xot: &Xot, node: Node) -> String {
+    let texts = xot.descendants(node).filter_map(|n| xot.text_str(n));
+    let mut r = String::new();
+    for text in texts {
+        r.push_str(text);
+    }
+    r
 }

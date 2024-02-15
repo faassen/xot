@@ -29,13 +29,13 @@ use crate::xotdata::{Node, Xot};
 
 /// A fixed representation of an XML document.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Root {
+pub struct Document {
     /// Comments and processing instructions before the document element
-    pub before: Vec<RootContent>,
+    pub before: Vec<DocumentContent>,
     /// The document element
     pub document_element: Element,
     /// Comments and processing instructions after the document element
-    pub after: Vec<RootContent>,
+    pub after: Vec<DocumentContent>,
 }
 
 /// A fixed representation of an XML name.
@@ -84,7 +84,7 @@ pub enum Content {
 
 /// Content that is allowed next to the document element (the root element)
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum RootContent {
+pub enum DocumentContent {
     /// A comment node
     Comment(String),
     /// A processing instruction node
@@ -108,20 +108,20 @@ impl Name {
     }
 }
 
-impl Root {
-    /// Turn a fixed root into a Xot node
+impl Document {
+    /// Turn a fixed document into a Xot node
     pub fn xotify(&self, xot: &mut Xot) -> Node {
         let child = self.document_element.xotify(xot);
-        let root = xot.new_root(child).unwrap();
+        let document = xot.new_document_with_element(child).unwrap();
         for content in &self.before {
-            let node = create_root_content_node(xot, content);
+            let node = create_document_content_node(xot, content);
             xot.insert_before(child, node).unwrap();
         }
         for content in &self.after {
-            let node = create_root_content_node(xot, content);
+            let node = create_document_content_node(xot, content);
             xot.append(child, node).unwrap();
         }
-        root
+        document
     }
 }
 
@@ -149,13 +149,17 @@ impl Element {
             .collect::<Vec<_>>();
 
         let element_node = xot.new_element(name);
-        let element_value = xot.element_mut(element_node).unwrap();
+
+        let mut namespaces_map = xot.namespaces_mut(element_node);
 
         for (prefix, ns) in prefixes {
-            element_value.set_prefix(prefix, ns);
+            namespaces_map.insert(prefix, ns);
         }
+
+        let mut attributes_map = xot.attributes_mut(element_node);
+
         for (name, value) in attributes {
-            element_value.set_attribute(name, value);
+            attributes_map.insert(name, value.clone());
         }
 
         let children = self
@@ -173,7 +177,8 @@ impl Element {
 impl ProcessingInstruction {
     /// Turn a fixed processing instruction into a Xot node
     pub fn xotify(&self, xot: &mut Xot) -> Node {
-        xot.new_processing_instruction(&self.target, self.content.as_deref())
+        let target = xot.add_name(&self.target);
+        xot.new_processing_instruction(target, self.content.as_deref())
     }
 }
 
@@ -191,10 +196,10 @@ impl Content {
     }
 }
 
-fn create_root_content_node(xot: &mut Xot, content: &RootContent) -> Node {
+fn create_document_content_node(xot: &mut Xot, content: &DocumentContent) -> Node {
     match content {
-        RootContent::Comment(comment) => xot.new_comment(comment),
-        RootContent::ProcessingInstruction(processing_instruction) => {
+        DocumentContent::Comment(comment) => xot.new_comment(comment),
+        DocumentContent::ProcessingInstruction(processing_instruction) => {
             processing_instruction.xotify(xot)
         }
     }
@@ -207,7 +212,7 @@ mod tests {
     #[test]
     fn test_xotify() {
         let mut xot = Xot::new();
-        let root = Root {
+        let document = Document {
             before: vec![],
             document_element: Element {
                 name: Name {
@@ -220,7 +225,7 @@ mod tests {
             },
             after: vec![],
         };
-        let root = root.xotify(&mut xot);
-        assert_eq!(xot.to_string(root).unwrap(), "<foo>Example</foo>");
+        let document = document.xotify(&mut xot);
+        assert_eq!(xot.to_string(document).unwrap(), "<foo>Example</foo>");
     }
 }

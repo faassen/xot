@@ -7,8 +7,11 @@ use crate::entity::{parse_attribute, parse_text};
 use crate::error::Error;
 use crate::name::{Name, NameId};
 use crate::prefix::PrefixId;
-use crate::xmlvalue::{Attributes, Comment, Element, Prefixes, ProcessingInstruction, Text, Value};
+use crate::xmlvalue::{Attribute, Comment, Element, Namespace, ProcessingInstruction, Text, Value};
 use crate::xotdata::{Node, Xot};
+use crate::NamespaceId;
+
+type Namespaces = Vec<(PrefixId, NamespaceId)>;
 
 struct AttributeBuilder {
     prefix: String,
@@ -21,7 +24,7 @@ struct AttributeBuilder {
 struct ElementBuilder {
     prefix: String,
     name: String,
-    prefixes: Prefixes,
+    namespaces: Namespaces,
     attributes: Vec<AttributeBuilder>,
     span: Span,
 }
@@ -31,54 +34,10 @@ impl ElementBuilder {
         ElementBuilder {
             prefix: prefix.to_string(),
             name: name.to_string(),
-            prefixes: Prefixes::new(),
+            namespaces: Namespaces::new(),
             attributes: Vec::new(),
             span: Span::from_prefix_name(prefix, name),
         }
-    }
-
-    fn build_attributes(
-        &mut self,
-        document_builder: &mut DocumentBuilder,
-        xot: &mut Xot,
-    ) -> Result<(Attributes, AttributeSpans), Error> {
-        let mut attributes = Attributes::new();
-        let mut attribute_spans = Vec::new();
-        for attribute_builder in self.attributes.drain(..) {
-            let name_id = document_builder.name_id_builder.attribute_name_id(
-                &attribute_builder.prefix,
-                &attribute_builder.name,
-                xot,
-            )?;
-            attributes.insert(name_id, attribute_builder.value);
-            attribute_spans.push((
-                name_id,
-                attribute_builder.name_span,
-                attribute_builder.value_span,
-            ));
-        }
-        Ok((attributes, attribute_spans))
-    }
-
-    fn into_element(
-        mut self,
-        document_builder: &mut DocumentBuilder,
-        xot: &mut Xot,
-    ) -> Result<(Element, AttributeSpans), Error> {
-        document_builder.name_id_builder.push(&self.prefixes);
-        let (attributes, attribute_spans) = self.build_attributes(document_builder, xot)?;
-        let name_id =
-            document_builder
-                .name_id_builder
-                .element_name_id(&self.prefix, &self.name, xot)?;
-        Ok((
-            Element {
-                name_id,
-                prefixes: self.prefixes,
-                attributes,
-            },
-            attribute_spans,
-        ))
     }
 }
 
@@ -91,14 +50,13 @@ struct DocumentBuilder {
 
 impl DocumentBuilder {
     fn new(xot: &mut Xot) -> Self {
-        let root = xot.arena.new_node(Value::Root);
-        let mut name_id_builder = NameIdBuilder::new(xot.base_prefixes());
-        let mut base_prefixes = Prefixes::new();
-        base_prefixes.insert(xot.empty_prefix_id, xot.no_namespace_id);
-        name_id_builder.push(&base_prefixes);
+        let document = xot.arena.new_node(Value::Document);
+        let mut name_id_builder = NameIdBuilder::new(xot.base_prefixes().into_iter().collect());
+        let base_prefixes = vec![(xot.empty_prefix_id, xot.no_namespace_id)];
+        name_id_builder.push(base_prefixes);
         DocumentBuilder {
-            tree: root,
-            current_node_id: root,
+            tree: document,
+            current_node_id: document,
             name_id_builder,
             element_builder: None,
         }
@@ -114,8 +72,8 @@ impl DocumentBuilder {
         self.element_builder
             .as_mut()
             .unwrap()
-            .prefixes
-            .insert(prefix_id, namespace_id);
+            .namespaces
+            .push((prefix_id, namespace_id));
     }
 
     fn attribute(
@@ -155,10 +113,47 @@ impl DocumentBuilder {
     fn open_element(&mut self, xot: &mut Xot) -> Result<(NodeId, Span, AttributeSpans), Error> {
         let element_builder = self.element_builder.take().unwrap();
         let span = element_builder.span;
-        let (element, attribute_spans) = element_builder.into_element(self, xot)?;
-        let element = Value::Element(element);
-        let node_id = self.add(element, xot);
+
+        self.name_id_builder
+            .push(element_builder.namespaces.clone());
+
+        let name_id = self.name_id_builder.element_name_id(
+            &element_builder.prefix,
+            &element_builder.name,
+            xot,
+        )?;
+        let element_value = Value::Element(Element { name_id });
+        let node_id = self.add(element_value, xot);
         self.current_node_id = node_id;
+
+        // add namespace nodes
+        for (prefix_id, namespace_id) in &element_builder.namespaces {
+            let namespace_node = xot.arena.new_node(Value::Namespace(Namespace {
+                prefix_id: *prefix_id,
+                namespace_id: *namespace_id,
+            }));
+            self.current_node_id.append(namespace_node, &mut xot.arena);
+        }
+        // add attribute nodes
+        let mut attribute_spans = Vec::new();
+        for attribute_builder in element_builder.attributes {
+            let name_id = self.name_id_builder.attribute_name_id(
+                &attribute_builder.prefix,
+                &attribute_builder.name,
+                xot,
+            )?;
+            let attribute_node = xot.arena.new_node(Value::Attribute(Attribute {
+                name_id,
+                value: attribute_builder.value,
+            }));
+            attribute_spans.push((
+                name_id,
+                attribute_builder.name_span,
+                attribute_builder.value_span,
+            ));
+            self.current_node_id.append(attribute_node, &mut xot.arena);
+        }
+
         Ok((node_id, span, attribute_spans))
     }
 
@@ -174,11 +169,11 @@ impl DocumentBuilder {
 
     fn close_element_immediate(&mut self, xot: &mut Xot) -> NodeId {
         let current_node = xot.arena.get(self.current_node_id).unwrap();
-        if let Value::Element(element) = current_node.get() {
-            self.name_id_builder.pop(&element.prefixes);
+        if matches!(current_node.get(), Value::Element(_)) {
+            self.name_id_builder.pop();
         }
         let closed_node_id = self.current_node_id;
-        self.current_node_id = current_node.parent().expect("Cannot close root node");
+        self.current_node_id = current_node.parent().expect("Cannot close document node");
         closed_node_id
     }
 
@@ -189,10 +184,10 @@ impl DocumentBuilder {
             if element.name_id != name_id {
                 return Err(Error::InvalidCloseTag(prefix.to_string(), name.to_string()));
             }
-            self.name_id_builder.pop(&element.prefixes);
+            self.name_id_builder.pop();
         }
         let closed_node_id = self.current_node_id;
-        self.current_node_id = current_node.parent().expect("Cannot close root node");
+        self.current_node_id = current_node.parent().expect("Cannot close document node");
         Ok(closed_node_id)
     }
 
@@ -209,52 +204,39 @@ impl DocumentBuilder {
         xot: &mut Xot,
     ) -> Result<NodeId, Error> {
         // XXX are there illegal processing instructions, like those with
-        // ?> inside? or won't they pass the parser?
+        // ?> inside? or won't they pass the parser? What about those with xml?
+        let target = xot.add_name(target);
         Ok(self.add(
             Value::ProcessingInstruction(ProcessingInstruction::new(
-                target.to_string(),
+                target,
                 content.map(|s| s.to_string()),
             )),
             xot,
         ))
     }
 
-    fn is_current_node_root(&self, xot: &Xot) -> bool {
-        matches!(xot.arena[self.current_node_id].get(), Value::Root)
+    fn is_current_node_document(&self, xot: &Xot) -> bool {
+        matches!(xot.arena[self.current_node_id].get(), Value::Document)
     }
 }
 
 struct NameIdBuilder {
-    namespace_stack: Vec<Prefixes>,
+    namespace_stack: Vec<Namespaces>,
 }
 
 impl NameIdBuilder {
-    fn new(prefixes: Prefixes) -> Self {
+    fn new(prefixes: Namespaces) -> Self {
         let namespace_stack = vec![prefixes];
         Self { namespace_stack }
     }
 
-    fn push(&mut self, prefixes: &Prefixes) {
-        if prefixes.is_empty() {
-            return;
-        }
-        // can always use top as there's a bottom entry
-        let mut entry = self.top().clone();
-        entry.extend(prefixes);
-        self.namespace_stack.push(entry);
+    fn push(&mut self, namespaces: Namespaces) {
+        self.namespace_stack.push(namespaces);
     }
 
-    fn pop(&mut self, prefixes: &Prefixes) {
-        if prefixes.is_empty() {
-            return;
-        }
+    fn pop(&mut self) {
         // should always be able to pop as there's a bottom entry
         self.namespace_stack.pop();
-    }
-
-    #[inline]
-    fn top(&self) -> &Prefixes {
-        &self.namespace_stack[self.namespace_stack.len() - 1]
     }
 
     fn element_name_id(
@@ -298,13 +280,15 @@ impl NameIdBuilder {
         name: &str,
         xot: &mut Xot,
     ) -> Result<NameId, ()> {
-        let namespace_id = if !self.namespace_stack.is_empty() {
-            self.top().get(&prefix_id)
-        } else {
-            None
-        };
+        // go through namespace stack backwards, find the first namespace
+        // that matches this prefix
+        let namespace_id = self.namespace_stack.iter().rev().find_map(|ns| {
+            ns.iter()
+                .rev()
+                .find_map(|(p, ns)| if *p == prefix_id { Some(*ns) } else { None })
+        });
         let namespace_id = namespace_id.ok_or(())?;
-        let name = Name::new(name.to_string(), *namespace_id);
+        let name = Name::new(name.to_string(), namespace_id);
         Ok(xot.name_lookup.get_id_mut(&name))
     }
 }
@@ -550,7 +534,7 @@ impl Xot {
             }
         }
 
-        if builder.is_current_node_root(self) {
+        if builder.is_current_node_document(self) {
             Ok((Node::new(builder.tree), span_info))
         } else {
             Err(Error::UnclosedTag)
@@ -563,14 +547,14 @@ impl Xot {
     /// the string is interpreted as a Rust string, i.e. UTF-8. If you need to
     /// decode the string first, use [`Xot::parse_bytes`].
     ///
-    /// The returned node is the root node of the
+    /// The returned node is the document node of the
     /// parsed XML document.
     ///
     /// ```rust
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();
-    /// let root = xot.parse("<hello/>")?;
+    /// let document = xot.parse("<hello/>")?;
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
@@ -585,13 +569,13 @@ impl Xot {
     ///
     /// If you already have a Rust string, use [`Xot::parse`].
     ///
-    /// The returned node is the root node of the parsed XML document.
+    /// The returned node is the document node of the parsed XML document.
     ///
     /// ```rust
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();
-    /// let root = xot.parse_bytes(b"<hello/>")?;
+    /// let document = xot.parse_bytes(b"<hello/>")?;
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
@@ -601,9 +585,9 @@ impl Xot {
     ///
     /// let mut xot = Xot::new();
     ///
-    /// let root = xot.parse_bytes(b"<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><p>\xe9</p>")?;
+    /// let document = xot.parse_bytes(b"<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><p>\xe9</p>")?;
     ///
-    /// let doc_el = xot.document_element(root)?;
+    /// let doc_el = xot.document_element(document)?;
     /// let txt_value = xot.text_content_str(doc_el).unwrap();
     /// assert_eq!(txt_value, "é");
     /// # Ok::<(), xot::Error>(())

@@ -18,9 +18,9 @@ fn test_manipulate_attribute() {
     let el_id = xot.document_element(doc).unwrap();
     let a = xot.name("a").unwrap();
 
-    if let Value::Element(element) = xot.value_mut(el_id) {
-        element.set_attribute(a, "Changed".to_string());
-    }
+    let mut attributes = xot.attributes_mut(el_id);
+    attributes.insert(a, "Changed".to_string());
+
     assert_eq!(xot.to_string(doc).unwrap(), r#"<doc a="Changed"/>"#);
 }
 
@@ -32,9 +32,9 @@ fn test_add_attribute() {
     assert!(xot.name("a").is_none());
     let a = xot.add_name("a");
 
-    if let Value::Element(element) = xot.value_mut(el_id) {
-        element.set_attribute(a, "Created".to_string());
-    }
+    let mut attributes = xot.attributes_mut(el_id);
+    attributes.insert(a, "Created".to_string());
+
     assert_eq!(xot.to_string(doc).unwrap(), r#"<doc a="Created"/>"#);
 }
 
@@ -48,9 +48,9 @@ fn test_manipulate_attribute_ns() {
     let ns = xot.namespace("http://example.com").unwrap();
     let a = xot.name_ns("a", ns).unwrap();
 
-    if let Value::Element(element) = xot.value_mut(el_id) {
-        element.set_attribute(a, "Changed".to_string());
-    }
+    let mut attributes = xot.attributes_mut(el_id);
+    attributes.insert(a, "Changed".to_string());
+
     assert_eq!(
         xot.to_string(doc).unwrap(),
         r#"<doc xmlns:ns="http://example.com" ns:a="Changed"/>"#
@@ -68,9 +68,8 @@ fn test_add_attribute_ns() {
     assert!(xot.name_ns("a", ns).is_none());
     let a = xot.add_name_ns("a", ns);
 
-    if let Value::Element(element) = xot.value_mut(el_id) {
-        element.set_attribute(a, "Created".to_string());
-    }
+    let mut attributes = xot.attributes_mut(el_id);
+    attributes.insert(a, "Created".to_string());
     assert_eq!(
         xot.to_string(doc).unwrap(),
         r#"<doc xmlns:foo="http://example.com" foo:a="Created"/>"#
@@ -424,6 +423,49 @@ fn test_clone_root_after_insert_no_consolidation_for_insert_consolidation_for_cl
     assert_eq!(
         xot.to_string(root_clone).unwrap(),
         "<doc>hello <i>world</i>?!</doc>"
+    );
+}
+
+#[test]
+fn test_clone_attributes() {
+    let mut xot = Xot::new();
+    let root = xot.parse(r#"<doc><a f="F">Hello!</a></doc>"#).unwrap();
+    let doc_id = xot.document_element(root).unwrap();
+    let a_id = xot.first_child(doc_id).unwrap();
+    let a_id_clone = xot.clone(a_id);
+    // change original won't affect the clone
+    xot.text_mut(xot.first_child(a_id).unwrap())
+        .unwrap()
+        .set("Goodbye!");
+    assert_eq!(
+        xot.to_string(root).unwrap(),
+        r#"<doc><a f="F">Goodbye!</a></doc>"#
+    );
+    assert!(!xot.is_removed(a_id_clone));
+    assert_eq!(xot.to_string(a_id_clone).unwrap(), r#"<a f="F">Hello!</a>"#);
+}
+
+#[test]
+fn test_clone_namespaces() {
+    let mut xot = Xot::new();
+    let root = xot
+        .parse(r#"<doc><a xmlns:f="F">Hello!</a></doc>"#)
+        .unwrap();
+    let doc_id = xot.document_element(root).unwrap();
+    let a_id = xot.first_child(doc_id).unwrap();
+    let a_id_clone = xot.clone(a_id);
+    // change original won't affect the clone
+    xot.text_mut(xot.first_child(a_id).unwrap())
+        .unwrap()
+        .set("Goodbye!");
+    assert_eq!(
+        xot.to_string(root).unwrap(),
+        r#"<doc><a xmlns:f="F">Goodbye!</a></doc>"#
+    );
+    assert!(!xot.is_removed(a_id_clone));
+    assert_eq!(
+        xot.to_string(a_id_clone).unwrap(),
+        r#"<a xmlns:f="F">Hello!</a>"#
     );
 }
 
@@ -819,7 +861,7 @@ fn test_new_root() -> Result<(), Error> {
     let name = xot.add_name("doc");
     let doc_el = xot.new_element(name);
 
-    let root = xot.new_root(doc_el)?;
+    let root = xot.new_document_with_element(doc_el)?;
 
     assert_eq!(xot.to_string(root).unwrap(), r#"<doc/>"#);
     Ok(())

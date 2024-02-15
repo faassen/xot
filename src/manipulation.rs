@@ -9,11 +9,11 @@ use crate::xmlvalue::{Value, ValueType};
 /// ## Manipulation
 ///
 /// These methods maintain a well-formed XML structure:
-/// - There is only one document element under the root node which cannot be
+/// - There is only one document element under the document node which cannot be
 ///   removed.
-/// - The only other nodes that can exist directly under the root node are
+/// - The only other nodes that can exist directly under the document node are
 ///   comments and processing instructions.
-/// - You cannot add a node to a node that is not an element or the root node.
+/// - You cannot add a node to a node that is not an element or the document node.
 ///
 /// Note that you can use these manipulation methods to move nodes between
 /// trees -- if you append a node that's in another tree, that node is first
@@ -92,6 +92,141 @@ impl Xot {
         Ok(())
     }
 
+    /// Append namespace node to parent node.
+    ///
+    /// If the namespace prefix already exists, instead of appending the node,
+    /// updates the existing node.
+    ///
+    /// Returns the node that was inserted, or if an existing node was updated,
+    /// this node.
+    ///
+    /// Note that an easier way to add namespace prefixes is through
+    /// [`Xot::namespaces_mut()`]. This method is only useful if you have
+    /// independent namespace nodes.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<doc/>"#)?;
+    /// let doc_el = xot.document_element(root)?;
+    ///
+    /// let prefix = xot.add_prefix("foo");
+    /// let namespace = xot.add_namespace("http://example.com");
+    /// let namespace2 = xot.add_namespace("http://example.com/2");
+    /// let node = xot.new_namespace_node(prefix, namespace);
+    /// let added_node = xot.append_namespace_node(doc_el, node)?;
+    ///
+    /// // since the node didn't yet exist, it's the node we got
+    /// assert_eq!(added_node, node);
+    ///
+    /// assert_eq!(xot.to_string(root).unwrap(), r#"<doc xmlns:foo="http://example.com"/>"#);
+    ///
+    /// // If we append a node with the same prefix, the existing one is
+    /// // updated.
+    ///
+    /// let new_node = xot.new_namespace_node(prefix, namespace2);
+    /// let updated_node = xot.append_namespace_node(doc_el, new_node)?;
+    ///
+    /// // the updated node is the original not, not the new node
+    /// assert_eq!(updated_node, node);
+    /// assert_ne!(updated_node, new_node);
+    ///
+    /// assert_eq!(xot.to_string(root).unwrap(), r#"<doc xmlns:foo="http://example.com/2"/>"#);
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    pub fn append_namespace_node(&mut self, parent: Node, child: Node) -> Result<Node, Error> {
+        if !self.is_element(parent) {
+            return Err(Error::InvalidOperation(
+                "Cannot add namespace node to non-element node".to_string(),
+            ));
+        }
+        if !self.is_namespace_node(child) {
+            return Err(Error::InvalidOperation(
+                "Cannot add non-namespace node as namespace".to_string(),
+            ));
+        }
+
+        let mut namespaces = self.namespaces_mut(parent);
+        Ok(namespaces.insert_node(child))
+    }
+
+    /// Append attribute node to parent node.
+    ///
+    /// If the attribute name already exists, instead of appending the node,
+    /// updates the existing node.
+    ///
+    /// Returns the node that was inserted, or if an existing node was updated,
+    /// this node.
+    ///
+    /// Note that an easier way to add attributes is through
+    /// [`Xot::attributes_mut()`]. This method is only useful if you have
+    /// independent attribute nodes.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<doc/>"#)?;
+    /// let doc_el = xot.document_element(root)?;
+    ///
+    /// let foo = xot.add_name("foo");
+
+    /// let node = xot.new_attribute_node(foo, "FOO".to_string());
+    /// let added_node = xot.append_attribute_node(doc_el, node)?;
+    ///
+    /// // Since the node didn't yet exist, it's the one we get
+    /// assert_eq!(added_node, node);
+    ///
+    /// assert_eq!(xot.to_string(root).unwrap(), r#"<doc foo="FOO"/>"#);
+    ///
+    /// // If we append a node with the same name, the existing one is
+    /// // updated.
+    ///
+    /// let new_node = xot.new_attribute_node(foo, "FOO2".to_string());
+    /// let updated_node = xot.append_attribute_node(doc_el, new_node)?;
+    ///
+    /// // the updated node is the original not, not the new node
+    /// assert_eq!(updated_node, node);
+    /// assert_ne!(updated_node, new_node);
+    ///
+    /// assert_eq!(xot.to_string(root).unwrap(), r#"<doc foo="FOO2"/>"#);
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    pub fn append_attribute_node(&mut self, parent: Node, child: Node) -> Result<Node, Error> {
+        if !self.is_element(parent) {
+            return Err(Error::InvalidOperation(
+                "Cannot add attribute node to non-element node".to_string(),
+            ));
+        }
+        if !self.is_attribute_node(child) {
+            return Err(Error::InvalidOperation(
+                "Cannot add non-attribute node as attribute".to_string(),
+            ));
+        }
+
+        let mut attributes = self.attributes_mut(parent);
+        Ok(attributes.insert_node(child))
+    }
+
+    /// Append any node, including namespace and attribute nodes.
+    ///
+    /// Namespace and attributes are appended in their respective places, and
+    /// normal child nodes are appended in the end.
+    ///
+    /// Returns the node that was appended or, in case of attributes or
+    /// namespaces that already existed, updated.
+    pub fn any_append(&mut self, parent: Node, child: Node) -> Result<Node, Error> {
+        match self.value_type(child) {
+            ValueType::Namespace => self.append_namespace_node(parent, child),
+            ValueType::Attribute => self.append_attribute_node(parent, child),
+            _ => {
+                self.append(parent, child)?;
+                Ok(child)
+            }
+        }
+    }
+
     /// Append a text node to a parent node given text.
     ///
     /// ```rust
@@ -150,7 +285,7 @@ impl Xot {
     pub fn append_processing_instruction(
         &mut self,
         parent: Node,
-        target: &str,
+        target: NameId,
         data: Option<&str>,
     ) -> Result<(), Error> {
         let pi_node_id = self.new_processing_instruction(target, data);
@@ -288,8 +423,10 @@ impl Xot {
     pub fn remove(&mut self, node: Node) -> Result<(), Error> {
         // we don't do a remove structure check, as we should be able to
         // remove an entire root if we do it explicitly.
-        if self.value_type(node) == ValueType::Element && self.is_under_root(node) {
-            return Err(Error::InvalidOperation("Cannot remove root element".into()));
+        if self.value_type(node) == ValueType::Element && self.has_document_parent(node) {
+            return Err(Error::InvalidOperation(
+                "Cannot remove document element".into(),
+            ));
         }
         let prev_node = self.previous_sibling(node);
         let next_node = self.next_sibling(node);
@@ -300,8 +437,8 @@ impl Xot {
 
     /// Clone a node and its descendants into a new fragment
     ///
-    /// The cloned nodes are not attached to anything. If you clone a root, you
-    /// clone the whole document.
+    /// The cloned nodes are not attached to anything. If you clone a document
+    /// node, you clone the whole document.
     ///
     /// This does not include any namespace prefix information defined in any
     /// ancestors of the cloned node. If you want to preserve such prefix
@@ -311,32 +448,32 @@ impl Xot {
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();
-    /// let root = xot.parse(r#"<doc><a><b><c/></b></a></doc>"#)?;
+    /// let root = xot.parse(r#"<doc><a f="F"><b><c/></b></a></doc>"#)?;
     /// let doc_el = xot.document_element(root)?;
     /// let a_el = xot.first_child(doc_el).unwrap();
     ///
     /// let cloned = xot.clone(a_el);
     ///
-    /// assert_eq!(xot.to_string(root)?, r#"<doc><a><b><c/></b></a></doc>"#);
+    /// assert_eq!(xot.to_string(root)?, r#"<doc><a f="F"><b><c/></b></a></doc>"#);
     ///
     /// // cloned is not attached to anything
     /// assert!(xot.parent(cloned).is_none());
     ///
     /// // cloned is a new fragment
-    /// assert_eq!(xot.to_string(cloned)?, r#"<a><b><c/></b></a>"#);
+    /// assert_eq!(xot.to_string(cloned)?, r#"<a f="F"><b><c/></b></a>"#);
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn clone(&mut self, node: Node) -> Node {
-        let edges = self.traverse(node).collect::<Vec<_>>();
+        let edges = self.all_traverse(node).collect::<Vec<_>>();
 
         // we need to create a top node
-        let top = if self.is_root(node) {
-            // if we clone a root, we need to create a new root
-            let value = Value::Root;
+        let top = if self.is_document(node) {
+            // if we clone a document, we need to create a new document
+            let value = Value::Document;
             self.new_node(value)
         } else {
-            // for anything but the root we create a temporary new element
+            // for anything but the document node we create a temporary new element
             let top_name = self.add_name("temporary_root");
             self.new_element(top_name)
         };
@@ -347,11 +484,11 @@ impl Xot {
                 NodeEdge::Start(node) => {
                     let value = self.value(node);
                     let value_type = value.value_type();
-                    if value_type == ValueType::Root {
+                    if value_type == ValueType::Document {
                         continue;
                     }
                     let new_node = self.new_node(value.clone());
-                    self.append(current, new_node).unwrap();
+                    self.any_append(current, new_node).unwrap();
                     if value_type == ValueType::Element {
                         current = new_node;
                     }
@@ -364,10 +501,10 @@ impl Xot {
                 }
             }
         }
-        if self.is_root(node) {
+        if self.is_document(node) {
             top
         } else {
-            // remove the temporary element unless we cloned the root
+            // remove the temporary element unless we cloned the document node
             let cloned_node = self.first_child(top).unwrap();
             top.get().remove(self.arena_mut());
             cloned_node
@@ -405,13 +542,12 @@ impl Xot {
 
         let clone = self.clone(node);
         // add any prefixes from outer scope we may need
-        if let Some(element) = self.element_mut(clone) {
-            for (prefix, ns) in prefixes {
-                if element.prefixes().contains_key(&prefix) {
-                    continue;
-                }
-                element.set_prefix(prefix, ns);
+        let mut namespaces = self.namespaces_mut(clone);
+        for (prefix, ns) in prefixes {
+            if namespaces.contains_key(prefix) {
+                continue;
             }
+            namespaces.insert(prefix, ns);
         }
         clone
     }
@@ -463,7 +599,7 @@ impl Xot {
             }
         }
         // remove_structure_check is not needed; we already know we don't
-        // unwrap the root or non-element child, and document element is
+        // unwrap the document node or non-element child, and document element is
         // taken care of.
 
         let first_child = self.first_child(node);
@@ -499,9 +635,9 @@ impl Xot {
     ///
     /// Returns the node for the new wrapping element.
     ///
-    /// It's not allowed to wrap the root node. It's allowed to wrap the
+    /// It's not allowed to wrap the document node. It's allowed to wrap the
     /// document element but not any comment or processing instruction nodes
-    /// directly under the root.
+    /// directly under the document.
     ///
     /// ```rust
     /// use xot::Xot;
@@ -519,16 +655,16 @@ impl Xot {
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn element_wrap(&mut self, node: Node, name_id: NameId) -> Result<Node, Error> {
-        if self.is_root(node) {
+        if self.is_document(node) {
             return Err(Error::InvalidOperation(
-                "Cannot wrap document root".to_string(),
+                "Cannot wrap document node".to_string(),
             ));
         }
-        // we forbid wrapping nodes under the root too unless it's the
+        // we forbid wrapping nodes under the document node too unless it's the
         // document element
-        if self.is_under_root(node) && !self.is_document_element(node) {
+        if self.has_document_parent(node) && !self.is_document_element(node) {
             return Err(Error::InvalidOperation(
-                "Cannot wrap nodes under document root except document element".to_string(),
+                "Cannot wrap nodes under document node except document element".to_string(),
             ));
         }
 
@@ -561,7 +697,7 @@ impl Xot {
     ///
     /// The replaced node and all its descendants are removed.
     ///
-    /// This works for any node, except the document root itself.
+    /// This works for any node, except the document node itself.
     ///
     /// ```rust
     /// use xot::Xot;
@@ -581,12 +717,12 @@ impl Xot {
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn replace(&mut self, replaced_node: Node, replacing_node: Node) -> Result<(), Error> {
-        if self.is_root(replaced_node) {
+        if self.is_document(replaced_node) {
             return Err(Error::InvalidOperation(
-                "Cannot replace document root".to_string(),
+                "Cannot replace document node".to_string(),
             ));
         }
-        // there should always be a parent as we're not root
+        // there should always be a parent as we're not document node
         let parent = self.parent(replaced_node).unwrap();
         // record previous sibling
         let previous_node = self.previous_sibling(replaced_node);
@@ -612,43 +748,50 @@ impl Xot {
 
     fn add_structure_check(&self, parent: Option<Node>, child: Node) -> Result<(), Error> {
         let parent = parent.ok_or_else(|| {
-            Error::InvalidOperation("Cannot create siblings for document root".into())
+            Error::InvalidOperation("Cannot create siblings for document node".into())
         })?;
         if !matches!(
             self.value_type(parent),
-            ValueType::Element | ValueType::Root
+            ValueType::Element | ValueType::Document
         ) {
             return Err(Error::InvalidOperation(
-                "Cannot add children to non-element and non-root node".into(),
+                "Cannot add children to non-element and non-document node".into(),
             ));
         }
         match self.value_type(child) {
-            ValueType::Root => {
-                return Err(Error::InvalidOperation("Cannot move document root".into()));
+            ValueType::Document => {
+                return Err(Error::InvalidOperation("Cannot move document node".into()));
             }
             ValueType::Element => {
-                if self.is_under_root(child) {
-                    return Err(Error::InvalidOperation("Cannot move root element".into()));
+                if self.has_document_parent(child) {
+                    return Err(Error::InvalidOperation(
+                        "Cannot move document element".into(),
+                    ));
                 }
-                if self.is_root(parent) {
+                if self.is_document(parent) {
                     for child in self.children(parent) {
                         if self.is_element(child) {
                             return Err(Error::InvalidOperation(
-                                "Cannot move extra element under document root".into(),
+                                "Cannot move extra element under document node".into(),
                             ));
                         }
                     }
                 }
             }
             ValueType::Text => {
-                if self.is_root(parent) {
+                if self.is_document(parent) {
                     return Err(Error::InvalidOperation(
-                        "Cannot move text under document root".into(),
+                        "Cannot move text under document node".into(),
                     ));
                 }
             }
             ValueType::ProcessingInstruction | ValueType::Comment => {
                 // these can exist everywhere
+            }
+            ValueType::Attribute | ValueType::Namespace => {
+                return Err(Error::InvalidOperation(
+                    "Cannot move attribute or namespace under element as normal child".into(),
+                ));
             }
         }
         Ok(())
@@ -656,19 +799,23 @@ impl Xot {
 
     fn remove_structure_check(&self, node: Node) -> Result<(), Error> {
         match self.value_type(node) {
-            ValueType::Root => {
+            ValueType::Document => {
                 return Err(Error::InvalidOperation(
-                    "Cannot remove document root".into(),
+                    "Cannot remove document node".into(),
                 ));
             }
             ValueType::Element => {
-                if self.is_under_root(node) {
+                if self.has_document_parent(node) {
                     return Err(Error::InvalidOperation(
                         "Cannot remove document element".into(),
                     ));
                 }
             }
-            ValueType::Text | ValueType::ProcessingInstruction | ValueType::Comment => {
+            ValueType::Attribute
+            | ValueType::Namespace
+            | ValueType::Text
+            | ValueType::ProcessingInstruction
+            | ValueType::Comment => {
                 // these have no removal constraints
             }
         }

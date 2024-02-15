@@ -5,8 +5,8 @@ use crate::xotdata::Node;
 #[derive(Debug)]
 pub enum Error {
     // access errors
-    /// The node is not a root node.
-    NotRoot(Node),
+    /// The node is not a Document node.
+    NotDocument(Node),
 
     // manipulation errors
     /// Invalid operation on XML. You get this when
@@ -31,6 +31,9 @@ pub enum Error {
     /// prefix is declared. Use [`Xot::create_missing_prefixes`](crate::xotdata::Xot::create_missing_prefixes)
     /// to fix this.
     MissingPrefix(NamespaceId),
+    /// It's not allowed to include a namespace prefix in a processing instruction
+    /// target name.
+    NamespaceInProcessingInstruction,
 
     // parser errors
     /// The XML is not well-formed - a tag is opened and never closed.
@@ -86,13 +89,16 @@ impl From<xmlparser::Error> for Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Error::NotRoot(_) => write!(f, "Not a root node"),
+            Error::NotDocument(_) => write!(f, "Not a document node"),
             Error::InvalidOperation(s) => write!(f, "Invalid operation: {}", s),
             Error::InvalidComment(s) => write!(f, "Invalid comment: {}", s),
             Error::InvalidTarget(s) => write!(f, "Invalid target: {}", s),
             Error::NotElement(_) => write!(f, "Not an element"),
             Error::NodeError(e) => write!(f, "Node error: {}", e),
             Error::MissingPrefix(_) => write!(f, "Missing prefix"),
+            Error::NamespaceInProcessingInstruction => {
+                write!(f, "Namespace in processing instruction target")
+            }
             Error::UnclosedTag => write!(f, "Unclosed tag"),
             Error::InvalidCloseTag(s, s2) => write!(f, "Invalid close tag: {} {}", s, s2),
             Error::UnclosedEntity(s) => write!(f, "Unclosed entity: {}", s),

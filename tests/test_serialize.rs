@@ -53,9 +53,9 @@ fn test_prefix_ambiguous() {
     let name_x_id = xot.add_name_ns("b", ns_x_id);
     let name_y_id = xot.add_name_ns("b", ns_y_id);
 
-    let element = xot.element_mut(a_id).unwrap();
-    element.set_attribute(name_x_id, "X");
-    element.set_attribute(name_y_id, "Y");
+    let mut attributes = xot.attributes_mut(a_id);
+    attributes.insert(name_x_id, "X".to_string());
+    attributes.insert(name_y_id, "Y".to_string());
 
     xot.create_missing_prefixes(doc).unwrap();
 
@@ -79,8 +79,10 @@ fn test_prefix_ambiguous_no_ns() {
 
     let ns_y_id = xot.add_namespace("http://example.com/y");
     let name_q_id = xot.add_name_ns("q", ns_y_id);
-    let element = xot.element_mut(a_id).unwrap();
-    element.set_attribute(name_q_id, "Q");
+
+    let mut attributes = xot.attributes_mut(a_id);
+    attributes.insert(name_q_id, "Q".to_string());
+
     xot.create_missing_prefixes(doc).unwrap();
     assert_eq!(
         xot.to_string(doc).unwrap(),
@@ -103,9 +105,10 @@ fn test_prefix_ambiguous_default_ns() {
 
     let name_r_id = xot.add_name_ns("r", ns_y_id);
     let name_empty_id = xot.add_name_ns("r", ns_empty_id);
-    let element = xot.element_mut(a_id).unwrap();
-    element.set_attribute(name_r_id, "R");
-    element.set_attribute(name_empty_id, "R2");
+
+    let mut attributes = xot.attributes_mut(a_id);
+    attributes.insert(name_r_id, "R".to_string());
+    attributes.insert(name_empty_id, "R2".to_string());
     xot.create_missing_prefixes(doc).unwrap();
     assert_eq!(
         xot.to_string(doc).unwrap(),
@@ -126,8 +129,9 @@ fn test_prefix_ambiguous_default_ns2() {
     let ns_y_id = xot.add_namespace("http://example.com/y");
 
     let name_r_id = xot.add_name_ns("r", ns_y_id);
-    let element = xot.element_mut(a_id).unwrap();
-    element.set_attribute(name_r_id, "R");
+    let mut attributes = xot.attributes_mut(a_id);
+    attributes.insert(name_r_id, "R".to_string());
+
     xot.create_missing_prefixes(doc).unwrap();
     assert_eq!(
         xot.to_string(doc).unwrap(),

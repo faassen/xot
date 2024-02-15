@@ -3,8 +3,9 @@
 [![Crates.io](https://img.shields.io/crates/v/xot.svg)](https://crates.io/crates/xot)
 [![Documentation](https://docs.rs/xot/badge.svg)](https://docs.rs/xot)
 
-Xot is an XML library for Rust. With Xot you can load XML data into an object
-tree which you can then manipulate, and serialize back out to XML.
+Xot is a full-featured XML tree access and manipulation library for Rust. With
+Xot you can load XML data into an object tree which you can then manipulate,
+and serialize back out to XML.
 
 [API Documentation](https://docs.rs/xot)
 
@@ -15,7 +16,7 @@ tree which you can then manipulate, and serialize back out to XML.
 - Move nodes out of trees, into trees, into other trees with ease.
 
 - Access to the entire XML structure, including comments and processing
-  instructions.
+  instructions, and support for namespace and attribute nodes.
 
 - Compact storage of XML data, with efficient traversal.
 
@@ -35,7 +36,7 @@ Xot exposes the entire XML structure for access and programmatic manipulation.
 There are the following limitations:
 
 - DTDs are not supported.
-- Only XML 1.0 supported. 
+- Only XML 1.0 is supported. 
 
 ## Why another XML library for Rust?
 
@@ -63,4 +64,4 @@ libraries.
 Xot underneath uses the
 [indextree](https://docs.rs/indextree/latest/indextree/) crate. Xot completely
 wraps the indextree functionality but the various operations it allows are
-mostly literally taken from indextree.
+taken from indextree.

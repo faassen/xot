@@ -60,9 +60,6 @@ impl<'a> FullnameSerializer<'a> {
     }
 
     pub(crate) fn push(&mut self, prefixes: &Prefixes) {
-        if prefixes.is_empty() {
-            return;
-        }
         let mut entry = self.top_prefixes().clone();
         // add in the new declarations. This may shadow existing prefixes
         entry.extend(prefixes);
@@ -71,10 +68,7 @@ impl<'a> FullnameSerializer<'a> {
         self.prefix_stack.push((entry, to_prefixes));
     }
 
-    pub(crate) fn pop(&mut self, prefixes: &Prefixes) {
-        if prefixes.is_empty() {
-            return;
-        }
+    pub(crate) fn pop(&mut self) {
         self.prefix_stack.pop();
     }
 
