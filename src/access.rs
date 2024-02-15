@@ -66,6 +66,8 @@ pub enum NodeEdge {
 }
 
 /// ## Read-only access
+///
+/// These are functions that provide read-only access to the tree.
 impl Xot {
     /// Obtain the document element from the document node.
     ///

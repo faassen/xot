@@ -5,6 +5,9 @@ use crate::xotdata::{Node, Xot};
 use crate::{NamespaceId, PrefixId};
 
 /// ## Creation
+///
+/// These are functions to help create nodes.
+///
 /// See also the convenience manipulation methods like [`Xot::append_element`]
 /// in the manipulation section.
 impl Xot {
