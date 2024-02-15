@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.21.0] - 2024-02-15
+
 ### Breaking changes
 
 Warning: this release includes many major API breaking changes!
@@ -625,7 +627,8 @@ following XPath.
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.20.0...HEAD
+[Unreleased]: https://github.com/faassen/xot/compare/v0.21.0...HEAD
+[0.21.0]: https://github.com/faassen/xot/compare/v0.20.0...v0.21.0
 
 [0.20.0]: https://github.com/faassen/xot/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/faassen/xot/compare/v0.18.0...v0.19.0
