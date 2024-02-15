@@ -85,7 +85,7 @@ where
     }
 
     /// Return a reference to the value stored for `key`, if it is present, else `None`.
-    pub fn get(&self, key: K) -> Option<&V> {
+    pub fn get(&self, key: K) -> Option<&'a V> {
         let node = self.get_node(key)?;
         Some(A::value(self.xot.value(node)))
     }

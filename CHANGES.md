@@ -26,7 +26,8 @@
 
   * To access namespaces, use `xot.namespaces(node)`. This returns a
     hashmap-like struct with as key the prefix id, and as value the namespace
-    id.
+    id. The old `xot.namespaces()` has been renamed to
+    `xot.inherited_prefixes`.
   
   * You can also update and add attributes and namespaces using `xot.
     attributes_mut()` and `xot.namespaces_mut()`, respectively.
@@ -182,7 +183,7 @@
 - Add `xot.namespace_for_prefix()` function to look up namespace in the context
   of a node.
 
-- Add `xot.namespaces()` function that returns an iterator that iterators over
+- Add `xot.namespaces()` function that returns an iterator that iterates over
   non-overridden `(prefix, namespace)`` pairs in the scope of a node.
 
 - Add `xot.advanced_compare()` function that lets you compare two nodes with a
