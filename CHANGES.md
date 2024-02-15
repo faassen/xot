@@ -4,6 +4,8 @@
 
 ### Breaking changes
 
+Warning: this release includes many major API breaking changes!
+
 #### Attribute and namespace API changes
 
 The way attributes and namespace prefixes are handled has changed entirely in
