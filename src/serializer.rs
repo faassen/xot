@@ -9,7 +9,6 @@ use crate::error::Error;
 use crate::fullname::FullnameSerializer;
 use crate::name::NameId;
 use crate::namespace::NamespaceId;
-use crate::nodemap::to_prefixes;
 use crate::prefix::PrefixId;
 use crate::pretty::Pretty;
 use crate::xmlvalue::{Element, Prefixes};
@@ -208,8 +207,7 @@ impl<'a> XmlSerializer<'a> {
         use Output::*;
         let r = match output {
             StartTagOpen(element) => {
-                self.fullname_serializer
-                    .push(&to_prefixes(&self.xot.namespaces(node)));
+                self.fullname_serializer.push(&self.xot.prefixes(node));
                 OutputToken {
                     space: false,
                     text: format!(

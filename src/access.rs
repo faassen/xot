@@ -5,7 +5,7 @@ use crate::levelorder::{level_order_traverse, LevelOrder};
 use crate::nodemap::{category_predicate, Attributes, Namespaces};
 use crate::xmlvalue::{Value, ValueCategory, ValueType};
 use crate::xotdata::{Node, Xot};
-use crate::{MutableAttributes, MutableNamespaces};
+use crate::{MutableAttributes, MutableNamespaces, Prefixes};
 
 /// Traversal axis.
 ///
@@ -206,6 +206,18 @@ impl Xot {
     /// ```
     pub fn namespaces(&self, node: Node) -> Namespaces {
         Namespaces::new(self, node)
+    }
+
+    /// Copy the namespace declarations as a prefixes hash table.
+    ///
+    /// Sometimes it's more convenient to work with a hash table of
+    /// prefixes as opposed to the dynamic [`Xot::namespaces`] node map.
+    pub fn prefixes(&self, node: Node) -> Prefixes {
+        let mut prefixes = Prefixes::new();
+        for (prefix, ns) in self.namespaces(node).iter() {
+            prefixes.insert(prefix, *ns);
+        }
+        prefixes
     }
 
     /// Mutable namespaces accessor.

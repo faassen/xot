@@ -7,7 +7,6 @@ use crate::error::Error;
 use crate::fullname::{Fullname, FullnameSerializer};
 use crate::name::{Name, NameId};
 use crate::namespace::NamespaceId;
-use crate::nodemap::to_prefixes;
 use crate::prefix::PrefixId;
 use crate::xmlvalue::Prefixes;
 use crate::xotdata::{Node, Xot};
@@ -444,8 +443,7 @@ impl Xot {
                 NodeEdge::Start(node) => {
                     let element = self.element(node);
                     if let Some(element) = element {
-                        let namespaces = self.namespaces(node);
-                        fullname_serializer.push(&to_prefixes(&namespaces));
+                        fullname_serializer.push(&self.prefixes(node));
                         let element_fullname = fullname_serializer.fullname(element.name_id);
                         if let Fullname::MissingPrefix(namespace_id) = element_fullname {
                             missing_namespace_ids.insert(namespace_id);
@@ -549,7 +547,7 @@ impl Xot {
                         // as duplicates they will definitely exist.
                         // In fact if we remove them first the push will fail to create
                         // a new entry in the namespace stack, as prefixes can become empty
-                        fullname_serializer.push(&to_prefixes(&self.namespaces(node)));
+                        fullname_serializer.push(&self.prefixes(node));
                     }
                 }
                 NodeEdge::End(node) => {
@@ -630,7 +628,7 @@ impl Xot {
                 NodeEdge::Start(node) => {
                     let element = self.element(node);
                     if let Some(element) = element {
-                        fullname_serializer.push(&to_prefixes(&self.namespaces(node)));
+                        fullname_serializer.push(&self.prefixes(node));
                         let namespace_id = self.namespace_for_name(element.name());
                         if !fullname_serializer.is_namespace_known(namespace_id) {
                             namespaces.push(namespace_id);
