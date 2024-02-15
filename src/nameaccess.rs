@@ -179,6 +179,7 @@ impl Xot {
     ///
     /// Returns the namespace id used when an element or attribute
     /// isn't in any namespace.
+    #[inline]
     pub fn no_namespace(&self) -> NamespaceId {
         self.no_namespace_id
     }
@@ -187,6 +188,7 @@ impl Xot {
     ///
     /// Returns the prefix id used when an element or attribute
     /// doesn't have a prefix.
+    #[inline]
     pub fn empty_prefix(&self) -> PrefixId {
         self.empty_prefix_id
     }
@@ -194,6 +196,7 @@ impl Xot {
     /// XML prefix
     ///
     /// The prefix `xml` used for the XML namespace.
+    #[inline]
     pub fn xml_prefix(&self) -> PrefixId {
         self.xml_prefix_id
     }
@@ -203,6 +206,7 @@ impl Xot {
     /// Returns the namespace id used for the XML namespace.
     ///
     /// Also known as `http://wwww.w3.org/XML/1998/namespace`
+    #[inline]
     pub fn xml_namespace(&self) -> NamespaceId {
         self.xml_namespace_id
     }
@@ -210,6 +214,7 @@ impl Xot {
     /// xml:space
     ///
     /// Returns the name id used for the `xml:space` attribute.
+    #[inline]
     pub fn xml_space_name(&self) -> NameId {
         self.xml_space_id
     }
@@ -253,6 +258,7 @@ impl Xot {
     /// assert_eq!(namespace, "http://example.com");
     /// # Ok::<(), xot::Error>(())
     /// ```
+    #[inline]
     pub fn name_ns_str(&self, name: NameId) -> (&str, &str) {
         let name = self.name_lookup.get_value(name);
         let namespace = self.namespace_lookup.get_value(name.namespace_id);
@@ -260,12 +266,14 @@ impl Xot {
     }
 
     /// Get the localname of a name.
+    #[inline]
     pub fn local_name_str(&self, name: NameId) -> &str {
         let name = self.name_lookup.get_value(name);
         name.name.as_ref()
     }
 
     /// Get the namespace URI of a name
+    #[inline]
     pub fn uri_str(&self, name: NameId) -> &str {
         let name = self.name_lookup.get_value(name);
         self.namespace_str(name.namespace_id)
@@ -274,9 +282,36 @@ impl Xot {
     /// Look up namespace uri for namespace id
     ///
     /// An empty string slice indicates the no namespace.
+    #[inline]
     pub fn namespace_str(&self, namespace: NamespaceId) -> &str {
         let namespace = self.namespace_lookup.get_value(namespace);
         namespace
+    }
+
+    /// Look up string slice for prefix id
+    ///
+    /// If the prefix id is the empty prefix, the string slice is the empty string.
+    #[inline]
+    pub fn prefix_str(&self, prefix: PrefixId) -> &str {
+        let prefix = self.prefix_lookup.get_value(prefix);
+        prefix
+    }
+
+    /// Get the Namespace for a Name
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let ns = xot.add_namespace("http://example.com");
+    /// let name = xot.add_name_ns("a", ns);
+    ///
+    /// assert_eq!(xot.namespace_for_name(name), ns);
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    #[inline]
+    pub fn namespace_for_name(&self, name: NameId) -> NamespaceId {
+        self.name_lookup.get_value(name).namespace_id
     }
 
     /// Full name.
@@ -331,30 +366,6 @@ impl Xot {
         } else {
             Err(Error::MissingPrefix(namespace))
         }
-    }
-
-    /// Look up string slice for prefix id
-    ///
-    /// If the prefix id is the empty prefix, the string slice is the empty string.
-    pub fn prefix_str(&self, prefix: PrefixId) -> &str {
-        let prefix = self.prefix_lookup.get_value(prefix);
-        prefix
-    }
-
-    /// Get the Namespace for a Name
-    ///
-    /// ```rust
-    /// use xot::Xot;
-    ///
-    /// let mut xot = Xot::new();
-    /// let ns = xot.add_namespace("http://example.com");
-    /// let name = xot.add_name_ns("a", ns);
-    ///
-    /// assert_eq!(xot.namespace_for_name(name), ns);
-    /// # Ok::<(), xot::Error>(())
-    /// ```
-    pub fn namespace_for_name(&self, name: NameId) -> NamespaceId {
-        self.name_lookup.get_value(name).namespace_id
     }
 
     /// Given a node, give back the name id of this node.

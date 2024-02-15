@@ -93,6 +93,9 @@
   `xot.shallow_equal_elements_ignore_attributes` to replace removed
   `compare_ignore_attributes` on `Element`.
 
+- Introduce `xot.full_name`, `xot.local_name_str` and `xot.uri_str` to get
+  various aspects of a node name.
+
 ## Other changes
 
 - Internally, `next-gen` has been replaced with `genawaiter` to support
