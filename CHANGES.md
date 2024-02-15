@@ -2,6 +2,10 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Changes
+
+Move `id` related functionality into `id` submodule.
+
 ## [0.21.0] - 2024-02-15
 
 ### Breaking changes
