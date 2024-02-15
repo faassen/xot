@@ -1,4 +1,4 @@
-use crate::idmap::{IdIndex, IdMap};
+use super::idmap::{IdIndex, IdMap};
 
 /// Id uniquely identifying a prefix
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Ord, PartialOrd)]

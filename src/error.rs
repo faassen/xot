@@ -1,4 +1,4 @@
-use crate::namespace::NamespaceId;
+use crate::id::NamespaceId;
 use crate::xotdata::Node;
 
 /// Xot errors

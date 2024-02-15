@@ -63,15 +63,12 @@ mod entity;
 mod error;
 pub mod fixed;
 mod fullname;
-mod idmap;
+mod id;
 mod levelorder;
 mod manipulation;
-mod name;
 mod nameaccess;
-mod namespace;
 mod nodemap;
 mod parse;
-mod prefix;
 mod pretty;
 #[cfg(feature = "proptest")]
 pub mod proptest;
@@ -84,14 +81,12 @@ mod xotdata;
 
 pub use access::{Axis, NodeEdge};
 pub use error::Error;
+pub use id::{NameId, NamespaceId, PrefixId};
 pub use levelorder::LevelOrder;
-pub use name::NameId;
-pub use namespace::NamespaceId;
 pub use nodemap::{
     Attributes, Entry, MutableAttributes, MutableNamespaces, MutableNodeMap, Namespaces, NodeMap,
 };
 pub use parse::{Span, SpanInfo, SpanInfoKey};
-pub use prefix::PrefixId;
 pub use serialize::{PrettyOutputToken, SerializeOptions, WithSerializeOptions};
 pub use serializer::{Output, OutputToken};
 pub use xmlvalue::{Comment, Element, Prefixes, ProcessingInstruction, Text, Value, ValueType};

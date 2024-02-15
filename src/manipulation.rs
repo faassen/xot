@@ -3,7 +3,7 @@ use crate::xotdata::{Node, Xot};
 
 use crate::access::NodeEdge;
 use crate::error::Error;
-use crate::name::NameId;
+use crate::id::NameId;
 use crate::xmlvalue::{Value, ValueType};
 
 /// ## Manipulation

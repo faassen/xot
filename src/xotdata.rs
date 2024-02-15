@@ -1,8 +1,6 @@
 use indextree::{Arena, NodeId};
 
-use crate::name::{Name, NameId, NameLookup};
-use crate::namespace::{NamespaceId, NamespaceLookup};
-use crate::prefix::{PrefixId, PrefixLookup};
+use crate::id::{Name, NameId, NameLookup, NamespaceId, NamespaceLookup, PrefixId, PrefixLookup};
 use crate::xmlvalue::Value;
 
 pub(crate) type XmlArena = Arena<Value>;

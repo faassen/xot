@@ -3,9 +3,7 @@ use std::fmt::Debug;
 use ahash::AHashMap;
 
 use crate::error::Error;
-use crate::name::NameId;
-use crate::namespace::NamespaceId;
-use crate::prefix::PrefixId;
+use crate::id::{NameId, NamespaceId, PrefixId};
 
 /// The type of the XML node.
 ///

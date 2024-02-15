@@ -2,9 +2,7 @@ use ahash::HashMap;
 use std::borrow::Cow;
 
 use crate::error::Error;
-use crate::name::NameId;
-use crate::namespace::NamespaceId;
-use crate::prefix::PrefixId;
+use crate::id::{NameId, NamespaceId, PrefixId};
 use crate::xmlvalue::Prefixes;
 use crate::xotdata::Xot;
 

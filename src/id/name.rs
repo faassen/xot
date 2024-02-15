@@ -1,5 +1,5 @@
-use crate::idmap::{IdIndex, IdMap};
-use crate::namespace::NamespaceId;
+use super::idmap::{IdIndex, IdMap};
+use super::namespace::NamespaceId;
 
 /// Id uniquely identifying a name and namespace.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Ord, PartialOrd)]

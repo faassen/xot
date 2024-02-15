@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::name::NameId;
+use crate::id::NameId;
 use crate::xmlvalue::{Attribute, Comment, Element, Namespace, ProcessingInstruction, Text, Value};
 use crate::xotdata::{Node, Xot};
 use crate::{NamespaceId, PrefixId};
