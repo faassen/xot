@@ -113,6 +113,14 @@ impl Xot {
         top
     }
 
+    /// Obtain root of the tree.
+    ///
+    /// This is the document node if possible, but if this is a fragment,
+    /// it is the root of the fragment.
+    pub fn root(&self, node: Node) -> Node {
+        self.ancestors(node).last().unwrap()
+    }
+
     /// Check whether a node has been removed.
     ///
     /// This can happen because you removed it explicitly, or because you held
