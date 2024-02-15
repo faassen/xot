@@ -17,10 +17,9 @@ use crate::prefix::PrefixId;
 /// the type of the value without needing to match on it.
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum ValueType {
-    /// Document root that holds everything.
-    /// Note that this not the same as the document
-    /// element.
-    Root,
+    /// Document that holds everything. Note that this not the same as the
+    /// document element.
+    Document,
     /// Element; it has a name, attributes and namespace information.
     Element,
     /// Text. You can get and set the text value.
@@ -48,9 +47,9 @@ pub(crate) enum ValueCategory {
 /// mutably using [`Xot::value_mut`](crate::xotdata::Xot::value_mut).
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum Value {
-    /// Document root that holds everything. Note that this not the same as the document
+    /// Document that holds everything. Note that this not the same as the document
     /// element.
-    Root,
+    Document,
     /// Element; it has a name, attributes and namespace information.
     Element(Element),
     /// Text. You can get and set the text value.
@@ -69,7 +68,7 @@ impl Value {
     /// Returns the type of the XML value.
     pub fn value_type(&self) -> ValueType {
         match self {
-            Value::Root => ValueType::Root,
+            Value::Document => ValueType::Document,
             Value::Element(_) => ValueType::Element,
             Value::Text(_) => ValueType::Text,
             Value::Comment(_) => ValueType::Comment,
@@ -81,7 +80,7 @@ impl Value {
 
     pub(crate) fn value_category(&self) -> ValueCategory {
         match self {
-            Value::Root
+            Value::Document
             | Value::Element(_)
             | Value::Text(_)
             | Value::ProcessingInstruction(_)
@@ -94,7 +93,7 @@ impl Value {
     pub(crate) fn is_normal(&self) -> bool {
         matches!(
             self,
-            Value::Root
+            Value::Document
                 | Value::Element(_)
                 | Value::Text(_)
                 | Value::ProcessingInstruction(_)

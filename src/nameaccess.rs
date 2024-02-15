@@ -380,40 +380,9 @@ impl Xot {
             Value::Text(..) => None,
             Value::ProcessingInstruction(pi) => Some(pi.target()),
             Value::Comment(..) => None,
-            Value::Root => None,
+            Value::Document => None,
             Value::Attribute(attribute) => Some(attribute.name()),
             Value::Namespace(_) => None,
-        }
-    }
-
-    /// Given a node, give back a string representation.
-    ///
-    /// For the root node and element nodes this gives back all text  node
-    /// descendant content, concatenated.
-    ///
-    /// For text nodes, it gives back the text.
-    ///
-    /// For comments, it gives back the comment text.
-    ///
-    /// For processing instructions, it gives back their content (data).
-    ///
-    /// For attribute nodes, it gives back the attribute value.
-    ///
-    /// For namespace nodes, it gives back the namespace URI.
-    ///
-    /// This is defined by the `string-value` property in
-    /// <https://www.w3.org/TR/xpath-datamodel-31>
-    pub fn string_value(&self, node: Node) -> String {
-        match self.value(node) {
-            Value::Root | Value::Element(_) => descendants_to_string(self, node),
-            Value::Text(text) => text.get().to_string(),
-            Value::ProcessingInstruction(pi) => pi.data().unwrap_or("").to_string(),
-            Value::Comment(comment) => comment.get().to_string(),
-            Value::Attribute(attribute) => attribute.value().to_string(),
-            Value::Namespace(namespace) => {
-                let namespace_id = namespace.namespace();
-                self.namespace_str(namespace_id).to_string()
-            }
         }
     }
 
@@ -493,7 +462,7 @@ impl Xot {
     /// You can use this function just before serializing the tree to XML
     /// using [`Xot::write`] or [`Xot::to_string`].
     pub fn create_missing_prefixes(&mut self, node: Node) -> Result<(), Error> {
-        let node = if self.is_root(node) {
+        let node = if self.is_document(node) {
             self.document_element(node).unwrap()
         } else {
             node
@@ -809,15 +778,6 @@ pub(crate) fn namespace_traverse(
         }
     })
     .into_iter()
-}
-
-fn descendants_to_string(xot: &Xot, node: Node) -> String {
-    let texts = xot.descendants(node).filter_map(|n| xot.text_str(n));
-    let mut r = String::new();
-    for text in texts {
-        r.push_str(text);
-    }
-    r
 }
 
 #[cfg(test)]

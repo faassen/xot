@@ -54,11 +54,11 @@ pub enum Axis {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NodeEdge {
     /// The start edge of a node. In case of an element
-    /// this is the start tag. In case of root
+    /// this is the start tag. In case of document this is
     /// the start of the document.
     Start(Node),
     /// The end edge of a node. In case of an element
-    /// this is the end tag. In case of root the end
+    /// this is the end tag. In case of document this is the end
     /// of the document. For any other values, the
     /// end edge occurs immediately after the start
     /// edge.  
@@ -67,31 +67,32 @@ pub enum NodeEdge {
 
 /// ## Read-only access
 impl Xot {
-    /// Obtain the root element from the document root.
-    /// Returns [`Error::NotRoot`](`crate::error::Error::NotRoot`) error if
-    /// this is not the document root.
+    /// Obtain the document element from the document node.
+    ///
+    /// Returns [`Error::NotDocument`](`crate::error::Error::NotDocument`) error if
+    /// this is not the document node.
     ///
     /// ```rust
     /// let mut xot = xot::Xot::new();
     ///
-    /// let root = xot.parse("<p>Example</p>").unwrap();
+    /// let doc = xot.parse("<p>Example</p>").unwrap();
     ///
-    /// let doc_el = xot.document_element(root).unwrap();
+    /// let doc_el = xot.document_element(doc).unwrap();
     ///
     /// // Check that we indeed have the `p` element
     /// let p_name = xot.name("p").unwrap();
     /// assert_eq!(xot.element(doc_el).unwrap().name(), p_name);
     /// ```
     pub fn document_element(&self, node: Node) -> Result<Node, Error> {
-        if self.value_type(node) != ValueType::Root {
-            return Err(Error::NotRoot(node));
+        if self.value_type(node) != ValueType::Document {
+            return Err(Error::NotDocument(node));
         }
         for child in self.children(node) {
             if let Value::Element(_) = self.value(child) {
                 return Ok(child);
             }
         }
-        unreachable!("Document should always have a single root node")
+        unreachable!("Document should always have a single document node")
     }
 
     /// Obtain top element, given node anywhere in a tree.
@@ -100,7 +101,7 @@ impl Xot {
     /// In an XML fragment it's the top node of the
     /// fragment.
     pub fn top_element(&self, node: Node) -> Node {
-        if self.value_type(node) == ValueType::Root {
+        if self.value_type(node) == ValueType::Document {
             return self.document_element(node).unwrap();
         }
         let mut top = node;
@@ -143,8 +144,8 @@ impl Xot {
 
     /// Get parent node.
     ///
-    /// Returns [`None`] if this is the root node or if the node is unattached
-    /// to a document.
+    /// Returns [`None`] if this is the document node or if the node is
+    /// unattached to a document.
     ///
     /// Attribute and namespace nodes have a parent, even though they aren't
     /// children of the element they are in.

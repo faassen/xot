@@ -861,7 +861,7 @@ fn test_new_root() -> Result<(), Error> {
     let name = xot.add_name("doc");
     let doc_el = xot.new_element(name);
 
-    let root = xot.new_root(doc_el)?;
+    let root = xot.new_document_with_element(doc_el)?;
 
     assert_eq!(xot.to_string(root).unwrap(), r#"<doc/>"#);
     Ok(())

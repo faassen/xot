@@ -12,40 +12,7 @@ impl Xot {
         Node::new(self.arena.new_node(value))
     }
 
-    /// Create a new root node.
-    ///
-    /// You can use this to create a new document from scratch.
-    /// You have to supply a document element, as a root without
-    /// a document element is not allowed in XML. If you want to do
-    /// this manually, use `Xot::new_root_unconnected`.
-    ///
-    /// ```rust
-    /// use xot::Xot;
-    ///
-    /// let mut xot = Xot::new();
-    /// let doc_name = xot.add_name("doc");
-    /// let doc_el = xot.new_element(doc_name);
-    /// let txt = xot.new_text("Hello, world!");
-    /// xot.append(doc_el, txt)?;
-    ///
-    /// /// now create the root
-    /// let root = xot.new_root(doc_el)?;
-    ///
-    /// assert_eq!(xot.to_string(root)?, "<doc>Hello, world!</doc>");
-    /// # Ok::<(), xot::Error>(())
-    /// ```
-    pub fn new_root(&mut self, node: Node) -> Result<Node, Error> {
-        if !self.is_element(node) {
-            return Err(Error::InvalidOperation(
-                "You must supply an element node".to_string(),
-            ));
-        }
-        let root_node = self.new_root_unconnected();
-        self.append(root_node, node)?;
-        Ok(root_node)
-    }
-
-    /// Create a new, unattached root node without document element.
+    /// Create a new, unattached document node without document element.
     ///
     /// You can use this to create a new document from scratch.
     /// If you don't attach at a single element later, the document
@@ -60,16 +27,48 @@ impl Xot {
     /// let txt = xot.new_text("Hello, world!");
     /// xot.append(doc_el, txt)?;
     ///
-    /// /// now create the root
-    /// let root = xot.new_root_unconnected();
-    /// xot.append(root, doc_el)?;
+    /// /// now create the document
+    /// let document = xot.new_document();
+    /// xot.append(document, doc_el)?;
     ///
-    /// assert_eq!(xot.to_string(root)?, "<doc>Hello, world!</doc>");
+    /// assert_eq!(xot.to_string(document)?, "<doc>Hello, world!</doc>");
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn new_root_unconnected(&mut self) -> Node {
-        let root = Value::Root;
+    pub fn new_document(&mut self) -> Node {
+        let root = Value::Document;
         self.new_node(root)
+    }
+
+    /// Create a new document node with a document element.
+    ///
+    /// You can use this to create a new document from scratch. You have to
+    /// supply a document element. If you want to create an empty document node,
+    /// use `Xot::new_document`.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let doc_name = xot.add_name("doc");
+    /// let doc_el = xot.new_element(doc_name);
+    /// let txt = xot.new_text("Hello, world!");
+    /// xot.append(doc_el, txt)?;
+    ///
+    /// /// now create the document
+    /// let document = xot.new_document_with_element(doc_el)?;
+    ///
+    /// assert_eq!(xot.to_string(document)?, "<doc>Hello, world!</doc>");
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    pub fn new_document_with_element(&mut self, node: Node) -> Result<Node, Error> {
+        if !self.is_element(node) {
+            return Err(Error::InvalidOperation(
+                "You must supply an element node".to_string(),
+            ));
+        }
+        let document_node = self.new_document();
+        self.append(document_node, node)?;
+        Ok(document_node)
     }
 
     /// Create a new, unattached element node given element name.
@@ -91,7 +90,7 @@ impl Xot {
     /// let doc_name = xot.add_name("doc");
     /// let doc_el = xot.new_element(doc_name);
     ///
-    /// let root = xot.new_root(doc_el)?;
+    /// let root = xot.new_document_with_element(doc_el)?;
     /// assert_eq!(xot.to_string(root)?, "<doc/>");
     /// # Ok::<(), xot::Error>(())
     /// ```
@@ -112,7 +111,7 @@ impl Xot {
     /// // set up namepace prefix for element so it serializes to XML nicely
     /// xot.namespaces_mut(doc_el).insert(ex, ns);
     ///
-    /// let root = xot.new_root(doc_el)?;
+    /// let root = xot.new_document_with_element(doc_el)?;
     ///
     /// assert_eq!(xot.to_string(root)?, r#"<ex:doc xmlns:ex="http://example.com"/>"#);
     /// # Ok::<(), xot::Error>(())

@@ -5,8 +5,8 @@ use crate::xotdata::Node;
 #[derive(Debug)]
 pub enum Error {
     // access errors
-    /// The node is not a root node.
-    NotRoot(Node),
+    /// The node is not a Document node.
+    NotDocument(Node),
 
     // manipulation errors
     /// Invalid operation on XML. You get this when
@@ -89,7 +89,7 @@ impl From<xmlparser::Error> for Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Error::NotRoot(_) => write!(f, "Not a root node"),
+            Error::NotDocument(_) => write!(f, "Not a document node"),
             Error::InvalidOperation(s) => write!(f, "Invalid operation: {}", s),
             Error::InvalidComment(s) => write!(f, "Invalid comment: {}", s),
             Error::InvalidTarget(s) => write!(f, "Invalid target: {}", s),

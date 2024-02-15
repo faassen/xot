@@ -164,10 +164,10 @@ mod tests {
     ) {
         let (name, xml) = value;
         let mut xot = Xot::new();
-        let root = xot.parse(xml).unwrap();
+        let document = xot.parse(xml).unwrap();
         let output_xml = xot
             .with_serialize_options(SerializeOptions { pretty: true })
-            .to_string(root)
+            .to_string(document)
             .unwrap();
         assert_snapshot!(name, output_xml, xml);
     }

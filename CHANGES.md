@@ -4,123 +4,166 @@
 
 ### Breaking changes
 
-- The way attributes and namespace prefixes are handled has changed entirely in
-  this release. Instead of maintaining this information on the `Element` value
-  (as a vecmap), the information is now entirely handled in-tree. This means
-  that attributes and namespace prefixes are now addressable as nodes, with as
-  their parent the element node.
+#### Attribute and namespace API changes
 
-  This means some significant breaking API changes:
+The way attributes and namespace prefixes are handled has changed entirely in
+this release. Instead of maintaining this information on the `Element` value
+(as a vecmap), the information is now entirely handled in-tree. This means that
+attributes and namespace prefixes are now addressable as nodes, with as their
+parent the element node.
 
-  * The `Element` value does not maintain attributes and namespace prefixes
-    anymore, except for its `name()`.
+This means some significant breaking API changes:
 
-  * The `Value` enum gains two new entries, `Attribute` and `Namespace`.
+* The `Element` value does not maintain attributes and namespace prefixes
+  anymore. The only thing it has is a `name()` accessor, and a way to
+  set the name with `set_name()`.
 
-  * To access attributes, use `xot.attributes(node)`. This returns a
-    hashmap-like struct (`NodeMap`). with as key the name id of the attribute,
-    and as value as string, that lets you access attributes using `get`,
-    iterate over them, etc. `NodeMap`, like `VecMap`, maintains order
-    information and access time is linear, not constant time like a real
-    hashmap.
+* The `Value` enum gains two new entries, `Attribute` and `Namespace`.
+  Similarly, `ValueType` gains these as well.
 
-  * To access namespaces, use `xot.namespaces(node)`. This returns a
-    hashmap-like struct with as key the prefix id, and as value the namespace
-    id. The old `xot.namespaces()` has been renamed to
-    `xot.inherited_prefixes`.
-  
-  * You can also update and add attributes and namespaces using `xot.
-    attributes_mut()` and `xot.namespaces_mut()`, respectively.
+* To access attributes, use `xot.attributes(node)`. This returns a hashmap-like
+  struct (`NodeMap`). with as key the name id of the attribute, and as value as
+  string, that lets you access attributes using `get`, iterate over them, etc.
+  `NodeMap`, like `VecMap`, maintains order information and access time is
+  linear, not constant time like a real hashmap.
 
-  * While `namespaces` and `attributes` return hashmap-like APIs, this API
-    is at present not as complete as the one provided by `vecmap-rs`.
+* To access namespaces, use `xot.namespaces(node)`. This returns a hashmap-like
+  struct with as key the prefix id, and as value the namespace id. The old
+  `xot.namespaces` has been renamed to `xot.inherited_prefixes`. You can 
+  also access this information as a `Prefixes` map, using `xot.prefixes(node)`.
 
-  * Comparing two elements used to be possible through
-    `element.compare_ignore_attributes`. This has now been replaced by
-    `xot.compare_elements_ignore_attributes`, which needs to be provided with
-    two element nodes.
+* `xot::Prefixes` is now a real std hashmap, not a vecmap or the new nodemap,
+   and thus does not retain order information. It is returned from specific
+   APIs such as `xot.prefixes(node)` and `xot.inherited_prefixes()`.
 
-- For the use case where you want to create and append namespace and attribute
-  nodes independently as opposed through going through the more convenient
-  `xot.attributes_mut` and `xot.namespaces_mut` APIs, you can use a new set of
-  APIs. These all have the postfix `_node` in them to remind you that you are
-  doing explicit node manipulation.
+* You can also update and add attributes and namespaces using `xot.
+  attributes_mut()` and `xot.namespaces_mut()`, respectively. Since these hold
+  a mutable reference to the tree, lifetime issues makes them not so convenient
+  for accessing the information.
 
-  * To create a new namespace node: `xot.new_namespace_node()`.
+* While `namespaces` and `attributes` return hashmap-like APIs, this API is at
+  present not as complete as attribute and prefixes information previously
+  returned as provided by `vecmap-rs`.
 
-  * To create a new attribute node: `xot.new_attribute_node()`.
+* Comparing two elements used to be possible through
+  `element.compare_ignore_attributes`. This has now been replaced by
+  `xot.shallow_equal_ignore_attributes`, which can also compare non-element
+  nodes.
 
-  * To append a namespace node: `xot.append_namespace_node()`.
+#### Attribute and namespace nodes
 
-  * To append an attribute node: `xot.append_attribute_node()`.
+The previously discussed `xot.attributes[_mut]` and `xot.namespaces[_mut]` are the most convenient APIs for most use cases.
 
-  * To append any node, including namespace and attribute nodes, use
-    `xot.any_append()` 
+But in some advanced use cases you want to be able to directly access and manipulate attribute and namespace nodes.
 
-  * To check whether something is a namespace node: `xot.is_namespace_node()`.
+This is done with a new set of APIs. These all have the postfix `_node` in them
+to remind you that you are doing explicit node manipulation:
 
-  * To check whether something is an attribute node: `xot.is_attribute_node()`.
+* To create a new namespace node: `xot.new_namespace_node()`.
 
-  * To access or manipulate a namespace node: `xot.namespace_node` and
-    `xot.namespace_node_mut`.
+* To create a new attribute node: `xot.new_attribute_node()`.
 
-  * To access or manipulate an attribute node: `xot.attribute_node` and
-    `xot.attribute_node_mut`.
+* To append a namespace node: `xot.append_namespace_node()`.
 
-  * To access all attributes nodes, use `xot.attribute_nodes`.
+* To append an attribute node: `xot.append_attribute_node()`.
 
-- `xot::Prefixes` is now a real hashmap, not a vecmap or the new nodemap, and
-   thus does not retain order information. It is returned from specific APIs
-   such as `xot.inherited_prefixes()`, 
+* To append any node, including namespace and attribute nodes, use
+  `xot.any_append()` 
 
-- The serializer `Output` enum has been simplified. 
+* To check whether something is a namespace node: `xot.is_namespace_node()`.
 
-  * Any reference to `Element` has become a copy of `Element`, as element is
-    basically just a name and now copy.
+* To check whether something is an attribute node: `xot.is_attribute_node()`.
 
-  * The `Output::Prefix`, `Output::Attribute` `Output::StartTagClose` entries
-    don't include the element anymore.
+* To access or manipulate namespace information on a node:
+  `xot.namespace_node` and `xot.namespace_node_mut`.
 
-  * The enum entries `Output::PrefixesFinished` and
-    `Output::AttributesFinished` have been removed.
+* To access or manipulate attribute information on a node:
+  `xot.attribute_node` and `xot.attribute_node_mut`.
 
-- Processing instruction `target` is now a `xot::NameId`, not a string.
+* To access an individual namespace node you can also use `get_node` on
+  `Attributes` and `Namespaces`, so for instance
+  `xot.namespaces(node).get_node(name)`.
 
-- Renamed `compare` to `deep_equal`, `advanced_compare` to `advanced_deep_equal`,
-  `compare_children` to `deep_equal_children`.
+* To access all attributes nodes as an iterator, use `xot.attribute_nodes`.
 
-- Introduced `xot.shallow_compare` and
-  `xot.shallow_equal_elements_ignore_attributes` to replace removed
-  `compare_ignore_attributes` on `Element`.
+#### Serializer `Output` enum
 
-- Introduce `xot.full_name`, `xot.local_name_str` and `xot.uri_str` to get
-  various aspects of a node name.
+The serializer `Output` enum has been simplified:
 
-## Other changes
+* Any reference to `Element` has become a copy of `Element`, as element is
+  basically just a name and now copy.
 
-- Internally, `next-gen` has been replaced with `genawaiter` to support
-  generators.
+* The `Output::Prefix`, `Output::Attribute` `Output::StartTagClose` entries
+  don't include the element anymore.
 
-- Eliminated `vecmap-rs` dependency.
+* The enum entries `Output::PrefixesFinished` and `Output::AttributesFinished`
+  have been removed.
 
-- You can change the name of an element using `Element.set_name`, obtaining
-  the element via `xot.element_mut`.
+#### Rename compare APIs to equal
+
+Renamed `compare` to `deep_equal`, `advanced_compare` to
+`advanced_deep_equal`,`compare_children` to `deep_equal_children`.
+
+Introduced `xot.shallow_compare` and
+`xot.shallow_equal_elements_ignore_attributes` to replace removed
+`compare_ignore_attributes` on `Element`.
+
+#### Root renamed to Document
+
+To be more in line with XML naming conventions, renamed the `Root` value to the
+`Document` value. So:
+
+* `Value::Root` -> `Value::Document`
+
+* `ValueType:Root` -> `ValueType::Document`
+
+* `Error::NotRoot` -> `Error::NotDocument`
+
+* `xot.new_root_unconnected` -> `xot.new_document`
+
+* `xot.new_root` -> `xot.new_document_with_element`
+
+* `xot.is_root` -> `xot.is_document`
+
+* `Fixed::Root` -> `Fixed::Document`
+
+* `Fixed::RootContent` -> `Fixed::DocumentContent`
+
+* `xot.is_under_root` -> `xot.has_document_parent`
+
+#### Processing instruction target
+
+Processing instruction `target` is now a `xot::NameId`, not a string.
+
+### Other changes
+
+#### New APIs
+
+- Introduced `xot.full_name`, `xot.local_name_str` and `xot.uri_str` to get
+various aspects of a node name. 
+
+- Also added `xot.node_name` function to retrieve name id of element, attribute
+or processing instruction target, according to XPath rules.
+
+- Added `xot.string_value` accessor, which gives the string value of a node 
+  according to XPath rules.
 
 - New `xot.axis` method which lets you do traversal according to axis,
-  following XPath.
+following XPath.
 
-- Added `xot.node_name` function to retrieve name id of element, attribute or
-  processing instruction target.
+- Added `xot.deep_equal_xpath` which compares nodes as defined by XPath.
 
-- Added `xot.localname_str` to get the localname of a name id.
-
-- Added `xot.uri_str` to get the namespace of a name id.
-
-- Added `xot.string_value` accessor.
+- Added `xot.all_descendants` iterator which includes name and attribute nodes.
 
 - Added `xot.all_traverse` iterator which includes name and attribute nodes.
 
-- Added `xot.deep_equal_xpath` which compares nodes as defined by XPath.
+#### Dependencies
+
+- Eliminated `vecmap-rs` dependency.
+
+- Internally, `next-gen` has been replaced with `genawaiter` to support
+  generators. Should not be visible to the outside, but changes the
+  dependencies.
 
 ## [0.20.0] - 2024-02-08
 

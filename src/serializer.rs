@@ -75,7 +75,7 @@ fn gen_edge_start(
         let value = xot.value(node);
 
         match value {
-            Value::Root => {}
+            Value::Document => {}
             Value::Element(element) => {
                 yield_!(Output::StartTagOpen(*element));
 
@@ -302,7 +302,7 @@ impl<'a> XmlSerializer<'a> {
 pub(crate) fn get_extra_prefixes(xot: &Xot, node: Node) -> Prefixes {
     // collect namespace prefixes for all ancestors of the fragment
     if let Some(parent) = xot.parent(node) {
-        if xot.value_type(parent) != ValueType::Root {
+        if xot.value_type(parent) != ValueType::Document {
             xot.prefixes_in_scope(parent)
         } else {
             Prefixes::new()

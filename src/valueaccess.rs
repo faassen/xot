@@ -69,7 +69,7 @@ impl Xot {
         self.value(node).value_type()
     }
 
-    /// Return true if node is directly under the document root.
+    /// Return true if node is directly under the document node.
     /// This means it's either the document element or a comment or
     /// processing instruction.
     ///
@@ -81,14 +81,14 @@ impl Xot {
     /// let doc_el = xot.document_element(root).unwrap();
     /// let text_node = xot.first_child(doc_el).unwrap();
     ///
-    /// assert!(xot.is_under_root(doc_el));
-    /// assert!(!xot.is_under_root(text_node));
+    /// assert!(xot.has_document_parent(doc_el));
+    /// assert!(!xot.has_document_parent(text_node));
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn is_under_root(&self, node: Node) -> bool {
+    pub fn has_document_parent(&self, node: Node) -> bool {
         if let Some(parent_id) = self.parent(node) {
-            self.value_type(parent_id) == ValueType::Root
+            self.value_type(parent_id) == ValueType::Document
         } else {
             false
         }
@@ -110,14 +110,14 @@ impl Xot {
     /// ```
     pub fn is_document_element(&self, node: Node) -> bool {
         if let Some(parent_id) = self.parent(node) {
-            self.value_type(parent_id) == ValueType::Root
+            self.value_type(parent_id) == ValueType::Document
                 && self.value_type(node) == ValueType::Element
         } else {
             false
         }
     }
 
-    /// Return true if node is the document root.
+    /// Return true if node is the document node.
     ///
     /// ```rust
     /// use xot::Xot;
@@ -126,12 +126,12 @@ impl Xot {
     /// let root = xot.parse("<doc>Example</doc>")?;
     /// let doc_el = xot.document_element(root).unwrap();
     ///
-    /// assert!(xot.is_root(root));
-    /// assert!(!xot.is_root(doc_el));
+    /// assert!(xot.is_document(root));
+    /// assert!(!xot.is_document(doc_el));
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn is_root(&self, node: Node) -> bool {
-        self.value_type(node) == ValueType::Root
+    pub fn is_document(&self, node: Node) -> bool {
+        self.value_type(node) == ValueType::Document
     }
 
     /// Return true if node is an element.
@@ -525,6 +525,37 @@ impl Xot {
         }
     }
 
+    /// Given a node, give back a string representation.
+    ///
+    /// For the root node and element nodes this gives back all text node
+    /// descendant content, concatenated.
+    ///
+    /// For text nodes, it gives back the text.
+    ///
+    /// For comments, it gives back the comment text.
+    ///
+    /// For processing instructions, it gives back their content (data).
+    ///
+    /// For attribute nodes, it gives back the attribute value.
+    ///
+    /// For namespace nodes, it gives back the namespace URI.
+    ///
+    /// This is defined by the `string-value` property in
+    /// <https://www.w3.org/TR/xpath-datamodel-31>
+    pub fn string_value(&self, node: Node) -> String {
+        match self.value(node) {
+            Value::Document | Value::Element(_) => descendants_to_string(self, node),
+            Value::Text(text) => text.get().to_string(),
+            Value::ProcessingInstruction(pi) => pi.data().unwrap_or("").to_string(),
+            Value::Comment(comment) => comment.get().to_string(),
+            Value::Attribute(attribute) => attribute.value().to_string(),
+            Value::Namespace(namespace) => {
+                let namespace_id = namespace.namespace();
+                self.namespace_str(namespace_id).to_string()
+            }
+        }
+    }
+
     /// Check two nodes for semantic equality.
     ///
     /// This is a deep comparison of the nodes and their children.
@@ -639,7 +670,7 @@ impl Xot {
         // instructions out.
         use Value::*;
         match (self.value(a), self.value(b)) {
-            (Element(_), Element(_)) | (Root, Root) => self.advanced_deep_equal(
+            (Element(_), Element(_)) | (Document, Document) => self.advanced_deep_equal(
                 a,
                 b,
                 // we need to only consider elements and text nodes for
@@ -711,7 +742,7 @@ impl Xot {
         let a_value = self.value(a);
         let b_value = self.value(b);
         match (a_value, b_value) {
-            (Value::Root, Value::Root) => true,
+            (Value::Document, Value::Document) => true,
             (Value::Element(a_element), Value::Element(b_element)) => {
                 a_element.name() == b_element.name()
                     && self.advanced_compare_attributes(a, b, text_compare)
@@ -816,4 +847,13 @@ impl Xot {
             self.advanced_compare_value(a, b, |a, b| a == b)
         }
     }
+}
+
+fn descendants_to_string(xot: &Xot, node: Node) -> String {
+    let texts = xot.descendants(node).filter_map(|n| xot.text_str(n));
+    let mut r = String::new();
+    for text in texts {
+        r.push_str(text);
+    }
+    r
 }

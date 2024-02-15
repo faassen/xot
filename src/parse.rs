@@ -50,13 +50,13 @@ struct DocumentBuilder {
 
 impl DocumentBuilder {
     fn new(xot: &mut Xot) -> Self {
-        let root = xot.arena.new_node(Value::Root);
+        let document = xot.arena.new_node(Value::Document);
         let mut name_id_builder = NameIdBuilder::new(xot.base_prefixes().into_iter().collect());
         let base_prefixes = vec![(xot.empty_prefix_id, xot.no_namespace_id)];
         name_id_builder.push(base_prefixes);
         DocumentBuilder {
-            tree: root,
-            current_node_id: root,
+            tree: document,
+            current_node_id: document,
             name_id_builder,
             element_builder: None,
         }
@@ -173,7 +173,7 @@ impl DocumentBuilder {
             self.name_id_builder.pop();
         }
         let closed_node_id = self.current_node_id;
-        self.current_node_id = current_node.parent().expect("Cannot close root node");
+        self.current_node_id = current_node.parent().expect("Cannot close document node");
         closed_node_id
     }
 
@@ -187,7 +187,7 @@ impl DocumentBuilder {
             self.name_id_builder.pop();
         }
         let closed_node_id = self.current_node_id;
-        self.current_node_id = current_node.parent().expect("Cannot close root node");
+        self.current_node_id = current_node.parent().expect("Cannot close document node");
         Ok(closed_node_id)
     }
 
@@ -215,8 +215,8 @@ impl DocumentBuilder {
         ))
     }
 
-    fn is_current_node_root(&self, xot: &Xot) -> bool {
-        matches!(xot.arena[self.current_node_id].get(), Value::Root)
+    fn is_current_node_document(&self, xot: &Xot) -> bool {
+        matches!(xot.arena[self.current_node_id].get(), Value::Document)
     }
 }
 
@@ -534,7 +534,7 @@ impl Xot {
             }
         }
 
-        if builder.is_current_node_root(self) {
+        if builder.is_current_node_document(self) {
             Ok((Node::new(builder.tree), span_info))
         } else {
             Err(Error::UnclosedTag)
@@ -547,14 +547,14 @@ impl Xot {
     /// the string is interpreted as a Rust string, i.e. UTF-8. If you need to
     /// decode the string first, use [`Xot::parse_bytes`].
     ///
-    /// The returned node is the root node of the
+    /// The returned node is the document node of the
     /// parsed XML document.
     ///
     /// ```rust
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();
-    /// let root = xot.parse("<hello/>")?;
+    /// let document = xot.parse("<hello/>")?;
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
@@ -569,13 +569,13 @@ impl Xot {
     ///
     /// If you already have a Rust string, use [`Xot::parse`].
     ///
-    /// The returned node is the root node of the parsed XML document.
+    /// The returned node is the document node of the parsed XML document.
     ///
     /// ```rust
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();
-    /// let root = xot.parse_bytes(b"<hello/>")?;
+    /// let document = xot.parse_bytes(b"<hello/>")?;
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
@@ -585,9 +585,9 @@ impl Xot {
     ///
     /// let mut xot = Xot::new();
     ///
-    /// let root = xot.parse_bytes(b"<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><p>\xe9</p>")?;
+    /// let document = xot.parse_bytes(b"<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><p>\xe9</p>")?;
     ///
-    /// let doc_el = xot.document_element(root)?;
+    /// let doc_el = xot.document_element(document)?;
     /// let txt_value = xot.text_content_str(doc_el).unwrap();
     /// assert_eq!(txt_value, "é");
     /// # Ok::<(), xot::Error>(())
