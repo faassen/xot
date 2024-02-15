@@ -260,7 +260,7 @@ impl Xot {
     }
 
     /// Get the localname of a name.
-    pub fn localname_str(&self, name: NameId) -> &str {
+    pub fn local_name_str(&self, name: NameId) -> &str {
         let name = self.name_lookup.get_value(name);
         name.name.as_ref()
     }
@@ -316,7 +316,7 @@ impl Xot {
     /// ```
     pub fn full_name(&self, node: Node, name: NameId) -> Result<String, Error> {
         let namespace = self.namespace_for_name(name);
-        let local_name = self.localname_str(name);
+        let local_name = self.local_name_str(name);
         if namespace == self.no_namespace() {
             return Ok(local_name.to_string());
         }
