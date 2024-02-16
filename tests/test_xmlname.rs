@@ -1,6 +1,6 @@
 use xot::{
-    xmlname::{NameIdInfo, NameStrInfo, XmlNameOwned},
-    Xot,
+    xmlname::{NameIdInfo, NameStrInfo, XmlNameCreate, XmlNameOwned},
+    NameId, Xot,
 };
 
 #[test]
@@ -39,6 +39,9 @@ fn test_ref() {
     assert_eq!(name_ref.name_id(), name_id);
     assert_eq!(name_ref.namespace_id(), namespace_id);
     assert_eq!(name_ref.prefix_id().unwrap(), prefix_id);
+
+    let name_ref_name_id: NameId = name_ref.into();
+    assert_eq!(name_ref_name_id, name_id);
 }
 
 #[test]
@@ -58,4 +61,29 @@ fn test_state() {
     assert_eq!(name_state.name_id(), name_id);
     assert_eq!(name_state.namespace_id(), namespace_id);
     assert_eq!(name_state.prefix_id().unwrap(), prefix_id);
+
+    let name_state_name_id: NameId = name_state.into();
+    assert_eq!(name_state_name_id, name_id);
+}
+
+#[test]
+fn test_create_element() {
+    let mut xot = Xot::new();
+    let name = XmlNameCreate::local_name(&mut xot, "local");
+
+    let local = xot.new_element(name);
+    assert_eq!(xot.to_string(local).unwrap(), "<local/>");
+}
+
+#[test]
+fn test_create_attribute_node() {
+    let mut xot = Xot::new();
+    let name = XmlNameCreate::local_name(&mut xot, "local");
+
+    let doc = XmlNameCreate::local_name(&mut xot, "doc");
+    let doc_el = xot.new_element(doc);
+
+    let local = xot.new_attribute_node(name, "value".to_string());
+    xot.append_attribute_node(doc_el, local).unwrap();
+    assert_eq!(xot.to_string(doc_el).unwrap(), r#"<doc local="value"/>"#);
 }

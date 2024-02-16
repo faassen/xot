@@ -2,6 +2,7 @@ use crate::id::{NamespaceId, PrefixId};
 use crate::{Error, Xot};
 
 use super::state::XmlNameState;
+use super::XmlNameCreate;
 use super::{
     reference::{Lookup, NameStrInfo},
     XmlNameRef,
@@ -12,8 +13,9 @@ use super::{
 /// An owned name is handy when you don't want to depend on Xot, or for
 /// debugging.
 ///
-/// You can turn this into a [`XmlNameRef`] using [`XmlNameOwned::to_ref`].
-/// This allows you to access both id and string information.
+/// It cannot be used to create elements directly, but you can turn this into a
+/// [`XmlNameCreate`] using [`XmlNameOwned.to_create`] and a [`XmlNameRef`]
+/// using [`XmlNameOwned::to_ref`].
 ///
 /// You can access name string information using the [`NameStrInfo`] trait.
 ///
@@ -24,7 +26,7 @@ pub struct XmlNameOwned {
     local_name: String,
     // the empty namespace uri means no namespace
     namespace: String,
-    // the empty prefix means no prefix
+    // the empty prefix means no prefix.
     prefix: String,
 }
 
@@ -74,21 +76,12 @@ impl Lookup for PrefixIdLookup {
 }
 
 impl XmlNameOwned {
-    /// Create a new owned XmlName
+    /// Create a new owned XmlName with a prefix.
     pub fn new(local_name: String, namespace: String, prefix: String) -> Self {
         Self {
             local_name,
             namespace,
             prefix,
-        }
-    }
-
-    /// Create a new owned XmlName without prefix information.
-    pub fn new_no_prefix(local_name: String, namespace: String) -> Self {
-        Self {
-            local_name,
-            namespace,
-            prefix: String::new(),
         }
     }
 
@@ -128,10 +121,19 @@ impl XmlNameOwned {
     pub fn to_ref<'a>(&self, xot: &'a mut Xot) -> XmlNameRef<'a, PrefixIdLookup> {
         let prefix_id = xot.add_prefix(&self.prefix);
         let lookup = PrefixIdLookup { prefix_id };
-
-        XmlNameRef::from_local_name_namespace(xot, lookup, &self.local_name, &self.namespace)
+        let namespace_id = xot.add_namespace(&self.namespace);
+        let name_id = xot.add_name_ns(&self.local_name, namespace_id);
+        XmlNameRef::new(xot, lookup, name_id)
     }
 
+    /// Create a new [`crate::xmlname::XmlNameCreate`] from this owned.
+    ///
+    /// This disregards the prefix information.
+    pub fn to_create(&self, xot: &mut Xot) -> XmlNameCreate {
+        let namespace_id = xot.add_namespace(&self.namespace);
+        let name_id = xot.add_name_ns(&self.local_name, namespace_id);
+        XmlNameCreate::new(name_id)
+    }
     /// Create a new [`crate::xmlname::XmlNameState`] from this owned.
     pub fn to_state(&self, xot: &mut Xot) -> Result<XmlNameState, Error> {
         self.to_ref(xot).to_state()

@@ -26,6 +26,12 @@ pub trait NameIdInfo {
     fn prefix_id(&self) -> Result<PrefixId, Error>;
 }
 
+impl<N: NameIdInfo> From<N> for NameId {
+    fn from(name: N) -> Self {
+        name.name_id()
+    }
+}
+
 /// Name string information for an xml name.
 pub trait NameStrInfo {
     /// Access the local name as a string reference
@@ -55,14 +61,14 @@ pub trait Lookup {
     fn namespace_id_for_prefix_id(&self, prefix_id: PrefixId) -> Option<NamespaceId>;
 }
 
-/// The most complete way to access name information, backed by Xot.
-///
-/// This is a reference. For storage you can use [`XmlNameState::to_state`] to
-/// create a [`XmlNameState`]. For debugging you can use [`XmlNameOwned::to_owned`]
+/// The most complete way to access name information, backed by Xot. This is a
+/// reference and cannot be created directly.
 ///
 /// You can access the Xot id information using the [`NameIdInfo`] trait.
 ///
 /// You can access name string information using the [`NameStrInfo`] trait.
+///
+/// It can also be used directly to create new elements and attributes.
 #[derive(Debug, Clone)]
 pub struct XmlNameRef<'a, L: Lookup> {
     /// Looking up string information for names, namespaces and prefixes.
@@ -139,56 +145,12 @@ impl<'a, L: Lookup> NameStrInfo for XmlNameRef<'a, L> {
 }
 
 impl<'a, L: Lookup> XmlNameRef<'a, L> {
-    /// Create a new XmlName
-    pub fn new(xot: &'a Xot, lookup: L, name_id: NameId) -> Self {
+    pub(crate) fn new(xot: &'a Xot, lookup: L, name_id: NameId) -> Self {
         Self {
             xot,
             lookup,
             name_id,
         }
-    }
-
-    /// Create an XmlName from a local name and namespace.
-    ///
-    /// If namespace is the empty string, the name isn't in a namespace.
-    pub fn from_local_name_namespace(
-        xot: &'a mut Xot,
-        lookup: L,
-        local_name: &str,
-        namespace: &str,
-    ) -> Self {
-        let namespace_id = xot.add_namespace(namespace);
-        let name_id = xot.add_name_ns(local_name, namespace_id);
-        Self {
-            xot,
-            lookup,
-            name_id,
-        }
-    }
-
-    /// Given prefix, and local name, create an XmlName in context
-    pub fn from_prefix_local_name(
-        xot: &'a mut Xot,
-        lookup: L,
-        prefix: &str,
-        local_name: &str,
-    ) -> Result<Self, Error> {
-        let prefix_id = xot.add_prefix(prefix);
-        let namespace_id = lookup
-            .namespace_id_for_prefix_id(prefix_id)
-            .ok_or_else(|| Error::UnknownPrefix(prefix.to_string()))?;
-        let name_id = xot.add_name_ns(local_name, namespace_id);
-        Ok(Self {
-            xot,
-            lookup,
-            name_id,
-        })
-    }
-
-    /// Given a fullname (with potentially a prefix), construct an XmlName
-    pub fn from_full_name(xot: &'a mut Xot, lookup: L, full_name: &str) -> Result<Self, Error> {
-        let (prefix, local_name) = parse_full_name(full_name);
-        Self::from_prefix_local_name(xot, lookup, prefix, local_name)
     }
 
     /// Create a new [`crate::xmlname::XmlNameState`] from this reference.

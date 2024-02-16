@@ -11,11 +11,12 @@ use super::{
 
 /// This is an efficient way to store name information.
 ///
-/// You don't need to worry about references to store this information.
+/// There are no direct references to Xot, so you need to provide Xot
+/// to convert it back to a [`crate::xmlname::XmlNameRef`].
 ///
 /// It supports id access using the [`NameIdInfo`] trait.
 ///
-/// To access the string information again, you can use [`XmlNameState::to_ref`]
+/// It can also be used to create new elements and attributes.
 #[derive(Debug, Clone, Copy)]
 pub struct XmlNameState {
     name_id: NameId,

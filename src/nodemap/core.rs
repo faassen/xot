@@ -57,9 +57,9 @@ where
     ///
     /// This is an attribute or namespace node. This node has the
     /// element node as a parent, even though it's not in `xot.children(parent)`.
-    pub fn get_node(&self, key: K) -> Option<Node> {
+    pub fn get_node(&self, key: impl Into<K> + Copy) -> Option<Node> {
         self.children()
-            .find(|&child| A::key(self.xot.value(child)) == key)
+            .find(|&child| A::key(self.xot.value(child)) == key.into())
     }
 
     /// Returns the number of entries in the map, also referred to as its 'length'.
@@ -75,9 +75,9 @@ where
     // TODO: retain, drain, sort_keys, sort_unstable_keys, sort_by, sort_unstable_by,
 
     /// Return `true` if an equivalent to `key` exists in the map.
-    pub fn contains_key(&self, key: K) -> bool {
+    pub fn contains_key(&self, key: impl Into<K> + Copy) -> bool {
         for child in self.children() {
-            if A::key(self.xot.value(child)) == key {
+            if A::key(self.xot.value(child)) == key.into() {
                 return true;
             }
         }
@@ -85,7 +85,7 @@ where
     }
 
     /// Return a reference to the value stored for `key`, if it is present, else `None`.
-    pub fn get(&self, key: K) -> Option<&'a V> {
+    pub fn get(&self, key: impl Into<K> + Copy) -> Option<&'a V> {
         let node = self.get_node(key)?;
         Some(A::value(self.xot.value(node)))
     }
@@ -165,9 +165,9 @@ where
     ///
     /// This is an attribute or namespace node. This node has the
     /// element node as a parent, even though it's not in `xot.children(parent)`.
-    pub fn get_node(&self, key: K) -> Option<Node> {
+    pub fn get_node(&self, key: impl Into<K> + Copy) -> Option<Node> {
         self.children()
-            .find(|&child| A::key(self.xot.value(child)) == key)
+            .find(|&child| A::key(self.xot.value(child)) == key.into())
     }
 
     /// Returns the number of entries in the map, also referred to as its 'length'.
@@ -183,9 +183,9 @@ where
     // TODO: retain, drain, sort_keys, sort_unstable_keys, sort_by, sort_unstable_by,
 
     /// Return `true` if an equivalent to `key` exists in the map.
-    pub fn contains_key(&self, key: K) -> bool {
+    pub fn contains_key(&self, key: impl Into<K> + Copy) -> bool {
         for child in self.children() {
-            if A::key(self.xot.value(child)) == key {
+            if A::key(self.xot.value(child)) == key.into() {
                 return true;
             }
         }
@@ -193,7 +193,7 @@ where
     }
 
     /// Return a reference to the value stored for `key`, if it is present, else `None`.
-    pub fn get(&self, key: K) -> Option<&V> {
+    pub fn get(&self, key: impl Into<K> + Copy) -> Option<&V> {
         let node = self.get_node(key)?;
         Some(A::value(self.xot.value(node)))
     }
@@ -232,7 +232,7 @@ where
     // TODO: end of duplication
 
     /// Return a mutable reference to the value stored for `key`, if it is present, else `None`.
-    pub fn get_mut(&mut self, key: K) -> Option<&mut V> {
+    pub fn get_mut(&mut self, key: impl Into<K> + Copy) -> Option<&mut V> {
         let node = self.get_node(key)?;
         Some(A::value_mut(self.xot.value_mut(node)))
     }
@@ -257,7 +257,7 @@ where
     ///
     /// See also [`entry`](#method.entry) if you you want to insert *or* modify or if you need to
     /// get the index of the corresponding key-value pair.
-    pub fn insert(&mut self, key: K, value: V) -> Option<V> {
+    pub fn insert(&mut self, key: impl Into<K> + Copy, value: V) -> Option<V> {
         let node = self.get_node(key);
         if let Some(node) = node {
             // if we already have a node
@@ -265,7 +265,7 @@ where
             A::update(node_value, value)
         } else {
             // we need to insert a new node
-            let new_value = A::create(key, value);
+            let new_value = A::create(key.into(), value);
             let node = self.xot.arena.new_node(new_value);
             let insertion_point = A::insertion_point(self.xot, self.parent);
             if let Some(insertion_point) = insertion_point {
@@ -326,7 +326,7 @@ where
     /// Remove a key-value pair from the map, if it exists.
     ///
     /// Returns the value corresponding to the key if the key was previously in the map.
-    pub fn remove(&mut self, key: K) -> Option<V> {
+    pub fn remove(&mut self, key: impl Into<K> + Copy) -> Option<V> {
         let node = self.get_node(key);
         if let Some(node) = node {
             let value = A::value(self.xot.value(node)).clone();
@@ -339,10 +339,10 @@ where
 
     /// Get the given key's corresponding entry in the map for insertion and/or in-place
     /// manipulation.
-    pub fn entry(&'a mut self, key: K) -> Entry<'a, K, V, A> {
+    pub fn entry(&'a mut self, key: impl Into<K> + Copy) -> Entry<'a, K, V, A> {
         match self.get(key) {
-            Some(_value) => Entry::Occupied(OccupiedEntry::new(self, key)),
-            None => Entry::Vacant(VacantEntry::new(self, key)),
+            Some(_value) => Entry::Occupied(OccupiedEntry::new(self, key.into())),
+            None => Entry::Vacant(VacantEntry::new(self, key.into())),
         }
     }
 }

@@ -1,5 +1,6 @@
 use crate::error::Error;
 use crate::id::NameId;
+use crate::xmlname::{self, NameIdInfo, XmlNameRef};
 use crate::xmlvalue::{Attribute, Comment, Element, Namespace, ProcessingInstruction, Text, Value};
 use crate::xotdata::{Node, Xot};
 use crate::{NamespaceId, PrefixId};
@@ -119,8 +120,8 @@ impl Xot {
     /// assert_eq!(xot.to_string(root)?, r#"<ex:doc xmlns:ex="http://example.com"/>"#);
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn new_element(&mut self, name: NameId) -> Node {
-        let element = Value::Element(Element::new(name));
+    pub fn new_element(&mut self, name: impl Into<NameId>) -> Node {
+        let element = Value::Element(Element::new(name.into()));
         self.new_node(element)
     }
 
@@ -202,9 +203,9 @@ impl Xot {
     /// assert_eq!(xot.to_string(root)?, r#"<doc foo="FOO"/>"#);
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn new_attribute_node(&mut self, name: NameId, value: String) -> Node {
+    pub fn new_attribute_node(&mut self, name: impl Into<NameId>, value: String) -> Node {
         let attr = Value::Attribute(Attribute {
-            name_id: name,
+            name_id: name.into(),
             value,
         });
         self.new_node(attr)
