@@ -53,7 +53,7 @@ impl XmlNameState {
         }
     }
 
-    fn into_ref(self, xot: &Xot) -> XmlNameRef<NullLookup> {
+    fn to_ref(self, xot: &Xot) -> XmlNameRef<NullLookup> {
         XmlNameRef::new(xot, NullLookup, self.name_id)
     }
 }

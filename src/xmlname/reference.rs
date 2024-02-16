@@ -138,7 +138,7 @@ impl<'a, L: Lookup> XmlNameRef<'a, L> {
         Self::from_prefix_name(xot, lookup, prefix, local_name)
     }
 
-    pub fn into_state(self) -> Result<XmlNameState, Error> {
+    pub fn to_state(&self) -> Result<XmlNameState, Error> {
         Ok(XmlNameState::new(
             self.name_id,
             self.namespace_id(),
