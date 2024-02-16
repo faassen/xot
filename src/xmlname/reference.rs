@@ -4,32 +4,31 @@ use crate::id::{NameId, NamespaceId, PrefixId};
 use crate::xotdata::Xot;
 use crate::{Error, Node};
 
+use super::state::XmlNameState;
+
+pub trait NameIdInfo {
+    /// Access the underlying name id
+    fn name_id(&self) -> NameId;
+
+    /// Access the underlying namespace id
+    fn namespace_id(&self) -> NamespaceId;
+
+    /// Access the prefix id in this context.
+    fn prefix_id(&self) -> Result<PrefixId, Error>;
+}
+
 pub trait Lookup {
-    fn by_namespace_id(&self, namespace_id: NamespaceId) -> Option<PrefixId>;
-    fn by_prefix_id(&self, prefix_id: PrefixId) -> Option<NamespaceId>;
+    fn prefix_id_for_namespace_id(&self, namespace_id: NamespaceId) -> Option<PrefixId>;
+    fn namespace_id_for_prefix_id(&self, prefix_id: PrefixId) -> Option<NamespaceId>;
 }
 
-struct NodeLookup<'a> {
-    xot: &'a Xot,
-    node: Node,
-}
-
-impl<'a> Lookup for NodeLookup<'a> {
-    fn by_namespace_id(&self, namespace_id: NamespaceId) -> Option<PrefixId> {
-        self.xot.prefix_for_namespace(self.node, namespace_id)
-    }
-
-    fn by_prefix_id(&self, prefix_id: PrefixId) -> Option<NamespaceId> {
-        self.xot.namespace_for_prefix(self.node, prefix_id)
-    }
-}
 /// A structure that helps you access names in a Xot tree.
 ///
 /// Has a reference to Xot and a node so that name and prefix information can be
 /// retrieved.
 #[derive(Debug, Clone)]
 pub struct XmlNameRef<'a, L: Lookup> {
-    // This is used to look up name, namespace and prefix strings.
+    /// Looking up string information for names, namespaces and prefixes.
     xot: &'a Xot,
     // A way to look up prefix information.
     lookup: L,
@@ -51,6 +50,39 @@ impl<'a, L: Lookup> PartialEq for XmlNameRef<'a, L> {
 }
 
 impl<'a, L: Lookup> Eq for XmlNameRef<'a, L> {}
+
+struct NodeLookup<'a> {
+    xot: &'a Xot,
+    node: Node,
+}
+
+impl<'a> Lookup for NodeLookup<'a> {
+    fn prefix_id_for_namespace_id(&self, namespace_id: NamespaceId) -> Option<PrefixId> {
+        self.xot.prefix_for_namespace(self.node, namespace_id)
+    }
+    fn namespace_id_for_prefix_id(&self, prefix_id: PrefixId) -> Option<NamespaceId> {
+        self.xot.namespace_for_prefix(self.node, prefix_id)
+    }
+}
+
+impl<'a, L: Lookup> NameIdInfo for XmlNameRef<'a, L> {
+    /// Access the underlying name id
+    fn name_id(&self) -> NameId {
+        self.name_id
+    }
+
+    /// Access the underlying namespace id
+    fn namespace_id(&self) -> NamespaceId {
+        self.xot.namespace_for_name(self.name_id)
+    }
+
+    /// Access the prefix id in this context.
+    fn prefix_id(&self) -> Result<PrefixId, Error> {
+        self.lookup
+            .prefix_id_for_namespace_id(self.namespace_id())
+            .ok_or_else(|| Error::MissingPrefix(self.namespace_id()))
+    }
+}
 
 impl<'a, L: Lookup> XmlNameRef<'a, L> {
     /// Create a new XmlName
@@ -84,7 +116,7 @@ impl<'a, L: Lookup> XmlNameRef<'a, L> {
     ) -> Result<Self, Error> {
         let prefix_id = xot.add_prefix(prefix);
         let namespace_id = lookup
-            .by_prefix_id(prefix_id)
+            .namespace_id_for_prefix_id(prefix_id)
             .ok_or_else(|| Error::UnknownPrefix(prefix.to_string()))?;
         let name_id = xot.add_name_ns(local_name, namespace_id);
         Ok(Self {
@@ -106,22 +138,12 @@ impl<'a, L: Lookup> XmlNameRef<'a, L> {
         Self::from_prefix_name(xot, lookup, prefix, local_name)
     }
 
-    /// Access the underlying name id
-    pub fn name_id(&self) -> NameId {
-        self.name_id
-    }
-
-    /// Access the underlying namespace id
-    pub fn namespace_id(&self) -> NamespaceId {
-        self.xot.namespace_for_name(self.name_id)
-    }
-
-    /// Access the prefix id in this context.
-    pub fn prefix_id(&self) -> Result<PrefixId, Error> {
-        let namespace_id = self.namespace_id();
-        self.lookup
-            .by_namespace_id(namespace_id)
-            .ok_or_else(|| Error::MissingPrefix(namespace_id))
+    pub fn into_state(self) -> Result<XmlNameState, Error> {
+        Ok(XmlNameState::new(
+            self.name_id,
+            self.namespace_id(),
+            self.prefix_id()?,
+        ))
     }
 
     /// Get the local name as a str reference.

@@ -1,4 +1,4 @@
 mod reference;
-mod storage;
+mod state;
 
 pub use reference::XmlNameRef;
