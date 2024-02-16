@@ -89,6 +89,7 @@ impl Owned {
         }
     }
 
+    // TODO: do we need a way to create a name without prefix information?
     // /// Create a name in a namespace, without prefix information.
     // pub fn namespaced(local_name: &str, uri: &str) -> Self {
     //     Self {
@@ -148,7 +149,7 @@ impl Owned {
         Ref::new(xot, lookup, name_id)
     }
 
-    /// Create a new [`Create`] from this owned.
+    /// Create a new [`Create`] name from this owned name.
     ///
     /// This disregards the prefix information.
     pub fn to_create(&self, xot: &mut Xot) -> Create {
