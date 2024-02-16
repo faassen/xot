@@ -36,7 +36,7 @@ mod owned;
 mod reference;
 mod state;
 
-pub use create::Create;
+pub use create::{Create, Namespace};
 pub use owned::Owned;
 pub use reference::{Lookup, NameIdInfo, NameStrInfo, Ref};
 pub use state::State;

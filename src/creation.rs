@@ -76,8 +76,9 @@ impl Xot {
 
     /// Create a new, unattached element node given element name.
     ///
-    /// You supply a name.
-    ///  
+    /// You supply a `[crate::NamedId`] or a [`xmlname`] structure that can be turned into
+    /// a name id.
+    ///
     /// To create a potentially new name you can use [`Xot::add_name`] or
     /// [`Xot::add_name_ns`]. If the name already exists
     /// the existing name id is returned.
@@ -110,13 +111,35 @@ impl Xot {
     /// // create name in namespace
     /// let doc_name = xot.add_name_ns("doc", ns);
     /// let doc_el = xot.new_element(doc_name);
-
+    ///
     /// // set up namepace prefix for element so it serializes to XML nicely
     /// xot.namespaces_mut(doc_el).insert(ex, ns);
     ///
     /// let root = xot.new_document_with_element(doc_el)?;
     ///
     /// assert_eq!(xot.to_string(root)?, r#"<ex:doc xmlns:ex="http://example.com"/>"#);
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    ///
+    /// Or with `xmlname`:
+    ///
+    ///```
+    /// use xot::{Xot, xmlname, xmlname::NameIdInfo};
+    ///
+    /// let mut xot = Xot::new();
+    ///
+    /// let namespace = xmlname::Namespace::new(&mut xot, "ex", "http://example.com");
+    /// let doc_name = xmlname::Create::local_name_namespace(&mut xot, "doc", &namespace);
+    ///
+    /// let doc_el = xot.new_element(doc_name);
+    ///
+    /// // set up namepace prefix for element so it serializes to XML nicely
+    /// xot.append_namespace(doc_el, &namespace);
+    ///
+    /// let root = xot.new_document_with_element(doc_el)?;
+    ///
+    /// assert_eq!(xot.to_string(root)?, r#"<ex:doc xmlns:ex="http://example.com"/>"#);
+    ///
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn new_element(&mut self, name: impl Into<NameId>) -> Node {
