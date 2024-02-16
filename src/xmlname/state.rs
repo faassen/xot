@@ -4,21 +4,21 @@ use crate::{
 };
 
 use super::{
-    owned::XmlNameOwned,
+    owned::Owned,
     reference::{Lookup, NameIdInfo},
-    XmlNameRef,
+    Ref,
 };
 
 /// This is an efficient way to store name information.
 ///
 /// There are no direct references to Xot, so you need to provide Xot
-/// to convert it back to a [`crate::xmlname::XmlNameRef`].
+/// to convert it back to a [`Ref`] using [`State.to_ref`].
 ///
 /// It supports id access using the [`NameIdInfo`] trait.
 ///
 /// It can also be used to create new elements and attributes.
 #[derive(Debug, Clone, Copy)]
-pub struct XmlNameState {
+pub struct State {
     name_id: NameId,
     // this is redundant with the name id, but we don't want to have to
     // do a xot lookup to get the namespace id
@@ -26,21 +26,21 @@ pub struct XmlNameState {
     prefix_id: PrefixId,
 }
 
-impl std::hash::Hash for XmlNameState {
+impl std::hash::Hash for State {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.name_id.hash(state);
     }
 }
 
-impl PartialEq for XmlNameState {
+impl PartialEq for State {
     fn eq(&self, other: &Self) -> bool {
         self.name_id == other.name_id
     }
 }
 
-impl Eq for XmlNameState {}
+impl Eq for State {}
 
-impl NameIdInfo for XmlNameState {
+impl NameIdInfo for State {
     fn name_id(&self) -> NameId {
         self.name_id
     }
@@ -68,7 +68,7 @@ impl Lookup for NullLookup {
     }
 }
 
-impl XmlNameState {
+impl State {
     pub(crate) fn new(name_id: NameId, namespace_id: NamespaceId, prefix_id: PrefixId) -> Self {
         Self {
             name_id,
@@ -77,18 +77,18 @@ impl XmlNameState {
         }
     }
 
-    /// Create a new [`crate::xmlname::XmlNameRef`] from this state.
+    /// Create a new [`Ref`] from this state.
     ///
     /// This is an efficient way to access its name string information.
-    pub fn to_ref(self, xot: &Xot) -> XmlNameRef<NullLookup> {
-        XmlNameRef::new(xot, NullLookup, self.name_id)
+    pub fn to_ref(self, xot: &Xot) -> Ref<NullLookup> {
+        Ref::new(xot, NullLookup, self.name_id)
     }
 
-    /// Create a new [`crate::xmlname::XmlNameOwned`] from this state
+    /// Create a new [`Owned`] from this state
     ///
     /// If you want to access name information it's more efficient to create
-    /// a reference with [`XmlNameState::to_ref`] and then use the accessors.
-    pub fn to_owned(self, xot: &Xot) -> Result<XmlNameOwned, Error> {
+    /// a reference with [`State::to_ref`] and then use the accessors.
+    pub fn to_owned(self, xot: &Xot) -> Result<Owned, Error> {
         self.to_ref(xot).to_owned()
     }
 }

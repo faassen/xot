@@ -4,13 +4,13 @@ use super::owned::parse_full_name;
 
 /// This is a convenient and efficient way to create a new name for use in Xot.
 ///
-/// You can use it with APIs like [`Xot::new_element`] and [`xot::Attributes::insert`].
+/// You can use it with APIs like [`Xot::new_element`] and [`crate::MutableAttributes::insert`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct XmlNameCreate {
+pub struct Create {
     name_id: NameId,
 }
 
-impl XmlNameCreate {
+impl Create {
     pub(crate) fn new(name_id: NameId) -> Self {
         Self { name_id }
     }
@@ -57,8 +57,8 @@ impl XmlNameCreate {
     }
 }
 
-impl From<XmlNameCreate> for NameId {
-    fn from(name: XmlNameCreate) -> Self {
+impl From<Create> for NameId {
+    fn from(name: Create) -> Self {
         name.name_id
     }
 }

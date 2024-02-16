@@ -4,8 +4,8 @@ use crate::id::{NameId, NamespaceId, PrefixId};
 use crate::xotdata::Xot;
 use crate::{Error, Node};
 
-use super::owned::{parse_full_name, XmlNameOwned};
-use super::state::XmlNameState;
+use super::owned::Owned;
+use super::state::State;
 
 /// Name id information.
 ///
@@ -56,6 +56,7 @@ pub trait NameStrInfo {
     }
 }
 
+/// Lookup of prefix information.
 pub trait Lookup {
     fn prefix_id_for_namespace_id(&self, namespace_id: NamespaceId) -> Option<PrefixId>;
     fn namespace_id_for_prefix_id(&self, prefix_id: PrefixId) -> Option<NamespaceId>;
@@ -70,7 +71,7 @@ pub trait Lookup {
 ///
 /// It can also be used directly to create new elements and attributes.
 #[derive(Debug, Clone)]
-pub struct XmlNameRef<'a, L: Lookup> {
+pub struct Ref<'a, L: Lookup> {
     /// Looking up string information for names, namespaces and prefixes.
     xot: &'a Xot,
     // A way to look up prefix information.
@@ -80,19 +81,19 @@ pub struct XmlNameRef<'a, L: Lookup> {
     name_id: NameId,
 }
 
-impl<'a, L: Lookup> std::hash::Hash for XmlNameRef<'a, L> {
+impl<'a, L: Lookup> std::hash::Hash for Ref<'a, L> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.name_id.hash(state);
     }
 }
 
-impl<'a, L: Lookup> PartialEq for XmlNameRef<'a, L> {
+impl<'a, L: Lookup> PartialEq for Ref<'a, L> {
     fn eq(&self, other: &Self) -> bool {
         self.name_id == other.name_id
     }
 }
 
-impl<'a, L: Lookup> Eq for XmlNameRef<'a, L> {}
+impl<'a, L: Lookup> Eq for Ref<'a, L> {}
 
 #[derive(Debug, Clone)]
 struct NodeLookup<'a> {
@@ -109,7 +110,7 @@ impl<'a> Lookup for NodeLookup<'a> {
     }
 }
 
-impl<'a, L: Lookup> NameIdInfo for XmlNameRef<'a, L> {
+impl<'a, L: Lookup> NameIdInfo for Ref<'a, L> {
     /// Access the underlying name id
     fn name_id(&self) -> NameId {
         self.name_id
@@ -129,7 +130,7 @@ impl<'a, L: Lookup> NameIdInfo for XmlNameRef<'a, L> {
     }
 }
 
-impl<'a, L: Lookup> NameStrInfo for XmlNameRef<'a, L> {
+impl<'a, L: Lookup> NameStrInfo for Ref<'a, L> {
     fn local_name(&self) -> &'a str {
         self.xot.local_name_str(self.name_id)
     }
@@ -144,7 +145,7 @@ impl<'a, L: Lookup> NameStrInfo for XmlNameRef<'a, L> {
     }
 }
 
-impl<'a, L: Lookup> XmlNameRef<'a, L> {
+impl<'a, L: Lookup> Ref<'a, L> {
     pub(crate) fn new(xot: &'a Xot, lookup: L, name_id: NameId) -> Self {
         Self {
             xot,
@@ -153,24 +154,24 @@ impl<'a, L: Lookup> XmlNameRef<'a, L> {
         }
     }
 
-    /// Create a new [`crate::xmlname::XmlNameState`] from this reference.
+    /// Create a new [`State`] from this reference.
     ///
     /// This is useful if you need to store the name information in an efficient way
     /// without worrying about references.
-    pub fn to_state(&self) -> Result<XmlNameState, Error> {
-        Ok(XmlNameState::new(
+    pub fn to_state(&self) -> Result<State, Error> {
+        Ok(State::new(
             self.name_id,
             self.namespace_id(),
             self.prefix_id()?,
         ))
     }
 
-    /// Create a new [`crate::xmlname::XmlNameOwned`] from this reference.
+    /// Create a new [`Owned`] from this reference.
     ///
     /// Normally you shouldn't have to do this because you can already access
     /// the name string information on this reference using [`NameStrInfo`].
-    pub fn to_owned(&self) -> Result<XmlNameOwned, Error> {
-        Ok(XmlNameOwned::new(
+    pub fn to_owned(&self) -> Result<Owned, Error> {
+        Ok(Owned::new(
             self.local_name().to_string(),
             self.namespace().to_string(),
             self.prefix()?.to_string(),
