@@ -33,6 +33,10 @@
 //!   information to the `NamespaceId` as well as the `PrefixId`. It implements
 //!   just the [`NameIdInfo`] trait. You can also use it to create new elements
 //!   and attributes just like a [`crate::NameId`].
+//!
+//! It also offers a way to create a [`Namespace`], which you can use with
+//! [`Create::namespaced_name`], as well as with
+//! [`crate::Xot::append_namespace`].
 mod create;
 mod owned;
 mod reference;
