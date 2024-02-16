@@ -70,6 +70,9 @@ pub trait Lookup {
 /// The most complete way to access name information, backed by Xot. This is a
 /// reference and cannot be created directly.
 ///
+/// You can create one by using [`State`] and [`Owned`], or by using the
+/// [`Xot::name_ref`] and [`Xot::node_name_ref`] methods.
+///
 /// You can access the Xot id information using the [`NameIdInfo`] trait.
 ///
 /// You can access name string information using the [`NameStrInfo`] trait.
@@ -102,8 +105,9 @@ impl<'a, L: Lookup> PartialEq for Ref<'a, L> {
 
 impl<'a, L: Lookup> Eq for Ref<'a, L> {}
 
+/// Look up the prefix information for a node.
 #[derive(Debug, Clone)]
-struct NodeLookup<'a> {
+pub struct NodeLookup<'a> {
     xot: &'a Xot,
     node: Node,
 }
@@ -112,6 +116,13 @@ impl<'a> Lookup for NodeLookup<'a> {
     #[inline]
     fn prefix_id_for_namespace_id(&self, namespace_id: NamespaceId) -> Option<PrefixId> {
         self.xot.prefix_for_namespace(self.node, namespace_id)
+    }
+}
+
+impl<'a> NodeLookup<'a> {
+    /// Create a new lookup for a node.
+    pub fn new(xot: &'a Xot, node: Node) -> Self {
+        Self { xot, node }
     }
 }
 
@@ -131,6 +142,9 @@ impl<'a, L: Lookup> NameIdInfo for Ref<'a, L> {
     /// Access the prefix id in this context.
     fn prefix_id(&self) -> Result<PrefixId, Error> {
         let namespace_id = self.namespace_id();
+        if namespace_id == self.xot.no_namespace() {
+            return Ok(self.xot.empty_prefix());
+        }
         self.lookup
             .prefix_id_for_namespace_id(namespace_id)
             .ok_or_else(|| Error::MissingPrefix(self.xot.namespace_str(namespace_id).to_string()))
