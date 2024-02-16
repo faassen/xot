@@ -76,6 +76,7 @@ mod serialize;
 mod serializer;
 mod unpretty;
 mod valueaccess;
+mod xmlname;
 mod xmlvalue;
 mod xotdata;
 
