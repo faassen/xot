@@ -129,7 +129,7 @@ impl Xot {
     /// let mut xot = Xot::new();
     ///
     /// let namespace = xmlname::Namespace::new(&mut xot, "ex", "http://example.com");
-    /// let doc_name = xmlname::Create::local_name_namespace(&mut xot, "doc", &namespace);
+    /// let doc_name = xmlname::Create::namespaced_name(&mut xot, "doc", &namespace);
     ///
     /// let doc_el = xot.new_element(doc_name);
     ///

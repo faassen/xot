@@ -70,21 +70,47 @@ fn test_state() {
 #[test]
 fn test_create_element() {
     let mut xot = Xot::new();
-    let name = xmlname::Create::local_name(&mut xot, "local");
+    let name = xmlname::Create::name(&mut xot, "local");
 
     let local = xot.new_element(name);
     assert_eq!(xot.to_string(local).unwrap(), "<local/>");
 }
 
 #[test]
+fn test_create_element_namespace() {
+    let mut xot = Xot::new();
+    let namespace = xmlname::Namespace::new(&mut xot, "ex", "http://example.com");
+    let name = xmlname::Create::namespaced_name(&mut xot, "local", &namespace);
+
+    let local = xot.new_element(name);
+    xot.append_namespace(local, &namespace).unwrap();
+    assert_eq!(
+        xot.to_string(local).unwrap(),
+        r#"<ex:local xmlns:ex="http://example.com"/>"#
+    );
+}
+
+#[test]
 fn test_create_attribute_node() {
     let mut xot = Xot::new();
-    let name = xmlname::Create::local_name(&mut xot, "local");
+    let name = xmlname::Create::name(&mut xot, "local");
 
-    let doc = xmlname::Create::local_name(&mut xot, "doc");
+    let doc = xmlname::Create::name(&mut xot, "doc");
     let doc_el = xot.new_element(doc);
 
     let local = xot.new_attribute_node(name, "value".to_string());
     xot.append_attribute_node(doc_el, local).unwrap();
     assert_eq!(xot.to_string(doc_el).unwrap(), r#"<doc local="value"/>"#);
+}
+
+#[test]
+fn test_create_attribute() {
+    let mut xot = Xot::new();
+    let el_name = xmlname::Create::name(&mut xot, "local");
+    let attr_name = xmlname::Create::name(&mut xot, "attr");
+    let doc_el = xot.new_element(el_name);
+
+    xot.attributes_mut(doc_el)
+        .insert(attr_name, "value".to_string());
+    assert_eq!(xot.to_string(doc_el).unwrap(), r#"<local attr="value"/>"#);
 }

@@ -1,6 +1,6 @@
 use crate::{id::NameId, Error, NamespaceId, PrefixId, Xot};
 
-use super::{owned::parse_full_name, state::NullLookup, Lookup, Ref};
+use super::owned::parse_full_name;
 
 /// This is a convenient and efficient way to create a new name for use in Xot.
 ///
@@ -16,24 +16,24 @@ impl Create {
         Self { name_id }
     }
 
-    /// A name in a namespace.
+    /// Create a name in a namespace.
     ///
     /// If namespace is the empty string, the name isn't in a namespace.
     #[inline]
-    pub fn local_name_namespace(xot: &mut Xot, local_name: &str, namespace: &Namespace) -> Self {
+    pub fn namespaced_name(xot: &mut Xot, local_name: &str, namespace: &Namespace) -> Self {
         let name_id = xot.add_name_ns(local_name, namespace.namespace_id());
         Self { name_id }
     }
 
-    /// A name without a namespace.
+    /// Create a name without a namespace.
     #[inline]
-    pub fn local_name(xot: &mut Xot, local_name: &str) -> Self {
+    pub fn name(xot: &mut Xot, local_name: &str) -> Self {
         let name_id = xot.add_name(local_name);
         Self { name_id }
     }
 
     /// A name given a prefix. The prefix is looked up in the provided function.
-    pub fn prefix_local_name(
+    pub fn prefixed_name(
         xot: &mut Xot,
         lookup_namespace: impl Fn(&str) -> Option<NamespaceId>,
         prefix: &str,
@@ -54,7 +54,7 @@ impl Create {
         full_name: &str,
     ) -> Result<Self, Error> {
         let (prefix, local_name) = parse_full_name(full_name);
-        Self::prefix_local_name(xot, lookup_namespace, prefix, local_name)
+        Self::prefixed_name(xot, lookup_namespace, prefix, local_name)
     }
 
     /// The created name id.
@@ -63,19 +63,6 @@ impl Create {
     #[inline]
     pub fn name_id(&self) -> NameId {
         self.name_id
-    }
-
-    /// Turn this into an [`Ref`].
-    ///
-    /// It can then be used to access information using the traits
-    /// [`crate::xmlname::NameIdInfo`] and [`crate::xmlname::NameStrInfo`].
-    pub fn to_ref<'a, L: Lookup>(&self, xot: &'a mut Xot, lookup: L) -> Ref<'a, L> {
-        Ref::new(xot, lookup, self.name_id)
-    }
-
-    /// Turn this into a [`Ref`], without prefix information.
-    pub fn to_ref_unprefixed<'a>(&self, xot: &'a mut Xot) -> Ref<'a, NullLookup> {
-        Ref::new(xot, NullLookup, self.name_id)
     }
 }
 
