@@ -68,11 +68,6 @@ impl Lookup for PrefixIdLookup {
     fn prefix_id_for_namespace_id(&self, _namespace_id: NamespaceId) -> Option<PrefixId> {
         Some(self.prefix_id)
     }
-    fn namespace_id_for_prefix_id(&self, _prefix_id: PrefixId) -> Option<NamespaceId> {
-        // we already know the namespace id in this case, so there is no need
-        // to look it up
-        unreachable!()
-    }
 }
 
 impl Owned {

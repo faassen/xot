@@ -15,7 +15,7 @@ impl Create {
         Self { name_id }
     }
 
-    /// Create from a local name and namespace.
+    /// A name in a namespace.
     ///
     /// If namespace is the empty string, the name isn't in a namespace.
     pub fn local_name_namespace(xot: &mut Xot, local_name: &str, namespace: &str) -> Self {
@@ -24,12 +24,12 @@ impl Create {
         Self { name_id }
     }
 
-    /// Create from a local name without namespace
+    /// A name without a namespace.
     pub fn local_name(xot: &mut Xot, local_name: &str) -> Self {
         Self::local_name_namespace(xot, local_name, "")
     }
 
-    /// Given prefix, and local name, create an XmlName
+    /// A name given a prefix. The prefix is looked up in the provided function.
     pub fn prefix_local_name(
         xot: &mut Xot,
         lookup_namespace: impl Fn(&str) -> Option<&str>,
@@ -41,7 +41,9 @@ impl Create {
         Ok(Self::local_name_namespace(xot, local_name, namespace))
     }
 
-    /// Given a fullname (with potentially a prefix), construct an XmlName
+    /// Parse a fullname (with potentially a prefix) and construct a name.
+    ///
+    /// The prefix is looked up in the provided function.
     pub fn full_name(
         xot: &mut Xot,
         lookup_namespace: impl Fn(&str) -> Option<&str>,
@@ -51,7 +53,9 @@ impl Create {
         Self::prefix_local_name(xot, lookup_namespace, prefix, local_name)
     }
 
-    /// The created name id
+    /// The created name id.
+    ///
+    /// Note that you can also use `create.into()` to convert to a `NameId`.
     pub fn name_id(&self) -> NameId {
         self.name_id
     }

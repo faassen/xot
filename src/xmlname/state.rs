@@ -62,10 +62,6 @@ impl Lookup for NullLookup {
     fn prefix_id_for_namespace_id(&self, _namespace_id: NamespaceId) -> Option<PrefixId> {
         unreachable!()
     }
-
-    fn namespace_id_for_prefix_id(&self, _prefix_id: PrefixId) -> Option<NamespaceId> {
-        unreachable!()
-    }
 }
 
 impl State {

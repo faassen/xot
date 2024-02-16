@@ -56,10 +56,14 @@ pub trait NameStrInfo {
     }
 }
 
-/// Lookup of prefix information.
+/// Lookup of prefix information given some context.
+///
+/// There are various ways to determine the prefix for a namespace id; sometimes
+/// the prefix may already be known, sometimes it needs to be looked up in the context
+/// of a node.
 pub trait Lookup {
+    /// Look up a prefix id given a namespace id.
     fn prefix_id_for_namespace_id(&self, namespace_id: NamespaceId) -> Option<PrefixId>;
-    fn namespace_id_for_prefix_id(&self, prefix_id: PrefixId) -> Option<NamespaceId>;
 }
 
 /// The most complete way to access name information, backed by Xot. This is a
@@ -104,9 +108,6 @@ struct NodeLookup<'a> {
 impl<'a> Lookup for NodeLookup<'a> {
     fn prefix_id_for_namespace_id(&self, namespace_id: NamespaceId) -> Option<PrefixId> {
         self.xot.prefix_for_namespace(self.node, namespace_id)
-    }
-    fn namespace_id_for_prefix_id(&self, prefix_id: PrefixId) -> Option<NamespaceId> {
-        self.xot.namespace_for_prefix(self.node, prefix_id)
     }
 }
 
