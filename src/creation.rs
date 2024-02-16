@@ -76,15 +76,14 @@ impl Xot {
 
     /// Create a new, unattached element node given element name.
     ///
-    /// You supply a `[crate::NamedId`] or a [`crate::xmlname`] structure that can be turned into
-    /// a name id.
+    /// You supply a `[crate::NamedId`] or a [`crate::xmlname`] structure that
+    /// can be turned into a name id.
     ///
     /// To create a potentially new name you can use [`Xot::add_name`] or
-    /// [`Xot::add_name_ns`]. If the name already exists
-    /// the existing name id is returned.
+    /// [`Xot::add_name_ns`]. If the name already exists the existing name id
+    /// is returned.
     ///
-    /// To reuse an existing name that has been
-    /// previously used, you can use
+    /// To reuse an existing name that has been previously used, you can use
     /// [`Xot::name`] or [`Xot::name_ns`].
     ///
     /// ```rust
@@ -129,7 +128,7 @@ impl Xot {
     /// let mut xot = Xot::new();
     ///
     /// let namespace = xmlname::Namespace::new(&mut xot, "ex", "http://example.com");
-    /// let doc_name = xmlname::Create::namespaced_name(&mut xot, "doc", &namespace);
+    /// let doc_name = xmlname::Create::namespaced(&mut xot, "doc", &namespace);
     ///
     /// let doc_el = xot.new_element(doc_name);
     ///

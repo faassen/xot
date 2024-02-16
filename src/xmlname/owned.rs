@@ -71,7 +71,7 @@ impl Lookup for PrefixIdLookup {
 }
 
 impl Owned {
-    /// Create a new owned XmlName with a prefix.
+    /// Create a new owned name.
     pub fn new(local_name: String, namespace: String, prefix: String) -> Self {
         Self {
             local_name,
@@ -80,11 +80,29 @@ impl Owned {
         }
     }
 
-    /// Create a new owned XmlName while looking up the prefix information.
-    pub fn new_lookup_prefix(
-        prefix_lookup: impl Fn(&str) -> Option<String>,
+    /// Create a name without a namespace
+    pub fn name(local_name: &str) -> Self {
+        Self {
+            local_name: local_name.to_string(),
+            namespace: String::new(),
+            prefix: String::new(),
+        }
+    }
+
+    // /// Create a name in a namespace, without prefix information.
+    // pub fn namespaced(local_name: &str, uri: &str) -> Self {
+    //     Self {
+    //         local_name: local_name.to_string(),
+    //         namespace: uri.to_string(),
+    //         prefix: String::new(),
+    //     }
+    // }
+
+    /// Create a new name in a namespace, look up prefix information.
+    pub fn namespaced(
         local_name: String,
         namespace: String,
+        prefix_lookup: impl Fn(&str) -> Option<String>,
     ) -> Result<Self, Error> {
         let prefix =
             prefix_lookup(&namespace).ok_or_else(|| Error::MissingPrefix(namespace.clone()))?;
@@ -95,16 +113,31 @@ impl Owned {
         })
     }
 
+    /// create a new owned name from a prefix and a name.
+    pub fn prefixed(
+        prefix: &str,
+        local_name: &str,
+        lookup_namespace: impl Fn(&str) -> Option<&str>,
+    ) -> Result<Self, Error> {
+        let namespace =
+            lookup_namespace(prefix).ok_or_else(|| Error::UnknownPrefix(prefix.to_string()))?;
+        Ok(Self {
+            local_name: local_name.to_string(),
+            namespace: namespace.to_string(),
+            prefix: prefix.to_string(),
+        })
+    }
+
     /// Given a fullname (with potentially a prefix), construct an XmlNameOwned
     ///
     /// This requires a function that can look up the namespace for a prefix.
-    pub fn from_full_name<L: Lookup>(
-        namespace_lookup: impl Fn(&str) -> Option<String>,
+    pub fn parse_full_name<L: Lookup>(
         full_name: &str,
+        lookup_namespace: impl Fn(&str) -> Option<String>,
     ) -> Result<Self, Error> {
         let (prefix, local_name) = parse_full_name(full_name);
         let namespace =
-            namespace_lookup(prefix).ok_or_else(|| Error::UnknownPrefix(prefix.to_string()))?;
+            lookup_namespace(prefix).ok_or_else(|| Error::UnknownPrefix(prefix.to_string()))?;
         Ok(Self {
             local_name: local_name.to_string(),
             namespace: namespace.to_string(),

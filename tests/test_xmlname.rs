@@ -80,7 +80,7 @@ fn test_create_element() {
 fn test_create_element_namespace() {
     let mut xot = Xot::new();
     let namespace = xmlname::Namespace::new(&mut xot, "ex", "http://example.com");
-    let name = xmlname::Create::namespaced_name(&mut xot, "local", &namespace);
+    let name = xmlname::Create::namespaced(&mut xot, "local", &namespace);
 
     let local = xot.new_element(name);
     xot.append_namespace(local, &namespace).unwrap();

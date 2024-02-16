@@ -4,7 +4,11 @@ use super::owned::parse_full_name;
 
 /// This is a convenient and efficient way to create a new name for use in Xot.
 ///
-/// You can use it with APIs like [`Xot::new_element`] and [`crate::MutableAttributes::insert`].
+/// You can use it with APIs like [`Xot::new_element`] and
+/// [`crate::MutableAttributes::insert`].
+///
+/// Prefix information is not maintained; this can be derived from context
+/// after it's used or converted.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Create {
     name_id: NameId,
@@ -16,15 +20,6 @@ impl Create {
         Self { name_id }
     }
 
-    /// Create a name in a namespace.
-    ///
-    /// If namespace is the empty string, the name isn't in a namespace.
-    #[inline]
-    pub fn namespaced_name(xot: &mut Xot, local_name: &str, namespace: &Namespace) -> Self {
-        let name_id = xot.add_name_ns(local_name, namespace.namespace_id());
-        Self { name_id }
-    }
-
     /// Create a name without a namespace.
     #[inline]
     pub fn name(xot: &mut Xot, local_name: &str) -> Self {
@@ -32,12 +27,23 @@ impl Create {
         Self { name_id }
     }
 
-    /// A name given a prefix. The prefix is looked up in the provided function.
-    pub fn prefixed_name(
+    /// Create a name in a namespace.
+    ///
+    /// If namespace is the empty string, the name isn't in a namespace.
+    #[inline]
+    pub fn namespaced(xot: &mut Xot, local_name: &str, namespace: &Namespace) -> Self {
+        let name_id = xot.add_name_ns(local_name, namespace.namespace_id());
+        Self { name_id }
+    }
+
+    /// A name given a prefix.
+    ///
+    /// The namespace is looked up in the provided function.
+    pub fn prefixed(
         xot: &mut Xot,
-        lookup_namespace: impl Fn(&str) -> Option<NamespaceId>,
         prefix: &str,
         local_name: &str,
+        lookup_namespace: impl Fn(&str) -> Option<NamespaceId>,
     ) -> Result<Self, Error> {
         let namespace =
             lookup_namespace(prefix).ok_or_else(|| Error::UnknownPrefix(prefix.to_string()))?;
@@ -47,14 +53,14 @@ impl Create {
 
     /// Parse a fullname (with potentially a prefix) and construct a name.
     ///
-    /// The prefix is looked up in the provided function.
+    /// The namespace is looked up in the provided function.
     pub fn parse_full_name(
         xot: &mut Xot,
-        lookup_namespace: impl Fn(&str) -> Option<NamespaceId>,
         full_name: &str,
+        lookup_namespace: impl Fn(&str) -> Option<NamespaceId>,
     ) -> Result<Self, Error> {
         let (prefix, local_name) = parse_full_name(full_name);
-        Self::prefixed_name(xot, lookup_namespace, prefix, local_name)
+        Self::prefixed(xot, prefix, local_name, lookup_namespace)
     }
 
     /// The created name id.
