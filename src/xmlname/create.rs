@@ -11,6 +11,7 @@ pub struct Create {
 }
 
 impl Create {
+    #[inline]
     pub(crate) fn new(name_id: NameId) -> Self {
         Self { name_id }
     }
@@ -18,6 +19,7 @@ impl Create {
     /// A name in a namespace.
     ///
     /// If namespace is the empty string, the name isn't in a namespace.
+    #[inline]
     pub fn local_name_namespace(xot: &mut Xot, local_name: &str, namespace: &str) -> Self {
         let namespace_id = xot.add_namespace(namespace);
         let name_id = xot.add_name_ns(local_name, namespace_id);
@@ -25,6 +27,7 @@ impl Create {
     }
 
     /// A name without a namespace.
+    #[inline]
     pub fn local_name(xot: &mut Xot, local_name: &str) -> Self {
         Self::local_name_namespace(xot, local_name, "")
     }
@@ -44,7 +47,7 @@ impl Create {
     /// Parse a fullname (with potentially a prefix) and construct a name.
     ///
     /// The prefix is looked up in the provided function.
-    pub fn full_name(
+    pub fn parse_full_name(
         xot: &mut Xot,
         lookup_namespace: impl Fn(&str) -> Option<&str>,
         full_name: &str,
@@ -56,12 +59,14 @@ impl Create {
     /// The created name id.
     ///
     /// Note that you can also use `create.into()` to convert to a `NameId`.
+    #[inline]
     pub fn name_id(&self) -> NameId {
         self.name_id
     }
 }
 
 impl From<Create> for NameId {
+    #[inline]
     fn from(name: Create) -> Self {
         name.name_id
     }

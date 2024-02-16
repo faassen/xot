@@ -106,6 +106,7 @@ struct NodeLookup<'a> {
 }
 
 impl<'a> Lookup for NodeLookup<'a> {
+    #[inline]
     fn prefix_id_for_namespace_id(&self, namespace_id: NamespaceId) -> Option<PrefixId> {
         self.xot.prefix_for_namespace(self.node, namespace_id)
     }
@@ -113,11 +114,13 @@ impl<'a> Lookup for NodeLookup<'a> {
 
 impl<'a, L: Lookup> NameIdInfo for Ref<'a, L> {
     /// Access the underlying name id
+    #[inline]
     fn name_id(&self) -> NameId {
         self.name_id
     }
 
     /// Access the underlying namespace id
+    #[inline]
     fn namespace_id(&self) -> NamespaceId {
         self.xot.namespace_for_name(self.name_id)
     }
@@ -132,14 +135,17 @@ impl<'a, L: Lookup> NameIdInfo for Ref<'a, L> {
 }
 
 impl<'a, L: Lookup> NameStrInfo for Ref<'a, L> {
+    #[inline]
     fn local_name(&self) -> &'a str {
         self.xot.local_name_str(self.name_id)
     }
 
+    #[inline]
     fn namespace(&self) -> &'a str {
         self.xot.namespace_str(self.namespace_id())
     }
 
+    #[inline]
     fn prefix(&self) -> Result<&'a str, Error> {
         let prefix_id = self.prefix_id()?;
         Ok(self.xot.prefix_str(prefix_id))
