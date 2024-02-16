@@ -13,8 +13,35 @@ pub trait NameIdInfo {
     /// Access the underlying namespace id
     fn namespace_id(&self) -> NamespaceId;
 
-    /// Access the prefix id in this context.
+    /// Get the prefix for the name in the context of a node.
+    ///
+    /// If this is in the default namespace, this is the empty string.
+    ///
+    /// If the prefix cannot be found, return an [`Error::MissingPrefix`].
     fn prefix_id(&self) -> Result<PrefixId, Error>;
+}
+
+pub trait NameStrInfo {
+    /// Access the local name as a string reference
+    fn local_name(&self) -> &str;
+
+    /// Get the namespace uri as a str reference.
+    ///
+    /// If there is no namespace, this is the empty string.
+    fn uri(&self) -> &str;
+
+    /// Access the prefix as a string
+    fn prefix(&self) -> Result<&str, Error>;
+
+    /// Access the full name as a string
+    fn full_name(&self) -> Result<Cow<str>, Error> {
+        let prefix = self.prefix()?;
+        if !prefix.is_empty() {
+            Ok(Cow::Owned(format!("{}:{}", prefix, self.local_name())))
+        } else {
+            Ok(Cow::Borrowed(self.local_name()))
+        }
+    }
 }
 
 pub trait Lookup {
@@ -84,6 +111,21 @@ impl<'a, L: Lookup> NameIdInfo for XmlNameRef<'a, L> {
     }
 }
 
+impl<'a, L: Lookup> NameStrInfo for XmlNameRef<'a, L> {
+    fn local_name(&self) -> &'a str {
+        self.xot.local_name_str(self.name_id)
+    }
+
+    fn uri(&self) -> &'a str {
+        self.xot.namespace_str(self.namespace_id())
+    }
+
+    fn prefix(&self) -> Result<&'a str, Error> {
+        let prefix_id = self.prefix_id()?;
+        Ok(self.xot.prefix_str(prefix_id))
+    }
+}
+
 impl<'a, L: Lookup> XmlNameRef<'a, L> {
     /// Create a new XmlName
     pub fn new(xot: &'a Xot, lookup: L, name_id: NameId) -> Self {
@@ -144,39 +186,5 @@ impl<'a, L: Lookup> XmlNameRef<'a, L> {
             self.namespace_id(),
             self.prefix_id()?,
         ))
-    }
-
-    /// Get the local name as a str reference.
-    pub fn local_name(&self) -> &'a str {
-        self.xot.local_name_str(self.name_id)
-    }
-
-    /// Get the namespace as a str reference.
-    ///
-    /// If there is no namespace, this is the empty string.
-    pub fn namespace(&self) -> &'a str {
-        self.xot.namespace_str(self.namespace_id())
-    }
-
-    /// Get the prefix for the name in the context of a node.
-    ///
-    /// If this is in the default namespace, this is the empty string.
-    ///
-    /// If the prefix cannot be found, return an [`Error::MissingPrefix`].
-    pub fn prefix(&self) -> Result<&'a str, Error> {
-        let prefix_id = self.prefix_id()?;
-        Ok(self.xot.prefix_str(prefix_id))
-    }
-
-    /// Get the full name in the context of a node.
-    ///
-    /// This may include a prefix.
-    pub fn fullname(&self) -> Result<Cow<'a, str>, Error> {
-        let prefix = self.prefix()?;
-        if !prefix.is_empty() {
-            Ok(Cow::Owned(format!("{}:{}", prefix, self.local_name())))
-        } else {
-            Ok(Cow::Borrowed(self.local_name()))
-        }
     }
 }
