@@ -27,12 +27,14 @@ pub struct State {
 }
 
 impl std::hash::Hash for State {
+    #[inline]
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.name_id.hash(state);
     }
 }
 
 impl PartialEq for State {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.name_id == other.name_id
     }
@@ -41,14 +43,17 @@ impl PartialEq for State {
 impl Eq for State {}
 
 impl NameIdInfo for State {
+    #[inline]
     fn name_id(&self) -> NameId {
         self.name_id
     }
 
+    #[inline]
     fn namespace_id(&self) -> NamespaceId {
         self.namespace_id
     }
 
+    #[inline]
     fn prefix_id(&self) -> Result<PrefixId, Error> {
         Ok(self.prefix_id)
     }
@@ -76,6 +81,7 @@ impl State {
     /// Create a new [`Ref`] from this state.
     ///
     /// This is an efficient way to access its name string information.
+    #[inline]
     pub fn to_ref(self, xot: &Xot) -> Ref<NullLookup> {
         Ref::new(xot, NullLookup, self.name_id)
     }

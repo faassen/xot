@@ -27,6 +27,7 @@ pub trait NameIdInfo {
 }
 
 impl<N: NameIdInfo> From<N> for NameId {
+    #[inline]
     fn from(name: N) -> Self {
         name.name_id()
     }
@@ -86,12 +87,14 @@ pub struct Ref<'a, L: Lookup> {
 }
 
 impl<'a, L: Lookup> std::hash::Hash for Ref<'a, L> {
+    #[inline]
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.name_id.hash(state);
     }
 }
 
 impl<'a, L: Lookup> PartialEq for Ref<'a, L> {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.name_id == other.name_id
     }
