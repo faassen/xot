@@ -174,9 +174,13 @@ impl Xot {
     /// assert_eq!(xot.to_string(root)?, r#"<doc><?target data?></doc>"#);
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn new_processing_instruction(&mut self, target: NameId, data: Option<&str>) -> Node {
+    pub fn new_processing_instruction(
+        &mut self,
+        target: impl Into<NameId>,
+        data: Option<&str>,
+    ) -> Node {
         let pi = Value::ProcessingInstruction(ProcessingInstruction::new(
-            target,
+            target.into(),
             data.map(|s| s.to_string()),
         ));
         self.new_node(pi)
