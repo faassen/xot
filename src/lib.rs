@@ -40,9 +40,11 @@
 //! XML names and namespaces in Xot are referenced by ids. In order to
 //! construct or compare an element, you first need to get hold of a name. To
 //! access a name, use [`Xot::name`]. To create a new name if necessary, use
-//! [`Xot::add_name`]. To construct a name with a namespace, use [`Xot::add_namespace`] and then
-//! [`Xot::add_name_ns`]. To create a namespace prefix, use
-//! [`Xot::add_prefix`].
+//! [`Xot::add_name`]. To construct a name with a namespace, use
+//! [`Xot::add_namespace`] and then [`Xot::add_name_ns`]. To create a namespace
+//! prefix, use [`Xot::add_prefix`]. You can also use the [`xmlname`] module to
+//! manage names; see [`xmlname::Create`] for a bunch of convenient ways to
+//! create names, for instance.
 //!
 //! Attributes and namespace access is most conveniently done through the
 //! [`Xot::attributes`] and [`Xot::namespaces`] accessors. Manipulation is most
