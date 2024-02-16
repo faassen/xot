@@ -5,7 +5,23 @@
 ### Breaking changes
 
 - `MissingPrefix` now contains the namespace for which the prefix cannot be
-  found as a string,not as a `NamespaceId`.
+  found as a string, not as a `NamespaceId`.
+
+### Changes
+
+- Introduce `xmlname` module which supports advanced use cases surrounding the
+  creation and access to XML names. It also offers more convenient creation and
+  access of names as opposed to the gaggle of methods that exist on `Xot`.
+
+- The various APIs that take name ids have been modified to accept various
+  `xmlname` names (`xmlname::Create`, `xmlname::Ref`, `xmlnameState`) as well.
+  The documentation for `new_element` has an example.
+
+- Added `Xot::add_namespace` to create a namespace node based on an
+  `xmlname::Namespace`.
+
+- Added `Xot::name_ref` and `Xot::node_name_ref` to get `xmlname::Ref` access to
+  a node.
 
 ### Changes
 
