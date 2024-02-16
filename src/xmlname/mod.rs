@@ -9,15 +9,17 @@
 //
 //! - [`Create`] is a convenient way to create a new name for usage in Xot from
 //!   strings programmatically. You can use it to create new elements and
-//!   attributes just like you'd use a [`crate::NameId`] directly.
+//!   attributes just like you'd use a [`crate::NameId`] directly. If you want
+//!   name without a namespace, use [`Create::name`]. If you want a namespaced
+//!   name, use [`Namespace`] and [`Create::namespaced_name`].
 //!
 //! - [`Ref`] is a reference to a name that is stored by Xot. You can
 //!   efficiently get a reference to it for a node, or convert a newly created
-//!   [`Owned`] or a stored [`State`] into one. It's the most full
-//!   featured type but it cannot be stored in structs or enums, and cannot be
-//!   created directly. It implements both the [`NameIdInfo`] and
-//!   [`NameStrInfo`] traits. You can also use it to create new elements and
-//!   attributes just like a [`crate::NameId`].
+//!   [`Owned`] or a stored [`State`] into one. It's the most full featured
+//!   type but it cannot be stored in structs or enums, and cannot be created
+//!   directly. It implements both the [`NameIdInfo`] and [`NameStrInfo`]
+//!   traits. You can also use it to create new elements and attributes just
+//!   like a [`crate::NameId`].
 //!
 //! - [`Owned`] is a name that is stored as owned strings. It's handy when you
 //!   want to handle names in structs or enums without any reference to Xot
