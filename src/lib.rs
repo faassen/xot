@@ -33,9 +33,10 @@
 //!
 //! To access and manipulate XML specific data, you use the [`Value`] for a
 //! node. This is an enum that's either an [`Element`], [`Text`], [`Comment`]
-//! or [`ProcessingInstruction`], or `Root` (which has no value). You can use
-//! [`Xot::value`] to get the [`Value`]. Sometimes it's more handy to use the
-//! specific accessors for a value, such a [`Xot::element`] or [`Xot::text`].
+//! or [`ProcessingInstruction`], [`Attribute`], [`Namespace`] or `Document`
+//! (which has no value). You can use [`Xot::value`] to get the [`Value`].
+//! Sometimes it's more handy to use the specific accessors for a value, such a
+//! [`Xot::element`] or [`Xot::text`].
 //!
 //! XML names and namespaces in Xot are referenced by ids. In order to
 //! construct or compare an element, you first need to get hold of a name. To
@@ -92,5 +93,7 @@ pub use nodemap::{
 pub use parse::{Span, SpanInfo, SpanInfoKey};
 pub use serialize::{PrettyOutputToken, SerializeOptions, WithSerializeOptions};
 pub use serializer::{Output, OutputToken};
-pub use xmlvalue::{Comment, Element, Prefixes, ProcessingInstruction, Text, Value, ValueType};
+pub use xmlvalue::{
+    Attribute, Comment, Element, Namespace, Prefixes, ProcessingInstruction, Text, Value, ValueType,
+};
 pub use xotdata::{Node, Xot};

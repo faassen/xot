@@ -268,6 +268,7 @@ impl ProcessingInstruction {
     }
 }
 
+/// Represents a namespace node.
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Namespace {
     pub(crate) prefix_id: PrefixId,
@@ -291,6 +292,7 @@ impl Namespace {
     }
 }
 
+/// Represents an attribute node.
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Attribute {
     pub(crate) name_id: NameId,
