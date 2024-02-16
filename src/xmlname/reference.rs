@@ -88,6 +88,7 @@ impl<'a, L: Lookup> PartialEq for XmlNameRef<'a, L> {
 
 impl<'a, L: Lookup> Eq for XmlNameRef<'a, L> {}
 
+#[derive(Debug, Clone)]
 struct NodeLookup<'a> {
     xot: &'a Xot,
     node: Node,
@@ -115,9 +116,10 @@ impl<'a, L: Lookup> NameIdInfo for XmlNameRef<'a, L> {
 
     /// Access the prefix id in this context.
     fn prefix_id(&self) -> Result<PrefixId, Error> {
+        let namespace_id = self.namespace_id();
         self.lookup
-            .prefix_id_for_namespace_id(self.namespace_id())
-            .ok_or_else(|| Error::MissingPrefix(self.namespace_id()))
+            .prefix_id_for_namespace_id(namespace_id)
+            .ok_or_else(|| Error::MissingPrefix(self.xot.namespace_str(namespace_id).to_string()))
     }
 }
 
@@ -211,5 +213,11 @@ impl<'a, L: Lookup> XmlNameRef<'a, L> {
             self.namespace().to_string(),
             self.prefix()?.to_string(),
         ))
+    }
+
+    /// Has a namespace but no prefix, so it's in a `xmlns` namespace.
+    pub fn has_unprefixed_namespace(&self) -> Result<bool, Error> {
+        Ok(self.namespace_id() != self.xot.no_namespace()
+            && self.xot.empty_prefix() == self.prefix_id()?)
     }
 }

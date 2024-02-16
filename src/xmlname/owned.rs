@@ -16,8 +16,10 @@ use super::{
 /// This allows you to access both id and string information.
 ///
 /// You can access name string information using the [`NameStrInfo`] trait.
+///
+/// If you enable the `serde` feature it can be serialized and deserialized.
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct XmlNameOwned {
     local_name: String,
     // the empty namespace uri means no namespace
@@ -55,6 +57,7 @@ impl NameStrInfo for XmlNameOwned {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct PrefixIdLookup {
     prefix_id: PrefixId,
 }
@@ -78,6 +81,30 @@ impl XmlNameOwned {
             namespace,
             prefix,
         }
+    }
+
+    /// Create a new owned XmlName without prefix information.
+    pub fn new_no_prefix(local_name: String, namespace: String) -> Self {
+        Self {
+            local_name,
+            namespace,
+            prefix: String::new(),
+        }
+    }
+
+    /// Create a new owned XmlName while looking up the prefix information.
+    pub fn new_lookup_prefix(
+        prefix_lookup: impl Fn(&str) -> Option<String>,
+        local_name: String,
+        namespace: String,
+    ) -> Result<Self, Error> {
+        let prefix =
+            prefix_lookup(&namespace).ok_or_else(|| Error::MissingPrefix(namespace.clone()))?;
+        Ok(Self {
+            local_name,
+            namespace,
+            prefix,
+        })
     }
 
     /// Given a fullname (with potentially a prefix), construct an XmlNameOwned

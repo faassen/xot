@@ -2,6 +2,11 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Breaking changes
+
+- `MissingPrefix` now contains the namespace for which the prefix cannot be
+  found as a string,not as a `NamespaceId`.
+
 ### Changes
 
 Move `id` related functionality into `id` submodule.

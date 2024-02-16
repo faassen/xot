@@ -155,14 +155,18 @@ impl<'a> FullnameSerializer<'a> {
     pub(crate) fn fullname_or_err(&'a self, name_id: NameId) -> Result<Cow<'a, str>, Error> {
         match self.fullname(name_id) {
             Fullname::Name(name) => Ok(name),
-            Fullname::MissingPrefix(namespace_id) => Err(Error::MissingPrefix(namespace_id)),
+            Fullname::MissingPrefix(namespace_id) => Err(Error::MissingPrefix(
+                self.xot.namespace_str(namespace_id).to_string(),
+            )),
         }
     }
 
     pub(crate) fn fullname_attr_or_err(&'a self, name_id: NameId) -> Result<Cow<'a, str>, Error> {
         match self.fullname_attr(name_id) {
             Fullname::Name(name) => Ok(name),
-            Fullname::MissingPrefix(namespace_id) => Err(Error::MissingPrefix(namespace_id)),
+            Fullname::MissingPrefix(namespace_id) => Err(Error::MissingPrefix(
+                self.xot.namespace_str(namespace_id).to_string(),
+            )),
         }
     }
 

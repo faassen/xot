@@ -362,7 +362,9 @@ impl Xot {
                 Ok(local_name.to_string())
             }
         } else {
-            Err(Error::MissingPrefix(namespace))
+            Err(Error::MissingPrefix(
+                self.namespace_str(namespace).to_string(),
+            ))
         }
     }
 

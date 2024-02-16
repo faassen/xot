@@ -54,7 +54,8 @@ impl NameIdInfo for XmlNameState {
 }
 
 // we don't actually need to look up anything for the state version
-struct NullLookup;
+#[derive(Debug, Clone, Copy)]
+pub struct NullLookup;
 
 impl Lookup for NullLookup {
     fn prefix_id_for_namespace_id(&self, _namespace_id: NamespaceId) -> Option<PrefixId> {
@@ -78,7 +79,7 @@ impl XmlNameState {
     /// Create a new [`crate::xmlname::XmlNameRef`] from this state.
     ///
     /// This is an efficient way to access its name string information.
-    fn to_ref(self, xot: &Xot) -> XmlNameRef<NullLookup> {
+    pub fn to_ref(self, xot: &Xot) -> XmlNameRef<NullLookup> {
         XmlNameRef::new(xot, NullLookup, self.name_id)
     }
 
@@ -86,7 +87,7 @@ impl XmlNameState {
     ///
     /// If you want to access name information it's more efficient to create
     /// a reference with [`XmlNameState::to_ref`] and then use the accessors.
-    fn to_owned(self, xot: &Xot) -> Result<XmlNameOwned, Error> {
+    pub fn to_owned(self, xot: &Xot) -> Result<XmlNameOwned, Error> {
         self.to_ref(xot).to_owned()
     }
 }

@@ -30,7 +30,7 @@ pub enum Error {
     /// Can occur during serialization if a namespace is used that has no
     /// prefix is declared. Use [`Xot::create_missing_prefixes`](crate::xotdata::Xot::create_missing_prefixes)
     /// to fix this.
-    MissingPrefix(NamespaceId),
+    MissingPrefix(String),
     /// It's not allowed to include a namespace prefix in a processing instruction
     /// target name.
     NamespaceInProcessingInstruction,
