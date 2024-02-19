@@ -141,6 +141,8 @@ impl OwnedName {
     }
 
     /// Convert this name into a name adding a * suffix.
+    ///
+    /// This can be useful to help generate unique names.
     pub fn with_suffix(self) -> Self {
         let mut local_name = self.local_name;
         local_name.push('*');
