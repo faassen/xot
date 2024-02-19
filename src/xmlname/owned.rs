@@ -168,6 +168,16 @@ impl OwnedName {
         RefName::new(xot, name_id, prefix_id)
     }
 
+    /// Create a new [`RefName`] if these names already exist in Xot.
+    ///
+    /// Otherwise, returns None.
+    pub fn maybe_to_ref<'a>(&self, xot: &'a Xot) -> Option<RefName<'a>> {
+        let prefix_id = xot.prefix(&self.prefix_str)?;
+        let namespace_id = xot.namespace(&self.namespace_str)?;
+        let name_id = xot.name_ns(&self.local_name_str, namespace_id)?;
+        Some(RefName::new(xot, name_id, prefix_id))
+    }
+
     /// Create a new [`CreateName`] name from this owned name.
     ///
     /// This disregards the prefix information.
