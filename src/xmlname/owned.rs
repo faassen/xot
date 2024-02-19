@@ -23,23 +23,25 @@ use super::{
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct OwnedName {
-    local_name: String,
+    // fields are postfixed _str so they don't conflict with the methods in
+    // NameStrInfo
+    local_name_str: String,
     // the empty namespace uri means no namespace
-    namespace: String,
+    namespace_str: String,
     // the empty prefix means no prefix.
-    prefix: String,
+    prefix_str: String,
 }
 
 impl std::hash::Hash for OwnedName {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.local_name.hash(state);
-        self.namespace.hash(state);
+        self.local_name_str.hash(state);
+        self.namespace_str.hash(state);
     }
 }
 
 impl PartialEq for OwnedName {
     fn eq(&self, other: &Self) -> bool {
-        self.local_name == other.local_name && self.namespace == other.namespace
+        self.local_name_str == other.local_name_str && self.namespace_str == other.namespace_str
     }
 }
 
@@ -47,15 +49,15 @@ impl Eq for OwnedName {}
 
 impl NameStrInfo for OwnedName {
     fn local_name(&self) -> &str {
-        &self.local_name
+        &self.local_name_str
     }
 
     fn namespace(&self) -> &str {
-        &self.namespace
+        &self.namespace_str
     }
 
     fn prefix(&self) -> Result<&str, Error> {
-        Ok(&self.prefix)
+        Ok(&self.prefix_str)
     }
 }
 
@@ -74,18 +76,18 @@ impl OwnedName {
     /// Create a new owned name.
     pub fn new(local_name: String, namespace: String, prefix: String) -> Self {
         Self {
-            local_name,
-            namespace,
-            prefix,
+            local_name_str: local_name,
+            namespace_str: namespace,
+            prefix_str: prefix,
         }
     }
 
     /// Create a name without a namespace
     pub fn name(local_name: &str) -> Self {
         Self {
-            local_name: local_name.to_string(),
-            namespace: String::new(),
-            prefix: String::new(),
+            local_name_str: local_name.to_string(),
+            namespace_str: String::new(),
+            prefix_str: String::new(),
         }
     }
 
@@ -108,9 +110,9 @@ impl OwnedName {
         let prefix =
             prefix_lookup(&namespace).ok_or_else(|| Error::MissingPrefix(namespace.clone()))?;
         Ok(Self {
-            local_name,
-            namespace,
-            prefix,
+            local_name_str: local_name,
+            namespace_str: namespace,
+            prefix_str: prefix,
         })
     }
 
@@ -123,9 +125,9 @@ impl OwnedName {
         let namespace =
             lookup_namespace(prefix).ok_or_else(|| Error::UnknownPrefix(prefix.to_string()))?;
         Ok(Self {
-            local_name: local_name.to_string(),
-            namespace: namespace.to_string(),
-            prefix: prefix.to_string(),
+            local_name_str: local_name.to_string(),
+            namespace_str: namespace.to_string(),
+            prefix_str: prefix.to_string(),
         })
     }
 
@@ -144,12 +146,12 @@ impl OwnedName {
     ///
     /// This can be useful to help generate unique names.
     pub fn with_suffix(self) -> Self {
-        let mut local_name = self.local_name;
+        let mut local_name = self.local_name_str;
         local_name.push('*');
         Self {
-            local_name,
-            namespace: self.namespace,
-            prefix: self.prefix,
+            local_name_str: local_name,
+            namespace_str: self.namespace_str,
+            prefix_str: self.prefix_str,
         }
     }
 
@@ -158,22 +160,22 @@ impl OwnedName {
     /// This only changes the namespace if there is an empty prefix and the
     /// namespace is not set (the empty string).
     pub fn with_default_namespace(self, namespace: &str) -> Self {
-        if !self.prefix.is_empty() && self.namespace.is_empty() {
+        if !self.prefix_str.is_empty() && self.namespace_str.is_empty() {
             return self;
         }
         Self {
-            local_name: self.local_name,
-            namespace: namespace.to_string(),
-            prefix: self.prefix,
+            local_name_str: self.local_name_str,
+            namespace_str: namespace.to_string(),
+            prefix_str: self.prefix_str,
         }
     }
 
     /// Create a new [`RefName`] from this owned name.
     pub fn to_ref<'a>(&self, xot: &'a mut Xot) -> RefName<'a, PrefixIdLookup> {
-        let prefix_id = xot.add_prefix(&self.prefix);
+        let prefix_id = xot.add_prefix(&self.prefix_str);
         let lookup = PrefixIdLookup { prefix_id };
-        let namespace_id = xot.add_namespace(&self.namespace);
-        let name_id = xot.add_name_ns(&self.local_name, namespace_id);
+        let namespace_id = xot.add_namespace(&self.namespace_str);
+        let name_id = xot.add_name_ns(&self.local_name_str, namespace_id);
         RefName::new(xot, lookup, name_id)
     }
 
@@ -181,8 +183,8 @@ impl OwnedName {
     ///
     /// This disregards the prefix information.
     pub fn to_create(&self, xot: &mut Xot) -> CreateName {
-        let namespace_id = xot.add_namespace(&self.namespace);
-        let name_id = xot.add_name_ns(&self.local_name, namespace_id);
+        let namespace_id = xot.add_namespace(&self.namespace_str);
+        let name_id = xot.add_name_ns(&self.local_name_str, namespace_id);
         CreateName::new(name_id)
     }
     /// Create a new [`StateName`] from this owned name.
