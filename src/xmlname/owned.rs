@@ -117,10 +117,10 @@ impl OwnedName {
     }
 
     /// Create a new owned name from a prefix and a name.
-    pub fn prefixed(
-        prefix: &str,
+    pub fn prefixed<'p>(
+        prefix: &'p str,
         local_name: &str,
-        lookup_namespace: impl Fn(&str) -> Option<&str>,
+        lookup_namespace: impl Fn(&'p str) -> Option<&str>,
     ) -> Result<Self, Error> {
         let namespace =
             lookup_namespace(prefix).ok_or_else(|| Error::UnknownPrefix(prefix.to_string()))?;
