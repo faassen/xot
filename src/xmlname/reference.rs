@@ -137,6 +137,7 @@ impl<'a> RefName<'a> {
             prefix_id,
         }
     }
+
     pub(crate) fn from_node(xot: &'a Xot, node: Node, name_id: NameId) -> Result<Self, Error> {
         let namespace_id = xot.namespace_for_name(name_id);
         let prefix_id = if namespace_id != xot.no_namespace() {
