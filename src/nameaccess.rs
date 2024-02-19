@@ -231,27 +231,23 @@ impl Xot {
     /// let doc_el = xot.document_element(root).unwrap();
     /// let a_el = xot.first_child(doc_el).unwrap();
     ///
-    /// let doc_name = xot.name_ref(xot.node_name(doc_el).unwrap(), a_el);
+    /// let doc_name = xot.name_ref(xot.node_name(doc_el).unwrap(), a_el)?;
     ///
     /// assert_eq!(doc_name.local_name(), "doc");
     /// assert_eq!(doc_name.namespace(), "http://example.com");
-    /// assert_eq!(doc_name.prefix()?, "ex");
-    /// assert_eq!(doc_name.full_name()?, "ex:doc");
+    /// assert_eq!(doc_name.prefix(), "ex");
+    /// assert_eq!(doc_name.full_name(), "ex:doc");
     ///
-    /// let a_name = xot.name_ref(xot.node_name(a_el).unwrap(), a_el);
+    /// let a_name = xot.name_ref(xot.node_name(a_el).unwrap(), a_el)?;
     /// assert_eq!(a_name.local_name(), "a");
     /// assert_eq!(a_name.namespace(), "");
-    /// assert_eq!(a_name.prefix()?, "");
-    /// assert_eq!(a_name.full_name()?, "a");
+    /// assert_eq!(a_name.prefix(), "");
+    /// assert_eq!(a_name.full_name(), "a");
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn name_ref(
-        &self,
-        name_id: NameId,
-        context: Node,
-    ) -> xmlname::RefName<xmlname::NodeLookup> {
-        xmlname::RefName::new(self, xmlname::NodeLookup::new(self, context), name_id)
+    pub fn name_ref(&self, name_id: NameId, context: Node) -> Result<xmlname::RefName, Error> {
+        xmlname::RefName::from_node(self, context, name_id)
     }
 
     ///
@@ -442,30 +438,34 @@ impl Xot {
     /// let doc_el = xot.document_element(root).unwrap();
     /// let a_el = xot.first_child(doc_el).unwrap();
     ///
-    /// let doc_name = xot.node_name_ref(doc_el).unwrap();
+    /// let doc_name = xot.node_name_ref(doc_el)?.unwrap();
     /// assert_eq!(doc_name.local_name(), "doc");
     /// assert_eq!(doc_name.namespace(), "http://example.com");
-    /// assert_eq!(doc_name.prefix()?, "ex");
-    /// assert_eq!(doc_name.full_name()?, "ex:doc");
+    /// assert_eq!(doc_name.prefix(), "ex");
+    /// assert_eq!(doc_name.full_name(), "ex:doc");
     ///
-    /// let a_name = xot.node_name_ref(a_el).unwrap();
+    /// let a_name = xot.node_name_ref(a_el)?.unwrap();
     /// assert_eq!(a_name.local_name(), "a");
     /// assert_eq!(a_name.namespace(), "");
-    /// assert_eq!(a_name.prefix()?, "");
-    /// assert_eq!(a_name.full_name()?, "a");
+    /// assert_eq!(a_name.prefix(), "");
+    /// assert_eq!(a_name.full_name(), "a");
     ///
     /// // it also works on attribute nodes
     /// let b_attribute = xot.attributes(doc_el).nodes().next().unwrap();
-    /// let b_name = xot.node_name_ref(b_attribute).unwrap();
+    /// let b_name = xot.node_name_ref(b_attribute)?.unwrap();
     /// assert_eq!(b_name.local_name(), "b");
     /// assert_eq!(b_name.namespace(), "http://example.com");
-    /// assert_eq!(b_name.prefix()?, "ex");
-    /// assert_eq!(b_name.full_name()?, "ex:b");
+    /// assert_eq!(b_name.prefix(), "ex");
+    /// assert_eq!(b_name.full_name(), "ex:b");
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn node_name_ref(&self, node: Node) -> Option<xmlname::RefName<xmlname::NodeLookup>> {
-        self.node_name(node).map(|name| self.name_ref(name, node))
+    pub fn node_name_ref(&self, node: Node) -> Result<Option<xmlname::RefName>, Error> {
+        if let Some(name) = self.node_name(node) {
+            Ok(Some(self.name_ref(name, node)?))
+        } else {
+            Ok(None)
+        }
     }
 
     /// Check whether a prefix is defined in node or its ancestors.

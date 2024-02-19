@@ -1,12 +1,8 @@
-use crate::id::{NamespaceId, PrefixId};
 use crate::{Error, Xot};
 
 use super::state::StateName;
 use super::CreateName;
-use super::{
-    reference::{Lookup, NameStrInfo},
-    RefName,
-};
+use super::{reference::NameStrInfo, RefName};
 
 /// An owned name stores the name, namespace and prefix as owned strings.
 ///
@@ -56,19 +52,8 @@ impl NameStrInfo for OwnedName {
         &self.namespace_str
     }
 
-    fn prefix(&self) -> Result<&str, Error> {
-        Ok(&self.prefix_str)
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct PrefixIdLookup {
-    prefix_id: PrefixId,
-}
-
-impl Lookup for PrefixIdLookup {
-    fn prefix_id_for_namespace_id(&self, _namespace_id: NamespaceId) -> Option<PrefixId> {
-        Some(self.prefix_id)
+    fn prefix(&self) -> &str {
+        &self.prefix_str
     }
 }
 
@@ -134,7 +119,7 @@ impl OwnedName {
     /// Given a fullname (with potentially a prefix), construct an XmlNameOwned
     ///
     /// This requires a function that can look up the namespace for a prefix.
-    pub fn parse_full_name<L: Lookup>(
+    pub fn parse_full_name(
         full_name: &str,
         lookup_namespace: impl Fn(&str) -> Option<String>,
     ) -> Result<Self, Error> {
@@ -176,12 +161,11 @@ impl OwnedName {
     }
 
     /// Create a new [`RefName`] from this owned name.
-    pub fn to_ref<'a>(&self, xot: &'a mut Xot) -> RefName<'a, PrefixIdLookup> {
+    pub fn to_ref<'a>(&self, xot: &'a mut Xot) -> RefName<'a> {
         let prefix_id = xot.add_prefix(&self.prefix_str);
-        let lookup = PrefixIdLookup { prefix_id };
         let namespace_id = xot.add_namespace(&self.namespace_str);
         let name_id = xot.add_name_ns(&self.local_name_str, namespace_id);
-        RefName::new(xot, lookup, name_id)
+        RefName::new(xot, name_id, prefix_id)
     }
 
     /// Create a new [`CreateName`] name from this owned name.
@@ -193,7 +177,7 @@ impl OwnedName {
         CreateName::new(name_id)
     }
     /// Create a new [`StateName`] from this owned name.
-    pub fn to_state(&self, xot: &mut Xot) -> Result<StateName, Error> {
+    pub fn to_state(&self, xot: &mut Xot) -> StateName {
         self.to_ref(xot).to_state()
     }
 }

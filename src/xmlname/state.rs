@@ -1,13 +1,9 @@
 use crate::{
     id::{NameId, NamespaceId, PrefixId},
-    Error, Xot,
+    Xot,
 };
 
-use super::{
-    owned::OwnedName,
-    reference::{Lookup, NameIdInfo},
-    RefName,
-};
+use super::{owned::OwnedName, reference::NameIdInfo, RefName};
 
 /// This is an efficient way to store name information as application state.
 ///
@@ -55,18 +51,8 @@ impl NameIdInfo for StateName {
     }
 
     #[inline]
-    fn prefix_id(&self) -> Result<PrefixId, Error> {
-        Ok(self.prefix_id)
-    }
-}
-
-// we don't actually need to look up anything for the state version
-#[derive(Debug, Clone, Copy)]
-pub struct NullLookup;
-
-impl Lookup for NullLookup {
-    fn prefix_id_for_namespace_id(&self, _namespace_id: NamespaceId) -> Option<PrefixId> {
-        unreachable!()
+    fn prefix_id(&self) -> PrefixId {
+        self.prefix_id
     }
 }
 
@@ -83,15 +69,15 @@ impl StateName {
     ///
     /// This is an efficient way to access its name string information.
     #[inline]
-    pub fn to_ref(self, xot: &Xot) -> RefName<NullLookup> {
-        RefName::new(xot, NullLookup, self.name_id)
+    pub fn to_ref(self, xot: &Xot) -> RefName {
+        RefName::new(xot, self.name_id, self.prefix_id)
     }
 
     /// Create a new [`OwnedName`] from this state
     ///
     /// If you want to access name information it's more efficient to create a
     /// reference with [`StateName::to_ref`] and then use the accessors.
-    pub fn to_owned(self, xot: &Xot) -> Result<OwnedName, Error> {
+    pub fn to_owned(self, xot: &Xot) -> OwnedName {
         self.to_ref(xot).to_owned()
     }
 }

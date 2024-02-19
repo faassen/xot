@@ -40,5 +40,5 @@ mod state;
 
 pub use create::{CreateName, CreateNamespace};
 pub use owned::OwnedName;
-pub use reference::{Lookup, NameIdInfo, NameStrInfo, NodeLookup, RefName};
+pub use reference::{NameIdInfo, NameStrInfo, RefName};
 pub use state::StateName;

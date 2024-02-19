@@ -14,8 +14,8 @@ fn test_owned() {
 
     assert_eq!(name.local_name(), "local");
     assert_eq!(name.namespace(), "http://example.com");
-    assert_eq!(name.prefix().unwrap(), "prefix");
-    assert_eq!(name.full_name().unwrap(), "prefix:local")
+    assert_eq!(name.prefix(), "prefix");
+    assert_eq!(name.full_name(), "prefix:local")
 }
 
 #[test]
@@ -34,12 +34,12 @@ fn test_ref() {
     let name_ref = name.to_ref(&mut xot);
     assert_eq!(name_ref.local_name(), "local");
     assert_eq!(name_ref.namespace(), "http://example.com");
-    assert_eq!(name_ref.prefix().unwrap(), "prefix");
-    assert_eq!(name_ref.full_name().unwrap(), "prefix:local");
-    assert_eq!(name_ref.to_owned().unwrap(), name);
+    assert_eq!(name_ref.prefix(), "prefix");
+    assert_eq!(name_ref.full_name(), "prefix:local");
+    assert_eq!(name_ref.to_owned(), name);
     assert_eq!(name_ref.name_id(), name_id);
     assert_eq!(name_ref.namespace_id(), namespace_id);
-    assert_eq!(name_ref.prefix_id().unwrap(), prefix_id);
+    assert_eq!(name_ref.prefix_id(), prefix_id);
 
     let name_ref_name_id: NameId = name_ref.into();
     assert_eq!(name_ref_name_id, name_id);
@@ -58,10 +58,10 @@ fn test_state() {
     let name_id = xot.add_name_ns("local", namespace_id);
     let prefix_id = xot.add_prefix("prefix");
 
-    let name_state = name.to_state(&mut xot).unwrap();
+    let name_state = name.to_state(&mut xot);
     assert_eq!(name_state.name_id(), name_id);
     assert_eq!(name_state.namespace_id(), namespace_id);
-    assert_eq!(name_state.prefix_id().unwrap(), prefix_id);
+    assert_eq!(name_state.prefix_id(), prefix_id);
 
     let name_state_name_id: NameId = name_state.into();
     assert_eq!(name_state_name_id, name_id);

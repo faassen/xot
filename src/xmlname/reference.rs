@@ -12,18 +12,14 @@ use super::state::StateName;
 /// Name ids are backed by Xot and given a Xot reference can be turned
 /// back into strings.
 pub trait NameIdInfo {
-    /// Access the underlying name id
+    /// Access the underlying name id.
     fn name_id(&self) -> NameId;
 
-    /// Access the underlying namespace id
+    /// Access the underlying namespace id.
     fn namespace_id(&self) -> NamespaceId;
 
-    /// Get the prefix for the name in the context of a node.
-    ///
-    /// If this is in the default namespace, this is the empty string.
-    ///
-    /// If the prefix cannot be found, return an [`Error::MissingPrefix`].
-    fn prefix_id(&self) -> Result<PrefixId, Error>;
+    /// Get the prefix for the name.
+    fn prefix_id(&self) -> PrefixId;
 }
 
 impl<N: NameIdInfo> From<N> for NameId {
@@ -44,27 +40,17 @@ pub trait NameStrInfo {
     fn namespace(&self) -> &str;
 
     /// Access the prefix as a string
-    fn prefix(&self) -> Result<&str, Error>;
+    fn prefix(&self) -> &str;
 
     /// Access the full name as a string
-    fn full_name(&self) -> Result<Cow<str>, Error> {
-        let prefix = self.prefix()?;
+    fn full_name(&self) -> Cow<str> {
+        let prefix = self.prefix();
         if !prefix.is_empty() {
-            Ok(Cow::Owned(format!("{}:{}", prefix, self.local_name())))
+            Cow::Owned(format!("{}:{}", prefix, self.local_name()))
         } else {
-            Ok(Cow::Borrowed(self.local_name()))
+            Cow::Borrowed(self.local_name())
         }
     }
-}
-
-/// Lookup of prefix information given some context.
-///
-/// There are various ways to determine the prefix for a namespace id; sometimes
-/// the prefix may already be known, sometimes it needs to be looked up in the context
-/// of a node.
-pub trait Lookup {
-    /// Look up a prefix id given a namespace id.
-    fn prefix_id_for_namespace_id(&self, namespace_id: NamespaceId) -> Option<PrefixId>;
 }
 
 /// The most complete way to access name information, backed by Xot. This is a
@@ -80,54 +66,33 @@ pub trait Lookup {
 /// It can also be used directly to create new elements and attributes, instead
 /// of a [`crate::NameId`].
 #[derive(Debug, Clone)]
-pub struct RefName<'a, L: Lookup> {
+pub struct RefName<'a> {
     /// Looking up string information for names, namespaces and prefixes.
     xot: &'a Xot,
-    // A way to look up prefix information.
-    lookup: L,
     // This identifies the name and namespace. This is the only thing that
     // identifies the xml name and is used for hashing and comparison.
     name_id: NameId,
+    /// We also keep track of the prefix id
+    prefix_id: PrefixId,
 }
 
-impl<'a, L: Lookup> std::hash::Hash for RefName<'a, L> {
+impl<'a> std::hash::Hash for RefName<'a> {
     #[inline]
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.name_id.hash(state);
     }
 }
 
-impl<'a, L: Lookup> PartialEq for RefName<'a, L> {
+impl<'a> PartialEq for RefName<'a> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.name_id == other.name_id
     }
 }
 
-impl<'a, L: Lookup> Eq for RefName<'a, L> {}
+impl<'a> Eq for RefName<'a> {}
 
-/// Look up the prefix information for a node.
-#[derive(Debug, Clone)]
-pub struct NodeLookup<'a> {
-    xot: &'a Xot,
-    node: Node,
-}
-
-impl<'a> Lookup for NodeLookup<'a> {
-    #[inline]
-    fn prefix_id_for_namespace_id(&self, namespace_id: NamespaceId) -> Option<PrefixId> {
-        self.xot.prefix_for_namespace(self.node, namespace_id)
-    }
-}
-
-impl<'a> NodeLookup<'a> {
-    /// Create a new lookup for a node.
-    pub fn new(xot: &'a Xot, node: Node) -> Self {
-        Self { xot, node }
-    }
-}
-
-impl<'a, L: Lookup> NameIdInfo for RefName<'a, L> {
+impl<'a> NameIdInfo for RefName<'a> {
     /// Access the underlying name id
     #[inline]
     fn name_id(&self) -> NameId {
@@ -141,18 +106,12 @@ impl<'a, L: Lookup> NameIdInfo for RefName<'a, L> {
     }
 
     /// Access the prefix id in this context.
-    fn prefix_id(&self) -> Result<PrefixId, Error> {
-        let namespace_id = self.namespace_id();
-        if namespace_id == self.xot.no_namespace() {
-            return Ok(self.xot.empty_prefix());
-        }
-        self.lookup
-            .prefix_id_for_namespace_id(namespace_id)
-            .ok_or_else(|| Error::MissingPrefix(self.xot.namespace_str(namespace_id).to_string()))
+    fn prefix_id(&self) -> PrefixId {
+        self.prefix_id
     }
 }
 
-impl<'a, L: Lookup> NameStrInfo for RefName<'a, L> {
+impl<'a> NameStrInfo for RefName<'a> {
     #[inline]
     fn local_name(&self) -> &'a str {
         self.xot.local_name_str(self.name_id)
@@ -164,48 +123,54 @@ impl<'a, L: Lookup> NameStrInfo for RefName<'a, L> {
     }
 
     #[inline]
-    fn prefix(&self) -> Result<&'a str, Error> {
-        let prefix_id = self.prefix_id()?;
-        Ok(self.xot.prefix_str(prefix_id))
+    fn prefix(&self) -> &'a str {
+        let prefix_id = self.prefix_id();
+        self.xot.prefix_str(prefix_id)
     }
 }
 
-impl<'a, L: Lookup> RefName<'a, L> {
-    pub(crate) fn new(xot: &'a Xot, lookup: L, name_id: NameId) -> Self {
+impl<'a> RefName<'a> {
+    pub(crate) fn new(xot: &'a Xot, name_id: NameId, prefix_id: PrefixId) -> Self {
         Self {
             xot,
-            lookup,
             name_id,
+            prefix_id,
         }
+    }
+    pub(crate) fn from_node(xot: &'a Xot, node: Node, name_id: NameId) -> Result<Self, Error> {
+        let namespace_id = xot.namespace_for_name(name_id);
+        let prefix_id = if namespace_id != xot.no_namespace() {
+            xot.prefix_for_namespace(node, namespace_id)
+                .ok_or_else(|| Error::MissingPrefix(xot.namespace_str(namespace_id).to_string()))?
+        } else {
+            xot.empty_prefix()
+        };
+        Ok(Self::new(xot, name_id, prefix_id))
     }
 
     /// Create a new [`StateName`] from this reference.
     ///
     /// This is useful if you need to store the name information in an efficient way
     /// without worrying about references.
-    pub fn to_state(&self) -> Result<StateName, Error> {
-        Ok(StateName::new(
-            self.name_id,
-            self.namespace_id(),
-            self.prefix_id()?,
-        ))
+    pub fn to_state(&self) -> StateName {
+        StateName::new(self.name_id, self.namespace_id(), self.prefix_id())
     }
 
     /// Create a new [`OwnedName`] from this reference.
     ///
     /// Normally you shouldn't have to do this because you can already access
     /// the name string information on this reference using [`NameStrInfo`].
-    pub fn to_owned(&self) -> Result<OwnedName, Error> {
-        Ok(OwnedName::new(
+    pub fn to_owned(&self) -> OwnedName {
+        OwnedName::new(
             self.local_name().to_string(),
             self.namespace().to_string(),
-            self.prefix()?.to_string(),
-        ))
+            self.prefix().to_string(),
+        )
     }
 
     /// Has a namespace but no prefix, so it's in a `xmlns` namespace.
-    pub fn has_unprefixed_namespace(&self) -> Result<bool, Error> {
-        Ok(self.namespace_id() != self.xot.no_namespace()
-            && self.xot.empty_prefix() == self.prefix_id()?)
+    pub fn has_unprefixed_namespace(&self) -> bool {
+        self.namespace_id() != self.xot.no_namespace()
+            && self.xot.empty_prefix() == self.prefix_id()
     }
 }
