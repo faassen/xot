@@ -140,6 +140,17 @@ impl OwnedName {
         Self::prefixed(prefix, local_name, lookup_namespace)
     }
 
+    /// Convert this name into a name adding a * suffix.
+    pub fn with_suffix(self) -> Self {
+        let mut local_name = self.local_name;
+        local_name.push('*');
+        Self {
+            local_name,
+            namespace: self.namespace,
+            prefix: self.prefix,
+        }
+    }
+
     /// Create a new [`RefName`] from this owned name.
     pub fn to_ref<'a>(&self, xot: &'a mut Xot) -> RefName<'a, PrefixIdLookup> {
         let prefix_id = xot.add_prefix(&self.prefix);
