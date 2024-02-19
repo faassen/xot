@@ -153,6 +153,21 @@ impl OwnedName {
         }
     }
 
+    /// Convert this name into a name that's in a particular namespace.
+    ///
+    /// This only changes the namespace if there is an empty prefix and the
+    /// namespace is not set (the empty string).
+    pub fn with_default_namespace(self, namespace: &str) -> Self {
+        if !self.prefix.is_empty() && self.namespace.is_empty() {
+            return self;
+        }
+        Self {
+            local_name: self.local_name,
+            namespace: namespace.to_string(),
+            prefix: self.prefix,
+        }
+    }
+
     /// Create a new [`RefName`] from this owned name.
     pub fn to_ref<'a>(&self, xot: &'a mut Xot) -> RefName<'a, PrefixIdLookup> {
         let prefix_id = xot.add_prefix(&self.prefix);
