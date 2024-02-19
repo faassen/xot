@@ -4,8 +4,8 @@ use crate::id::{NameId, NamespaceId, PrefixId};
 use crate::xotdata::Xot;
 use crate::{Error, Node};
 
-use super::owned::Owned;
-use super::state::State;
+use super::owned::OwnedName;
+use super::state::StateName;
 
 /// Name id information.
 ///
@@ -70,16 +70,17 @@ pub trait Lookup {
 /// The most complete way to access name information, backed by Xot. This is a
 /// reference and cannot be created directly.
 ///
-/// You can create one by using [`State`] and [`Owned`], or by using the
-/// [`Xot::name_ref`] and [`Xot::node_name_ref`] methods.
+/// You can create one by using [`StateName`] and [`OwnedName`], or by using
+/// the [`Xot::name_ref`] and [`Xot::node_name_ref`] methods.
 ///
 /// You can access the Xot id information using the [`NameIdInfo`] trait.
 ///
 /// You can access name string information using the [`NameStrInfo`] trait.
 ///
-/// It can also be used directly to create new elements and attributes.
+/// It can also be used directly to create new elements and attributes, instead
+/// of a [`crate::NameId`].
 #[derive(Debug, Clone)]
-pub struct Ref<'a, L: Lookup> {
+pub struct RefName<'a, L: Lookup> {
     /// Looking up string information for names, namespaces and prefixes.
     xot: &'a Xot,
     // A way to look up prefix information.
@@ -89,21 +90,21 @@ pub struct Ref<'a, L: Lookup> {
     name_id: NameId,
 }
 
-impl<'a, L: Lookup> std::hash::Hash for Ref<'a, L> {
+impl<'a, L: Lookup> std::hash::Hash for RefName<'a, L> {
     #[inline]
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.name_id.hash(state);
     }
 }
 
-impl<'a, L: Lookup> PartialEq for Ref<'a, L> {
+impl<'a, L: Lookup> PartialEq for RefName<'a, L> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.name_id == other.name_id
     }
 }
 
-impl<'a, L: Lookup> Eq for Ref<'a, L> {}
+impl<'a, L: Lookup> Eq for RefName<'a, L> {}
 
 /// Look up the prefix information for a node.
 #[derive(Debug, Clone)]
@@ -126,7 +127,7 @@ impl<'a> NodeLookup<'a> {
     }
 }
 
-impl<'a, L: Lookup> NameIdInfo for Ref<'a, L> {
+impl<'a, L: Lookup> NameIdInfo for RefName<'a, L> {
     /// Access the underlying name id
     #[inline]
     fn name_id(&self) -> NameId {
@@ -151,7 +152,7 @@ impl<'a, L: Lookup> NameIdInfo for Ref<'a, L> {
     }
 }
 
-impl<'a, L: Lookup> NameStrInfo for Ref<'a, L> {
+impl<'a, L: Lookup> NameStrInfo for RefName<'a, L> {
     #[inline]
     fn local_name(&self) -> &'a str {
         self.xot.local_name_str(self.name_id)
@@ -169,7 +170,7 @@ impl<'a, L: Lookup> NameStrInfo for Ref<'a, L> {
     }
 }
 
-impl<'a, L: Lookup> Ref<'a, L> {
+impl<'a, L: Lookup> RefName<'a, L> {
     pub(crate) fn new(xot: &'a Xot, lookup: L, name_id: NameId) -> Self {
         Self {
             xot,
@@ -178,24 +179,24 @@ impl<'a, L: Lookup> Ref<'a, L> {
         }
     }
 
-    /// Create a new [`State`] from this reference.
+    /// Create a new [`StateName`] from this reference.
     ///
     /// This is useful if you need to store the name information in an efficient way
     /// without worrying about references.
-    pub fn to_state(&self) -> Result<State, Error> {
-        Ok(State::new(
+    pub fn to_state(&self) -> Result<StateName, Error> {
+        Ok(StateName::new(
             self.name_id,
             self.namespace_id(),
             self.prefix_id()?,
         ))
     }
 
-    /// Create a new [`Owned`] from this reference.
+    /// Create a new [`OwnedName`] from this reference.
     ///
     /// Normally you shouldn't have to do this because you can already access
     /// the name string information on this reference using [`NameStrInfo`].
-    pub fn to_owned(&self) -> Result<Owned, Error> {
-        Ok(Owned::new(
+    pub fn to_owned(&self) -> Result<OwnedName, Error> {
+        Ok(OwnedName::new(
             self.local_name().to_string(),
             self.namespace().to_string(),
             self.prefix()?.to_string(),

@@ -217,9 +217,10 @@ impl Xot {
         self.xml_space_id
     }
 
-    /// Given a name id, and a context node (to provide namespace prefix lookup),
-    /// return a [`xmlname::Ref`]. If you import the traits [`xmlname::NameIdInfo`] and
-    /// [`xmlname::NameStrInfo`] you can look up more information about the name.
+    /// Given a name id, and a context node (to provide namespace prefix
+    /// lookup), return a [`xmlname::RefName`]. If you import the traits
+    /// [`xmlname::NameIdInfo`] and [`xmlname::NameStrInfo`] you can look up
+    /// more information about the name.
     ///
     /// ```rust
     /// use xot::Xot;
@@ -245,8 +246,12 @@ impl Xot {
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn name_ref(&self, name_id: NameId, context: Node) -> xmlname::Ref<xmlname::NodeLookup> {
-        xmlname::Ref::new(self, xmlname::NodeLookup::new(self, context), name_id)
+    pub fn name_ref(
+        &self,
+        name_id: NameId,
+        context: Node,
+    ) -> xmlname::RefName<xmlname::NodeLookup> {
+        xmlname::RefName::new(self, xmlname::NodeLookup::new(self, context), name_id)
     }
 
     ///
@@ -421,7 +426,7 @@ impl Xot {
         }
     }
 
-    /// Given a node, give back the [`xmlname::Ref`] of this node.
+    /// Given a node, give back the [`xmlname::RefName`] of this node.
     ///
     /// For elements and attribute that is their name, for processing
     /// instructions this is a name based on the target attribute.
@@ -459,7 +464,7 @@ impl Xot {
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn node_name_ref(&self, node: Node) -> Option<xmlname::Ref<xmlname::NodeLookup>> {
+    pub fn node_name_ref(&self, node: Node) -> Option<xmlname::RefName<xmlname::NodeLookup>> {
         self.node_name(node).map(|name| self.name_ref(name, node))
     }
 

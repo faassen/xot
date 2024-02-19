@@ -44,7 +44,7 @@
 //! [`Xot::add_name`]. To construct a name with a namespace, use
 //! [`Xot::add_namespace`] and then [`Xot::add_name_ns`]. To create a namespace
 //! prefix, use [`Xot::add_prefix`]. You can also use the [`xmlname`] module to
-//! manage names; see [`xmlname::Create`] for a bunch of convenient ways to
+//! manage names; see [`xmlname::CreateName`] for a bunch of convenient ways to
 //! create names, for instance.
 //!
 //! Attributes and namespace access is most conveniently done through the

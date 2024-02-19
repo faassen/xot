@@ -152,7 +152,7 @@ impl Xot {
         Ok(namespaces.insert_node(child))
     }
 
-    /// Append an [`xmlname::Namespace`]
+    /// Append an [`xmlname::CreateNamespace`]
     ///
     /// This creates a namespace node for the given namespace and prefix, and
     /// then returns this node (or previously updated node).
@@ -161,7 +161,7 @@ impl Xot {
     /// use xot::{Xot, xmlname};
     ///
     /// let mut xot = Xot::new();
-    /// let namespace = xmlname::Namespace::new(&mut xot, "foo", "http://example.com");
+    /// let namespace = xmlname::CreateNamespace::new(&mut xot, "foo", "http://example.com");
     /// let root = xot.parse(r#"<doc/>"#)?;
     /// let doc_el = xot.document_element(root)?;
     /// xot.append_namespace(doc_el, &namespace)?;
@@ -173,7 +173,7 @@ impl Xot {
     pub fn append_namespace(
         &mut self,
         parent: Node,
-        namespace: &xmlname::Namespace,
+        namespace: &xmlname::CreateNamespace,
     ) -> Result<Node, Error> {
         let child = self.new_namespace_node(namespace.prefix_id(), namespace.namespace_id());
         self.append_namespace_node(parent, child)

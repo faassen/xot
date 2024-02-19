@@ -10,11 +10,11 @@ use super::owned::parse_full_name;
 /// Prefix information is not maintained; this can be derived from context
 /// after it's used or converted.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Create {
+pub struct CreateName {
     name_id: NameId,
 }
 
-impl Create {
+impl CreateName {
     #[inline]
     pub(crate) fn new(name_id: NameId) -> Self {
         Self { name_id }
@@ -31,7 +31,7 @@ impl Create {
     ///
     /// If namespace is the empty string, the name isn't in a namespace.
     #[inline]
-    pub fn namespaced(xot: &mut Xot, local_name: &str, namespace: &Namespace) -> Self {
+    pub fn namespaced(xot: &mut Xot, local_name: &str, namespace: &CreateNamespace) -> Self {
         let name_id = xot.add_name_ns(local_name, namespace.namespace_id());
         Self { name_id }
     }
@@ -72,9 +72,9 @@ impl Create {
     }
 }
 
-impl From<Create> for NameId {
+impl From<CreateName> for NameId {
     #[inline]
-    fn from(name: Create) -> Self {
+    fn from(name: CreateName) -> Self {
         name.name_id
     }
 }
@@ -84,19 +84,20 @@ impl From<Create> for NameId {
 /// This can be used with [`Xot::append_namespace`] to add this mapping to the
 /// tree.
 ///
-/// You can pass it as an argument into `Create` to create an object in a namespace.
-pub struct Namespace {
+/// You can pass it as an argument into [`CreateName`] to create an object in a
+/// namespace.
+pub struct CreateNamespace {
     pub(crate) prefix_id: PrefixId,
     pub(crate) namespace_id: NamespaceId,
 }
 
-impl Namespace {
+impl CreateNamespace {
     /// Create a new namespace prefix.
     #[inline]
     pub fn new(xot: &mut Xot, prefix: &str, namespace: &str) -> Self {
         let prefix_id = xot.add_prefix(prefix);
         let namespace_id = xot.add_namespace(namespace);
-        Namespace {
+        CreateNamespace {
             prefix_id,
             namespace_id,
         }

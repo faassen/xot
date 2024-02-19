@@ -1,11 +1,11 @@
 use crate::id::{NamespaceId, PrefixId};
 use crate::{Error, Xot};
 
-use super::state::State;
-use super::Create;
+use super::state::StateName;
+use super::CreateName;
 use super::{
     reference::{Lookup, NameStrInfo},
-    Ref,
+    RefName,
 };
 
 /// An owned name stores the name, namespace and prefix as owned strings.
@@ -14,15 +14,15 @@ use super::{
 /// debugging.
 ///
 /// It cannot be used to create elements directly, but you can turn this into a
-/// [`Create`] using [`Owned.to_create`] and a
-/// [`Ref`] using [`Owned::to_ref`].
+/// [`CreateName`] using [`OwnedName::to_create`] and a [`RefName`] using
+/// [`OwnedName::to_ref`].
 ///
 /// You can access name string information using the [`NameStrInfo`] trait.
 ///
 /// If you enable the `serde` feature it can be serialized and deserialized.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Owned {
+pub struct OwnedName {
     local_name: String,
     // the empty namespace uri means no namespace
     namespace: String,
@@ -30,22 +30,22 @@ pub struct Owned {
     prefix: String,
 }
 
-impl std::hash::Hash for Owned {
+impl std::hash::Hash for OwnedName {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.local_name.hash(state);
         self.namespace.hash(state);
     }
 }
 
-impl PartialEq for Owned {
+impl PartialEq for OwnedName {
     fn eq(&self, other: &Self) -> bool {
         self.local_name == other.local_name && self.namespace == other.namespace
     }
 }
 
-impl Eq for Owned {}
+impl Eq for OwnedName {}
 
-impl NameStrInfo for Owned {
+impl NameStrInfo for OwnedName {
     fn local_name(&self) -> &str {
         &self.local_name
     }
@@ -70,7 +70,7 @@ impl Lookup for PrefixIdLookup {
     }
 }
 
-impl Owned {
+impl OwnedName {
     /// Create a new owned name.
     pub fn new(local_name: String, namespace: String, prefix: String) -> Self {
         Self {
@@ -140,25 +140,25 @@ impl Owned {
         Self::prefixed(prefix, local_name, lookup_namespace)
     }
 
-    /// Create a new [`Ref`] from this owned.
-    pub fn to_ref<'a>(&self, xot: &'a mut Xot) -> Ref<'a, PrefixIdLookup> {
+    /// Create a new [`RefName`] from this owned name.
+    pub fn to_ref<'a>(&self, xot: &'a mut Xot) -> RefName<'a, PrefixIdLookup> {
         let prefix_id = xot.add_prefix(&self.prefix);
         let lookup = PrefixIdLookup { prefix_id };
         let namespace_id = xot.add_namespace(&self.namespace);
         let name_id = xot.add_name_ns(&self.local_name, namespace_id);
-        Ref::new(xot, lookup, name_id)
+        RefName::new(xot, lookup, name_id)
     }
 
-    /// Create a new [`Create`] name from this owned name.
+    /// Create a new [`CreateName`] name from this owned name.
     ///
     /// This disregards the prefix information.
-    pub fn to_create(&self, xot: &mut Xot) -> Create {
+    pub fn to_create(&self, xot: &mut Xot) -> CreateName {
         let namespace_id = xot.add_namespace(&self.namespace);
         let name_id = xot.add_name_ns(&self.local_name, namespace_id);
-        Create::new(name_id)
+        CreateName::new(name_id)
     }
-    /// Create a new [`State`] from this owned.
-    pub fn to_state(&self, xot: &mut Xot) -> Result<State, Error> {
+    /// Create a new [`StateName`] from this owned name.
+    pub fn to_state(&self, xot: &mut Xot) -> Result<StateName, Error> {
         self.to_ref(xot).to_state()
     }
 }

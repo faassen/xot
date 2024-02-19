@@ -6,7 +6,7 @@ use xot::{
 
 #[test]
 fn test_owned() {
-    let name = xmlname::Owned::new(
+    let name = xmlname::OwnedName::new(
         "local".to_string(),
         "http://example.com".to_string(),
         "prefix".to_string(),
@@ -20,7 +20,7 @@ fn test_owned() {
 
 #[test]
 fn test_ref() {
-    let name = xmlname::Owned::new(
+    let name = xmlname::OwnedName::new(
         "local".to_string(),
         "http://example.com".to_string(),
         "prefix".to_string(),
@@ -47,7 +47,7 @@ fn test_ref() {
 
 #[test]
 fn test_state() {
-    let name = xmlname::Owned::new(
+    let name = xmlname::OwnedName::new(
         "local".to_string(),
         "http://example.com".to_string(),
         "prefix".to_string(),
@@ -70,7 +70,7 @@ fn test_state() {
 #[test]
 fn test_create_element() {
     let mut xot = Xot::new();
-    let name = xmlname::Create::name(&mut xot, "local");
+    let name = xmlname::CreateName::name(&mut xot, "local");
 
     let local = xot.new_element(name);
     assert_eq!(xot.to_string(local).unwrap(), "<local/>");
@@ -79,8 +79,8 @@ fn test_create_element() {
 #[test]
 fn test_create_element_namespace() {
     let mut xot = Xot::new();
-    let namespace = xmlname::Namespace::new(&mut xot, "ex", "http://example.com");
-    let name = xmlname::Create::namespaced(&mut xot, "local", &namespace);
+    let namespace = xmlname::CreateNamespace::new(&mut xot, "ex", "http://example.com");
+    let name = xmlname::CreateName::namespaced(&mut xot, "local", &namespace);
 
     let local = xot.new_element(name);
     xot.append_namespace(local, &namespace).unwrap();
@@ -93,9 +93,9 @@ fn test_create_element_namespace() {
 #[test]
 fn test_create_attribute_node() {
     let mut xot = Xot::new();
-    let name = xmlname::Create::name(&mut xot, "local");
+    let name = xmlname::CreateName::name(&mut xot, "local");
 
-    let doc = xmlname::Create::name(&mut xot, "doc");
+    let doc = xmlname::CreateName::name(&mut xot, "doc");
     let doc_el = xot.new_element(doc);
 
     let local = xot.new_attribute_node(name, "value".to_string());
@@ -106,8 +106,8 @@ fn test_create_attribute_node() {
 #[test]
 fn test_create_attribute() {
     let mut xot = Xot::new();
-    let el_name = xmlname::Create::name(&mut xot, "local");
-    let attr_name = xmlname::Create::name(&mut xot, "attr");
+    let el_name = xmlname::CreateName::name(&mut xot, "local");
+    let attr_name = xmlname::CreateName::name(&mut xot, "attr");
     let doc_el = xot.new_element(el_name);
 
     xot.attributes_mut(doc_el)
