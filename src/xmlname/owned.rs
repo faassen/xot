@@ -117,16 +117,16 @@ impl OwnedName {
     }
 
     /// Create a new owned name from a prefix and a name.
-    pub fn prefixed<'p>(
-        prefix: &'p str,
+    pub fn prefixed(
+        prefix: &str,
         local_name: &str,
-        lookup_namespace: impl Fn(&'p str) -> Option<&str>,
+        lookup_namespace: impl Fn(&str) -> Option<String>,
     ) -> Result<Self, Error> {
         let namespace =
             lookup_namespace(prefix).ok_or_else(|| Error::UnknownPrefix(prefix.to_string()))?;
         Ok(Self {
             local_name_str: local_name.to_string(),
-            namespace_str: namespace.to_string(),
+            namespace_str: namespace,
             prefix_str: prefix.to_string(),
         })
     }
@@ -136,7 +136,7 @@ impl OwnedName {
     /// This requires a function that can look up the namespace for a prefix.
     pub fn parse_full_name<L: Lookup>(
         full_name: &str,
-        lookup_namespace: impl Fn(&str) -> Option<&str>,
+        lookup_namespace: impl Fn(&str) -> Option<String>,
     ) -> Result<Self, Error> {
         let (prefix, local_name) = parse_full_name(full_name);
         Self::prefixed(prefix, local_name, lookup_namespace)
