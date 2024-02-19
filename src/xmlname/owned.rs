@@ -145,7 +145,7 @@ impl OwnedName {
     /// This only changes the namespace if there is an empty prefix and the
     /// namespace is not set (the empty string).
     pub fn with_default_namespace(self, namespace: &str) -> Self {
-        if !self.prefix_str.is_empty() && self.namespace_str.is_empty() {
+        if !self.prefix_str.is_empty() || !self.namespace_str.is_empty() {
             return self;
         }
         Self {
