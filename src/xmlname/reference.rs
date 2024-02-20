@@ -5,7 +5,6 @@ use crate::xotdata::Xot;
 use crate::{Error, Node};
 
 use super::owned::OwnedName;
-use super::state::StateName;
 
 /// Name id information.
 ///
@@ -147,14 +146,6 @@ impl<'a> RefName<'a> {
             xot.empty_prefix()
         };
         Ok(Self::new(xot, name_id, prefix_id))
-    }
-
-    /// Create a new [`StateName`] from this reference.
-    ///
-    /// This is useful if you need to store the name information in an efficient way
-    /// without worrying about references.
-    pub fn to_state(&self) -> StateName {
-        StateName::new(self.name_id, self.namespace_id(), self.prefix_id())
     }
 
     /// Create a new [`OwnedName`] from this reference.

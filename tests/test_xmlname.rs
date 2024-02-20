@@ -46,28 +46,6 @@ fn test_ref() {
 }
 
 #[test]
-fn test_state() {
-    let name = xmlname::OwnedName::new(
-        "local".to_string(),
-        "http://example.com".to_string(),
-        "prefix".to_string(),
-    );
-
-    let mut xot = Xot::new();
-    let namespace_id = xot.add_namespace("http://example.com");
-    let name_id = xot.add_name_ns("local", namespace_id);
-    let prefix_id = xot.add_prefix("prefix");
-
-    let name_state = name.to_state(&mut xot);
-    assert_eq!(name_state.name_id(), name_id);
-    assert_eq!(name_state.namespace_id(), namespace_id);
-    assert_eq!(name_state.prefix_id(), prefix_id);
-
-    let name_state_name_id: NameId = name_state.into();
-    assert_eq!(name_state_name_id, name_id);
-}
-
-#[test]
 fn test_create_element() {
     let mut xot = Xot::new();
     let name = xmlname::CreateName::name(&mut xot, "local");

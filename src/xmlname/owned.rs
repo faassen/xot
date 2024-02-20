@@ -1,6 +1,5 @@
 use crate::{Error, Xot};
 
-use super::state::StateName;
 use super::CreateName;
 use super::{reference::NameStrInfo, RefName};
 
@@ -189,10 +188,6 @@ impl OwnedName {
         let namespace_id = xot.add_namespace(&self.namespace_str);
         let name_id = xot.add_name_ns(&self.local_name_str, namespace_id);
         CreateName::new(name_id)
-    }
-    /// Create a new [`StateName`] from this owned name.
-    pub fn to_state(&self, xot: &mut Xot) -> StateName {
-        self.to_ref(xot).to_state()
     }
 }
 
