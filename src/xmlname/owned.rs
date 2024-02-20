@@ -75,16 +75,6 @@ impl OwnedName {
         }
     }
 
-    // TODO: do we need a way to create a name without prefix information?
-    // /// Create a name in a namespace, without prefix information.
-    // pub fn namespaced(local_name: &str, uri: &str) -> Self {
-    //     Self {
-    //         local_name: local_name.to_string(),
-    //         namespace: uri.to_string(),
-    //         prefix: String::new(),
-    //     }
-    // }
-
     /// Create a new name in a namespace, look up prefix information.
     pub fn namespaced(
         local_name: String,
