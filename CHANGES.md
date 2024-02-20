@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.22.0] - 2024-02-20
+
 ### Breaking changes
 
 - `MissingPrefix` now contains the namespace for which the prefix cannot be
@@ -652,7 +654,8 @@ following XPath.
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.21.0...HEAD
+[Unreleased]: https://github.com/faassen/xot/compare/v0.22.0...HEAD
+[0.22.0]: https://github.com/faassen/xot/compare/v0.21.0...v0.22.0
 [0.21.0]: https://github.com/faassen/xot/compare/v0.20.0...v0.21.0
 
 [0.20.0]: https://github.com/faassen/xot/compare/v0.19.0...v0.20.0
