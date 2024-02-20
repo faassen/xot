@@ -76,14 +76,14 @@ impl Xot {
 
     /// Create a new, unattached element node given element name.
     ///
-    /// You supply a name.
-    ///  
-    /// To create a potentially new name you can use [`Xot::add_name`] or
-    /// [`Xot::add_name_ns`]. If the name already exists
-    /// the existing name id is returned.
+    /// You supply a `[crate::NamedId`] or a [`crate::xmlname`] structure that
+    /// can be turned into a name id.
     ///
-    /// To reuse an existing name that has been
-    /// previously used, you can use
+    /// To create a potentially new name you can use [`Xot::add_name`] or
+    /// [`Xot::add_name_ns`]. If the name already exists the existing name id
+    /// is returned.
+    ///
+    /// To reuse an existing name that has been previously used, you can use
     /// [`Xot::name`] or [`Xot::name_ns`].
     ///
     /// ```rust
@@ -110,7 +110,7 @@ impl Xot {
     /// // create name in namespace
     /// let doc_name = xot.add_name_ns("doc", ns);
     /// let doc_el = xot.new_element(doc_name);
-
+    ///
     /// // set up namepace prefix for element so it serializes to XML nicely
     /// xot.namespaces_mut(doc_el).insert(ex, ns);
     ///
@@ -119,8 +119,30 @@ impl Xot {
     /// assert_eq!(xot.to_string(root)?, r#"<ex:doc xmlns:ex="http://example.com"/>"#);
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn new_element(&mut self, name: NameId) -> Node {
-        let element = Value::Element(Element::new(name));
+    ///
+    /// Or with `xmlname`:
+    ///
+    ///```
+    /// use xot::{Xot, xmlname};
+    ///
+    /// let mut xot = Xot::new();
+    ///
+    /// let namespace = xmlname::CreateNamespace::new(&mut xot, "ex", "http://example.com");
+    /// let doc_name = xmlname::CreateName::namespaced(&mut xot, "doc", &namespace);
+    ///
+    /// let doc_el = xot.new_element(doc_name);
+    ///
+    /// // set up namepace prefix for element so it serializes to XML nicely
+    /// xot.append_namespace(doc_el, &namespace);
+    ///
+    /// let root = xot.new_document_with_element(doc_el)?;
+    ///
+    /// assert_eq!(xot.to_string(root)?, r#"<ex:doc xmlns:ex="http://example.com"/>"#);
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    pub fn new_element(&mut self, name: impl Into<NameId>) -> Node {
+        let element = Value::Element(Element::new(name.into()));
         self.new_node(element)
     }
 
@@ -174,9 +196,13 @@ impl Xot {
     /// assert_eq!(xot.to_string(root)?, r#"<doc><?target data?></doc>"#);
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn new_processing_instruction(&mut self, target: NameId, data: Option<&str>) -> Node {
+    pub fn new_processing_instruction(
+        &mut self,
+        target: impl Into<NameId>,
+        data: Option<&str>,
+    ) -> Node {
         let pi = Value::ProcessingInstruction(ProcessingInstruction::new(
-            target,
+            target.into(),
             data.map(|s| s.to_string()),
         ));
         self.new_node(pi)
@@ -202,9 +228,9 @@ impl Xot {
     /// assert_eq!(xot.to_string(root)?, r#"<doc foo="FOO"/>"#);
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn new_attribute_node(&mut self, name: NameId, value: String) -> Node {
+    pub fn new_attribute_node(&mut self, name: impl Into<NameId>, value: String) -> Node {
         let attr = Value::Attribute(Attribute {
-            name_id: name,
+            name_id: name.into(),
             value,
         });
         self.new_node(attr)

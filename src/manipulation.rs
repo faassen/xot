@@ -1,4 +1,5 @@
 use crate::unpretty::remove_insignificant_whitespace;
+use crate::xmlname;
 use crate::xotdata::{Node, Xot};
 
 use crate::access::NodeEdge;
@@ -149,6 +150,33 @@ impl Xot {
 
         let mut namespaces = self.namespaces_mut(parent);
         Ok(namespaces.insert_node(child))
+    }
+
+    /// Append an [`xmlname::CreateNamespace`]
+    ///
+    /// This creates a namespace node for the given namespace and prefix, and
+    /// then returns this node (or previously updated node).
+    ///
+    /// ```rust
+    /// use xot::{Xot, xmlname};
+    ///
+    /// let mut xot = Xot::new();
+    /// let namespace = xmlname::CreateNamespace::new(&mut xot, "foo", "http://example.com");
+    /// let root = xot.parse(r#"<doc/>"#)?;
+    /// let doc_el = xot.document_element(root)?;
+    /// xot.append_namespace(doc_el, &namespace)?;
+    ///
+    /// assert_eq!(xot.to_string(root).unwrap(), r#"<doc xmlns:foo="http://example.com"/>"#);
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    pub fn append_namespace(
+        &mut self,
+        parent: Node,
+        namespace: &xmlname::CreateNamespace,
+    ) -> Result<Node, Error> {
+        let child = self.new_namespace_node(namespace.prefix_id(), namespace.namespace_id());
+        self.append_namespace_node(parent, child)
     }
 
     /// Append attribute node to parent node.

@@ -8,7 +8,7 @@ use crate::fullname::{Fullname, FullnameSerializer};
 use crate::id::{Name, NameId, NamespaceId, PrefixId};
 use crate::xmlvalue::Prefixes;
 use crate::xotdata::{Node, Xot};
-use crate::Value;
+use crate::{xmlname, Value};
 
 /// ## Names, namespaces and prefixes.
 ///
@@ -217,10 +217,44 @@ impl Xot {
         self.xml_space_id
     }
 
+    /// Given a name id, and a context node (to provide namespace prefix
+    /// lookup), return a [`xmlname::RefName`]. If you import the traits
+    /// [`xmlname::NameIdInfo`] and [`xmlname::NameStrInfo`] you can look up
+    /// more information about the name.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    /// use xot::xmlname::NameStrInfo;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<ex:doc xmlns:ex="http://example.com"><a/></ex:doc>"#)?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let a_el = xot.first_child(doc_el).unwrap();
+    ///
+    /// let doc_name = xot.name_ref(xot.node_name(doc_el).unwrap(), a_el)?;
+    ///
+    /// assert_eq!(doc_name.local_name(), "doc");
+    /// assert_eq!(doc_name.namespace(), "http://example.com");
+    /// assert_eq!(doc_name.prefix(), "ex");
+    /// assert_eq!(doc_name.full_name(), "ex:doc");
+    ///
+    /// let a_name = xot.name_ref(xot.node_name(a_el).unwrap(), a_el)?;
+    /// assert_eq!(a_name.local_name(), "a");
+    /// assert_eq!(a_name.namespace(), "");
+    /// assert_eq!(a_name.prefix(), "");
+    /// assert_eq!(a_name.full_name(), "a");
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    pub fn name_ref(&self, name_id: NameId, context: Node) -> Result<xmlname::RefName, Error> {
+        xmlname::RefName::from_node(self, context, name_id)
+    }
+
+    ///
     /// Look up localname, namespace uri for name id
     ///
-    /// If this name id is not in a namespace, the namespace uri is the
-    /// empty string.
+    /// If this name id is not in a namespace, the namespace uri is the empty
+    /// string.
     ///
     /// No namespace:
     ///
@@ -328,6 +362,8 @@ impl Xot {
     /// let doc = xot.parse(r#"<foo:doc xmlns:foo="http://example.com"/>"#)?;
     /// let doc_el = xot.document_element(doc).unwrap();
     /// let name = xot.node_name(doc_el).unwrap();
+    ///
+    /// let full_name = xot.full_name(doc_el, name)?;
     /// let full_name = xot.full_name(doc_el, name)?;
     /// assert_eq!(full_name, "foo:doc");
     ///
@@ -362,7 +398,9 @@ impl Xot {
                 Ok(local_name.to_string())
             }
         } else {
-            Err(Error::MissingPrefix(namespace))
+            Err(Error::MissingPrefix(
+                self.namespace_str(namespace).to_string(),
+            ))
         }
     }
 
@@ -381,6 +419,52 @@ impl Xot {
             Value::Document => None,
             Value::Attribute(attribute) => Some(attribute.name()),
             Value::Namespace(_) => None,
+        }
+    }
+
+    /// Given a node, give back the [`xmlname::RefName`] of this node.
+    ///
+    /// For elements and attribute that is their name, for processing
+    /// instructions this is a name based on the target attribute.
+    ///
+    /// For anything else, it's `None`.
+    ///
+    /// ```rust
+    /// use xot::Xot;
+    /// use xot::xmlname::NameStrInfo;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse(r#"<ex:doc xmlns:ex="http://example.com" ex:b="B"><a/></ex:doc>"#)?;
+    /// let doc_el = xot.document_element(root).unwrap();
+    /// let a_el = xot.first_child(doc_el).unwrap();
+    ///
+    /// let doc_name = xot.node_name_ref(doc_el)?.unwrap();
+    /// assert_eq!(doc_name.local_name(), "doc");
+    /// assert_eq!(doc_name.namespace(), "http://example.com");
+    /// assert_eq!(doc_name.prefix(), "ex");
+    /// assert_eq!(doc_name.full_name(), "ex:doc");
+    ///
+    /// let a_name = xot.node_name_ref(a_el)?.unwrap();
+    /// assert_eq!(a_name.local_name(), "a");
+    /// assert_eq!(a_name.namespace(), "");
+    /// assert_eq!(a_name.prefix(), "");
+    /// assert_eq!(a_name.full_name(), "a");
+    ///
+    /// // it also works on attribute nodes
+    /// let b_attribute = xot.attributes(doc_el).nodes().next().unwrap();
+    /// let b_name = xot.node_name_ref(b_attribute)?.unwrap();
+    /// assert_eq!(b_name.local_name(), "b");
+    /// assert_eq!(b_name.namespace(), "http://example.com");
+    /// assert_eq!(b_name.prefix(), "ex");
+    /// assert_eq!(b_name.full_name(), "ex:b");
+    ///
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    pub fn node_name_ref(&self, node: Node) -> Result<Option<xmlname::RefName>, Error> {
+        if let Some(name) = self.node_name(node) {
+            Ok(Some(self.name_ref(name, node)?))
+        } else {
+            Ok(None)
         }
     }
 

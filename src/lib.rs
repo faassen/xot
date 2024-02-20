@@ -33,16 +33,19 @@
 //!
 //! To access and manipulate XML specific data, you use the [`Value`] for a
 //! node. This is an enum that's either an [`Element`], [`Text`], [`Comment`]
-//! or [`ProcessingInstruction`], or `Root` (which has no value). You can use
-//! [`Xot::value`] to get the [`Value`]. Sometimes it's more handy to use the
-//! specific accessors for a value, such a [`Xot::element`] or [`Xot::text`].
+//! or [`ProcessingInstruction`], [`Attribute`], [`Namespace`] or `Document`
+//! (which has no value). You can use [`Xot::value`] to get the [`Value`].
+//! Sometimes it's more handy to use the specific accessors for a value, such a
+//! [`Xot::element`] or [`Xot::text`].
 //!
 //! XML names and namespaces in Xot are referenced by ids. In order to
 //! construct or compare an element, you first need to get hold of a name. To
 //! access a name, use [`Xot::name`]. To create a new name if necessary, use
-//! [`Xot::add_name`]. To construct a name with a namespace, use [`Xot::add_namespace`] and then
-//! [`Xot::add_name_ns`]. To create a namespace prefix, use
-//! [`Xot::add_prefix`].
+//! [`Xot::add_name`]. To construct a name with a namespace, use
+//! [`Xot::add_namespace`] and then [`Xot::add_name_ns`]. To create a namespace
+//! prefix, use [`Xot::add_prefix`]. You can also use the [`xmlname`] module to
+//! manage names; see [`xmlname::CreateName`] for a bunch of convenient ways to
+//! create names, for instance.
 //!
 //! Attributes and namespace access is most conveniently done through the
 //! [`Xot::attributes`] and [`Xot::namespaces`] accessors. Manipulation is most
@@ -76,6 +79,7 @@ mod serialize;
 mod serializer;
 mod unpretty;
 mod valueaccess;
+pub mod xmlname;
 mod xmlvalue;
 mod xotdata;
 
@@ -89,5 +93,7 @@ pub use nodemap::{
 pub use parse::{Span, SpanInfo, SpanInfoKey};
 pub use serialize::{PrettyOutputToken, SerializeOptions, WithSerializeOptions};
 pub use serializer::{Output, OutputToken};
-pub use xmlvalue::{Comment, Element, Prefixes, ProcessingInstruction, Text, Value, ValueType};
+pub use xmlvalue::{
+    Attribute, Comment, Element, Namespace, Prefixes, ProcessingInstruction, Text, Value, ValueType,
+};
 pub use xotdata::{Node, Xot};
