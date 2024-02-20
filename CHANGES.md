@@ -13,9 +13,9 @@
   creation and access to XML names. It also offers more convenient creation and
   access of names as opposed to the gaggle of methods that exist on `Xot`.
 
-- The various APIs that take name ids have been modified to accept various
-  `xmlname` names (`xmlname::Create`, `xmlname::Ref`, `xmlnameState`) as well.
-  The documentation for `new_element` has an example.
+- The various APIs that take name ids have been modified to accept some
+  `xmlname` names (`xmlname::Create`, `xmlname::Ref`) as well. The
+  documentation for `new_element` has an example.
 
 - Added `Xot::add_namespace` to create a namespace node based on an
   `xmlname::Namespace`.
