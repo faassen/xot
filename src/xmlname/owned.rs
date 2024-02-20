@@ -167,10 +167,15 @@ impl OwnedName {
         RefName::new(xot, name_id, prefix_id)
     }
 
-    /// Create a new [`RefName`] only if the names already exists in Xot.
+    /// Create a new [`RefName`] only if names already exists in Xot.
     ///
-    /// Ignores prefix information - if the prefix doesn't exist, we still get
-    /// a ref name, just without a prefix. This is because the prefix
+    /// If the local name and namespace don't exist in Xot, returns None.
+    ///
+    /// This lets you pass in an immutable reference to `Xot`, unlike
+    /// `Owned::to_ref`.
+    ///
+    /// Ignores prefix information - even if the prefix doesn't exist, we still
+    /// get a ref name, just without a prefix. This is because the prefix
     /// information is irrelevant for comparison.
     ///
     /// Otherwise, returns None.
