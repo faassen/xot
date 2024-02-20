@@ -123,7 +123,7 @@ impl Xot {
     /// Or with `xmlname`:
     ///
     ///```
-    /// use xot::{Xot, xmlname, xmlname::NameIdInfo};
+    /// use xot::{Xot, xmlname};
     ///
     /// let mut xot = Xot::new();
     ///

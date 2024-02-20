@@ -32,4 +32,4 @@ mod reference;
 
 pub use create::{CreateName, CreateNamespace};
 pub use owned::OwnedName;
-pub use reference::{NameIdInfo, NameStrInfo, RefName};
+pub use reference::{NameStrInfo, RefName};

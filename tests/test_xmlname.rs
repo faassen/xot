@@ -1,8 +1,4 @@
-use xot::{
-    xmlname,
-    xmlname::{NameIdInfo, NameStrInfo},
-    NameId, Xot,
-};
+use xot::{xmlname, xmlname::NameStrInfo, NameId, Xot};
 
 #[test]
 fn test_owned() {

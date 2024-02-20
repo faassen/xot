@@ -6,28 +6,6 @@ use crate::{Error, Node};
 
 use super::owned::OwnedName;
 
-/// Name id information.
-///
-/// Name ids are backed by Xot and given a Xot reference can be turned
-/// back into strings.
-pub trait NameIdInfo {
-    /// Access the underlying name id.
-    fn name_id(&self) -> NameId;
-
-    /// Access the underlying namespace id.
-    fn namespace_id(&self) -> NamespaceId;
-
-    /// Get the prefix for the name.
-    fn prefix_id(&self) -> PrefixId;
-}
-
-impl<N: NameIdInfo> From<N> for NameId {
-    #[inline]
-    fn from(name: N) -> Self {
-        name.name_id()
-    }
-}
-
 /// Name string information for an xml name.
 pub trait NameStrInfo {
     /// Access the local name as a string reference
@@ -91,25 +69,6 @@ impl<'a> PartialEq for RefName<'a> {
 
 impl<'a> Eq for RefName<'a> {}
 
-impl<'a> NameIdInfo for RefName<'a> {
-    /// Access the underlying name id
-    #[inline]
-    fn name_id(&self) -> NameId {
-        self.name_id
-    }
-
-    /// Access the underlying namespace id
-    #[inline]
-    fn namespace_id(&self) -> NamespaceId {
-        self.xot.namespace_for_name(self.name_id)
-    }
-
-    /// Access the prefix id in this context.
-    fn prefix_id(&self) -> PrefixId {
-        self.prefix_id
-    }
-}
-
 impl<'a> NameStrInfo for RefName<'a> {
     #[inline]
     fn local_name(&self) -> &'a str {
@@ -135,6 +94,24 @@ impl<'a> RefName<'a> {
             name_id,
             prefix_id,
         }
+    }
+
+    /// Get the Xot name id.
+    #[inline]
+    pub fn name_id(&self) -> NameId {
+        self.name_id
+    }
+
+    /// Get the Xot namespace id.
+    #[inline]
+    pub fn namespace_id(&self) -> NamespaceId {
+        self.xot.namespace_for_name(self.name_id)
+    }
+
+    /// Get the Xot prefix id.
+    #[inline]
+    pub fn prefix_id(&self) -> PrefixId {
+        self.prefix_id
     }
 
     pub(crate) fn from_node(xot: &'a Xot, node: Node, name_id: NameId) -> Result<Self, Error> {
@@ -164,5 +141,12 @@ impl<'a> RefName<'a> {
     pub fn has_unprefixed_namespace(&self) -> bool {
         self.namespace_id() != self.xot.no_namespace()
             && self.xot.empty_prefix() == self.prefix_id()
+    }
+}
+
+impl<'a> From<RefName<'a>> for NameId {
+    #[inline]
+    fn from(name: RefName<'a>) -> Self {
+        name.name_id
     }
 }
