@@ -1,6 +1,7 @@
 use crate::serializer::Output;
 use crate::xmlvalue::ValueType;
 use crate::xotdata::{Node, Xot};
+use crate::NameId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Space {
@@ -17,13 +18,15 @@ enum StackEntry {
 
 pub(crate) struct Pretty<'a> {
     xot: &'a Xot,
+    suppress: Vec<NameId>,
     stack: Vec<StackEntry>,
 }
 
 impl<'a> Pretty<'a> {
-    pub(crate) fn new(xot: &'a Xot) -> Pretty<'a> {
+    pub(crate) fn new(xot: &'a Xot, suppress: Vec<NameId>) -> Pretty<'a> {
         Pretty {
             xot,
+            suppress,
             stack: Vec::new(),
         }
     }
@@ -90,6 +93,18 @@ impl<'a> Pretty<'a> {
             .any(|child| self.xot.value_type(child) == ValueType::Text)
     }
 
+    fn element_space(&self, node: Node) -> Space {
+        let attributes = self.xot.attributes(node);
+        let space = attributes
+            .get(self.xot.xml_space_name())
+            .map(|s| s.as_str());
+        match space {
+            Some("preserve") => Space::Preserve,
+            Some("default") => Space::Default,
+            _ => Space::Empty,
+        }
+    }
+
     pub(crate) fn prettify(&mut self, node: Node, output_token: &Output) -> (usize, bool) {
         use Output::*;
         match output_token {
@@ -98,15 +113,9 @@ impl<'a> Pretty<'a> {
             StartTagClose => {
                 let newline = if self.xot.first_child(node).is_some() {
                     if !self.has_text_child(node) {
-                        let attributes = self.xot.attributes(node);
-                        let space = attributes
-                            .get(self.xot.xml_space_name())
-                            .map(|s| s.as_str());
-                        match space {
-                            Some("preserve") => self.unmixed(Space::Preserve),
-                            Some("default") => self.unmixed(Space::Default),
-                            _ => self.unmixed(Space::Empty),
-                        }
+                        let space = self.element_space(node);
+
+                        self.unmixed(space);
                         self.get_newline()
                     } else {
                         self.mixed();
@@ -142,32 +151,45 @@ mod tests {
     use insta::assert_snapshot;
     use rstest::rstest;
 
+    use crate::output;
+
     use crate::serialize::SerializeOptions;
 
     #[rstest]
     fn pretty(
         #[values(
-            ("elements", r#"<doc><a><b/></a></doc>"#),
-            ("more elements", r#"<doc><a><b/></a><a><b/><b/></a></doc>"#),
-            ("text", r#"<doc><a>text</a><a>text 2</a></doc>"#),
-            ("mixed", r#"<doc><p>Hello <em>world</em>!</p></doc>"#),
-            ("mixed, nested", r#"<doc><p>Hello <em><strong>world</strong></em>!</p></doc>"#),
-            ("mixed, multi", r#"<doc><p>Hello <em>world</em>!</p><p>Greetings, <strong>universe</strong>!</p></doc>"#),
-            ("comment", r#"<doc><a><!--hello--><!--world--></a></doc>"#),
-            ("mixed, comment", r#"<doc><p>Hello <!--world-->!</p></doc>"#),
-            ("multi pi", r#"<doc><a><?pi?><?pi?></a></doc>"#),
-            ("preserve", r#"<doc xml:space="preserve"><p>Hello</p></doc>"#),
-            ("preserve_nested", r#"<doc xml:space="preserve">  <p><foo>  </foo></p></doc>"#),
-            ("preserve_back_to_default", r#"<doc xml:space="preserve"><p xml:space="default"><foo><bar/></foo></p></doc>"#)
+            ("elements", r#"<doc><a><b/></a></doc>"#, vec![]),
+            ("more elements", r#"<doc><a><b/></a><a><b/><b/></a></doc>"#, vec![]),
+            ("text", r#"<doc><a>text</a><a>text 2</a></doc>"#, vec![]),
+            ("mixed", r#"<doc><p>Hello <em>world</em>!</p></doc>"#, vec![]),
+            ("mixed, nested", r#"<doc><p>Hello <em><strong>world</strong></em>!</p></doc>"#, vec![]),
+            ("mixed, multi", r#"<doc><p>Hello <em>world</em>!</p><p>Greetings, <strong>universe</strong>!</p></doc>"#, vec![]),
+            // the embedded content could in principle be pretty printed, we don't. This is similar to xmllint --format behavior
+            ("mixed, embedded", r#"<doc><p>Hello <nested><stuff>a</stuff><stuff>b</stuff></nested></p></doc>"#, vec![]),
+            ("comment", r#"<doc><a><!--hello--><!--world--></a></doc>"#, vec![]),
+            ("mixed, comment", r#"<doc><p>Hello <!--world-->!</p></doc>"#, vec![]),
+            ("multi pi", r#"<doc><a><?pi?><?pi?></a></doc>"#, vec![]),
+            ("preserve", r#"<doc xml:space="preserve"><p>Hello</p></doc>"#, vec![]),
+            ("preserve_nested", r#"<doc xml:space="preserve">  <p><foo>  </foo></p></doc>"#, vec![]),
+            ("preserve_back_to_default", r#"<doc xml:space="preserve"><p xml:space="default"><foo><bar/></foo></p></doc>"#, vec![]),
+            ("not suppressed", r#"<doc><a><b/></a></doc>"#, vec![]),
+            // ("suppressed", r#"<doc><a><b/></a></doc>"#, vec!["a"]),
         )]
-        value: (&str, &str),
+        value: (&str, &str, Vec<&str>),
     ) {
-        let (name, xml) = value;
+        let (name, xml, suppress) = value;
         let mut xot = Xot::new();
+        let suppress = suppress.iter().map(|s| xot.add_name(s)).collect();
+
         let document = xot.parse(xml).unwrap();
         let output_xml = xot
-            .with_serialize_options(SerializeOptions { pretty: true })
-            .to_string(document)
+            .serialize_xml(
+                output::xml::Parameters {
+                    indentation: Some(output::xml::Indentation { suppress }),
+                    ..Default::default()
+                },
+                document,
+            )
             .unwrap();
         assert_snapshot!(name, output_xml, xml);
     }

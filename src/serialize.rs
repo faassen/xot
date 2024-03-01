@@ -43,7 +43,7 @@ impl<'a> WithSerializeOptions<'a> {
         let outputs = gen_outputs(self.xot, node);
         let mut serializer = XmlSerializer::new(self.xot, node);
         if self.options.pretty {
-            serializer.serialize_pretty(w, outputs)
+            serializer.serialize_pretty(w, outputs, vec![])
         } else {
             serializer.serialize(w, outputs)
         }
@@ -186,9 +186,8 @@ impl Xot {
         }
         let outputs = gen_outputs(self, node);
         let mut serializer = XmlSerializer::new(self, node);
-        if let Some(_indentation) = parameters.indentation {
-            // TODO: unindent, suppress support
-            serializer.serialize_pretty(&mut buf, outputs)?;
+        if let Some(indentation) = parameters.indentation {
+            serializer.serialize_pretty(&mut buf, outputs, indentation.suppress.clone())?;
         } else {
             serializer.serialize(&mut buf, outputs)?;
         }
@@ -259,7 +258,7 @@ impl Xot {
     ) -> impl Iterator<Item = (Node, Output, PrettyOutputToken)> + '_ {
         let outputs = gen_outputs(self, node);
         let mut serializer = XmlSerializer::new(self, node);
-        let mut pretty = Pretty::new(self);
+        let mut pretty = Pretty::new(self, vec![]);
         outputs.map(move |(node, output)| {
             let (indentation, newline) = pretty.prettify(node, &output);
             let rendered = serializer.render_output(node, &output).unwrap();

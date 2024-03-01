@@ -168,8 +168,9 @@ impl<'a> XmlSerializer<'a> {
         &mut self,
         w: &mut W,
         outputs: impl Iterator<Item = (Node, Output<'a>)>,
+        suppress: Vec<NameId>,
     ) -> Result<(), Error> {
-        let mut pretty = Pretty::new(self.xot);
+        let mut pretty = Pretty::new(self.xot, suppress);
         for (node, output) in outputs {
             let (indentation, newline) = pretty.prettify(node, &output);
             if indentation > 0 {
