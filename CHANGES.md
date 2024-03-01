@@ -12,13 +12,16 @@
 
 - Removed `Xot::with_serialize_options`, `SerializeOptions`, `WithSerializeOptions` in favor of the new APIs.
 
-- The `Xot::tokens` API has an additional parameter, a list of element names
-  that should be serialized as cdata sections. Putting in an empty vec is fine
-  if you don't want any.
+- The low-level `Xot::tokens` API has additional parameters, a list of element
+  names that should be serialized as cdata sections. Putting in an empty vec is
+  fine if you don't want any. You can also pass in a normalizer (if you don't
+  care, use the `xot::output::NoopNormalizer`).
 
-- The `Xot::pretty_tokens` API has two additional parameters: a list of
+- The low-level `Xot::pretty_tokens` API has additional parameters: a list of
   elements that should be included from indentation and a list of that should
-  be serialized as cdata sections.
+  be serialized as cdata sections. You can also pass in a normalizer (if you don't
+  care, use the `xot::output::NoopNormalizer`).
+
 
 ## Changes
 

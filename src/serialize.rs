@@ -274,13 +274,16 @@ assert_eq!(s, "<doc>\u{1E0D}\u{0307}</doc>");
     ///
     /// You can include a list of element names that should be serialized as a
     /// CDATA section.
-    pub fn tokens<'a>(
+    /// You can also pass in a normalizer; if you don't care about normalization, use
+    // [`output::xml::NoopNormalizer`].
+    pub fn tokens<'a, N: Normalizer + 'a>(
         &'a self,
         node: Node,
         cdata_section_elements: &'a [NameId],
+        normalizer: N,
     ) -> impl Iterator<Item = (Node, Output, OutputToken)> + 'a {
         let outputs = gen_outputs(self, node);
-        let mut serializer = XmlSerializer::new(self, node, cdata_section_elements, NoopNormalizer);
+        let mut serializer = XmlSerializer::new(self, node, cdata_section_elements, normalizer);
         outputs.map(move |(node, output)| {
             let rendered = serializer.render_output(node, &output).unwrap();
             (node, output, rendered)
@@ -296,14 +299,18 @@ assert_eq!(s, "<doc>\u{1E0D}\u{0307}</doc>");
     /// You can include a list of elements names that are excluded from
     /// indentation, and a list of elements that should be serialized as a
     /// CDATA section.
-    pub fn pretty_tokens<'a>(
+    ///
+    /// You can also pass in a normalizer; if you don't care about normalization, use
+    // [`output::xml::NoopNormalizer`].
+    pub fn pretty_tokens<'a, N: Normalizer + 'a>(
         &'a self,
         node: Node,
         suppress_elements: &'a [NameId],
         cdata_section_elements: &'a [NameId],
+        normalizer: N,
     ) -> impl Iterator<Item = (Node, Output, PrettyOutputToken)> + 'a {
         let outputs = gen_outputs(self, node);
-        let mut serializer = XmlSerializer::new(self, node, cdata_section_elements, NoopNormalizer);
+        let mut serializer = XmlSerializer::new(self, node, cdata_section_elements, normalizer);
         let mut pretty = Pretty::new(self, suppress_elements);
         outputs.map(move |(node, output)| {
             let (indentation, newline) = pretty.prettify(node, &output);

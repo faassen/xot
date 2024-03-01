@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use crate::error::Error;
-use crate::output::{self, Normalizer};
+use crate::output::Normalizer;
 
 pub(crate) fn parse_text(content: Cow<str>) -> Result<Cow<str>, Error> {
     parse_content(content, false)

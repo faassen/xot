@@ -17,7 +17,7 @@ fn test_style() -> Result<(), Error> {
 
     let suppress = vec![];
     let cdata = vec![];
-    let pretty_tokens = xot.pretty_tokens(root, &suppress, &cdata);
+    let pretty_tokens = xot.pretty_tokens(root, &suppress, &cdata, xot::output::NoopNormalizer);
 
     #[derive(Debug, PartialEq, Eq)]
     enum Style {
@@ -72,7 +72,7 @@ fn test_style_element() -> Result<(), Error> {
 
     let suppress = vec![];
     let cdata = vec![];
-    let pretty_tokens = xot.pretty_tokens(root, &suppress, &cdata);
+    let pretty_tokens = xot.pretty_tokens(root, &suppress, &cdata, xot::output::NoopNormalizer);
 
     #[derive(Debug, PartialEq, Eq)]
     enum Style {
@@ -131,7 +131,7 @@ fn test_style_attribute() -> Result<(), Error> {
 
     let suppress = vec![];
     let cdata = vec![];
-    let pretty_tokens = xot.pretty_tokens(root, &suppress, &cdata);
+    let pretty_tokens = xot.pretty_tokens(root, &suppress, &cdata, xot::output::NoopNormalizer);
 
     #[derive(Debug, PartialEq, Eq)]
     enum Style {
