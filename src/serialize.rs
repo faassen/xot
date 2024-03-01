@@ -164,7 +164,7 @@ impl Xot {
 
     /// Serialize a string using a normalizer for any text and attribute values.
     ///
-    /// If you enable the [`icu`] feature then support for [icu normalizers](https://docs.rs/icu/latest/icu/normalizer/index.html)
+    /// If you enable the `icu` feature then support for [icu normalizers](https://docs.rs/icu/latest/icu/normalizer/index.html)
     /// is provided.
     #[cfg_attr(
         feature = "icu",
@@ -210,6 +210,8 @@ assert_eq!(s, "<doc>\u{1E0D}\u{0307}</doc>");
     }
 
     /// Write XML with a normalizer for text and attribute values.
+    ///
+    /// See [`Xot::serialize_xml_string_with_normalizer`] for more information.
     pub fn serialize_xml_write_with_normalizer<N: Normalizer>(
         &self,
         parameters: output::xml::Parameters,

@@ -218,9 +218,9 @@ impl Xot {
     }
 
     /// Given a name id, and a context node (to provide namespace prefix
-    /// lookup), return a [`xmlname::RefName`]. If you import the traits
-    /// [`xmlname::NameIdInfo`] and [`xmlname::NameStrInfo`] you can look up
-    /// more information about the name.
+    /// lookup), return a [`xmlname::RefName`]. If you import the trait
+    /// [`xmlname::NameStrInfo`] you can look up more information about the
+    /// name.
     ///
     /// ```rust
     /// use xot::Xot;

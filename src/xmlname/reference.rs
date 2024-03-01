@@ -33,10 +33,8 @@ pub trait NameStrInfo {
 /// The most complete way to access name information, backed by Xot. This is a
 /// reference and cannot be created directly.
 ///
-/// You can create one by using [`StateName`] and [`OwnedName`], or by using
-/// the [`Xot::name_ref`] and [`Xot::node_name_ref`] methods.
-///
-/// You can access the Xot id information using the [`NameIdInfo`] trait.
+/// You can create one by using [`OwnedName`], or by using the
+/// [`Xot::name_ref`] and [`Xot::node_name_ref`] methods.
 ///
 /// You can access name string information using the [`NameStrInfo`] trait.
 ///

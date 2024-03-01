@@ -33,8 +33,9 @@
 - You can cause specific element names content to be presented as CDATA
   sections.
 
-- You can cause text content to be normalized using unicode normalization 
-  arguments. This requires the new feature `icu` feature to be enabled.
+- You can cause text content to be unicode normalized. This requires the new
+  feature `icu` feature to be enabled. See
+  ``Xot::serialize_xml_string_with_normalizer` for more information.
 
  
 ## [0.22.0] - 2024-02-20

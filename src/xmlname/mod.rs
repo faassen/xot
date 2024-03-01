@@ -14,17 +14,16 @@
 //!   and [`Xot::append_namespace`] to add it to the tree as a prefix.
 //!
 //! - [`RefName`] is a reference to a name that is stored by Xot. You can
-//!   efficiently get a reference to it for a node, or convert a
-//!   [`OwnedName`] or a [`StateName`] into one. It's the most full featured
-//!   type but it cannot be stored in structs or enums, and cannot be created
-//!   directly. It implements both the [`NameIdInfo`] and [`NameStrInfo`]
-//!   traits. You can also use it to create new elements and attributes just
-//!   like a [`crate::NameId`].
+//!   efficiently get a reference to it for a node, or convert a [`OwnedName`]
+//!   into one. It's the most full featured type but it cannot be stored in
+//!   structs or enums, and cannot be created directly. It implements the
+//!   [`NameStrInfo`] trait. You can also use it to create new elements and
+//!   attributes just like a [`crate::NameId`].
 //!
 //! - [`OwnedName`] is a name that is stored as owned strings. It's handy when
 //!   you want to handle names in structs or enums without any reference to Xot
 //!   yet. It's also serde serializable if you enable the `serde` feature. It
-//!   implements just the [`NameStrInfo`] trait.
+//!   implements the [`NameStrInfo`] trait.
 //!
 mod create;
 mod owned;
