@@ -113,6 +113,7 @@ impl Declaration {
         Ok(())
     }
 }
+
 /// The doctype declaration.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DocType {
@@ -138,6 +139,29 @@ pub enum DocType {
         /// The system identifier.
         system: String,
     },
+}
+
+impl DocType {
+    pub(crate) fn serialize(&self, name: &str, buf: &mut Vec<u8>) -> Result<(), std::io::Error> {
+        buf.write_all(b"<!DOCTYPE ")?;
+        buf.write_all(name.as_bytes())?;
+        match self {
+            DocType::Public { public, system } => {
+                buf.write_all(b" PUBLIC \"")?;
+                buf.write_all(public.as_bytes())?;
+                buf.write_all(b"\" \"")?;
+                buf.write_all(system.as_bytes())?;
+                buf.write_all(b"\"")?;
+            }
+            DocType::System { system } => {
+                buf.write_all(b" SYSTEM \"")?;
+                buf.write_all(system.as_bytes())?;
+                buf.write_all(b"\"")?;
+            }
+        }
+        buf.write_all(b">\n")?;
+        Ok(())
+    }
 }
 
 /// Unicode normalization.
@@ -271,6 +295,61 @@ mod tests {
             xot.serialize_xml(m, doc).unwrap(),
             r#"<?xml version="1.0" standalone="yes"?>
 <doc/>"#
+        );
+    }
+
+    #[test]
+    fn test_xml_output_doctype_public() {
+        let m = Parameters {
+            doctype: Some(DocType::Public {
+                public: "-//W3C//DTD XHTML 1.0 Strict//EN".to_string(),
+                system: "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd".to_string(),
+            }),
+            ..Default::default()
+        };
+        let mut xot = Xot::new();
+        let doc = xot.parse("<doc/>").unwrap();
+
+        assert_eq!(
+            xot.serialize_xml(m, doc).unwrap(),
+            r#"<!DOCTYPE doc PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<doc/>"#
+        );
+    }
+
+    #[test]
+    fn test_xml_output_doctype_system() {
+        let m = Parameters {
+            doctype: Some(DocType::System {
+                system: "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd".to_string(),
+            }),
+            ..Default::default()
+        };
+        let mut xot = Xot::new();
+        let doc = xot.parse("<doc/>").unwrap();
+
+        assert_eq!(
+            xot.serialize_xml(m, doc).unwrap(),
+            r#"<!DOCTYPE doc SYSTEM "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<doc/>"#
+        );
+    }
+
+    #[test]
+    fn test_xml_output_doctype_prefixed_name() {
+        let m = Parameters {
+            doctype: Some(DocType::System {
+                system: "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd".to_string(),
+            }),
+            ..Default::default()
+        };
+        let mut xot = Xot::new();
+        let doc = xot.parse(r#"<prefix:doc xmlns:prefix="foo"/>"#).unwrap();
+
+        assert_eq!(
+            xot.serialize_xml(m, doc).unwrap(),
+            r#"<!DOCTYPE prefix:doc SYSTEM "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<prefix:doc xmlns:prefix="foo"/>"#
         );
     }
 }

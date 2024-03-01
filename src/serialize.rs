@@ -1,9 +1,10 @@
 use std::io::Write;
 
 use crate::error::Error;
-use crate::output;
 use crate::pretty::Pretty;
 use crate::serializer::{gen_outputs, Output, OutputToken, XmlSerializer};
+use crate::xmlname::NameStrInfo;
+use crate::{output, Value};
 
 use crate::xotdata::{Node, Xot};
 
@@ -183,6 +184,20 @@ impl Xot {
         let mut buf = Vec::new();
         if let Some(declaration) = parameters.declaration {
             declaration.serialize(&mut buf)?;
+        }
+        if let Some(doctype) = parameters.doctype {
+            // if we are in a document node, we look for the document_element,
+            // otherwise we take the current element, if possible
+            let node = match self.value(node) {
+                Value::Document => self.document_element(node)?,
+                Value::Element(_) => node,
+                _ => return Err(Error::NotElement(node)),
+            };
+            // now take the full name of the element; we can unwrap as we
+            // know it's an element now
+            let name = self.node_name_ref(node)?.unwrap();
+            let name = name.full_name();
+            doctype.serialize(name.as_ref(), &mut buf)?;
         }
         let outputs = gen_outputs(self, node);
         let mut serializer = XmlSerializer::new(self, node);
