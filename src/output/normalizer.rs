@@ -9,7 +9,8 @@ use icu;
 /// A normalizer.
 ///
 /// Normalizes text and attribute values. You can pass a normalizer using
-/// [`Xot::serialize_xml_string_with_normalizer`].
+/// [`Xot::serialize_xml_string_with_normalizer`] and
+/// [`Xot::serialize_xml_write_with_normalizer`].
 ///
 #[cfg_attr(
     feature = "icu",
