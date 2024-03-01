@@ -3,6 +3,8 @@ use crate::xmlvalue::ValueType;
 use crate::xotdata::{Node, Xot};
 use crate::NameId;
 
+// we need to track where we are in xml:space, so that we can know when to
+// insert newlines and indentation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Space {
     Empty,
@@ -10,6 +12,10 @@ enum Space {
     Preserve,
 }
 
+// The stack keeps track of where we are, and the xml space state. We are
+// either in a mixed element (with text and subcontent) (in which case we don't
+// do any indentation anymore, including for its descendants), or in an element
+// without text, in which case we can potentially indent
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum StackEntry {
     Unmixed(Space),
@@ -18,6 +24,7 @@ enum StackEntry {
 
 pub(crate) struct Pretty<'a> {
     xot: &'a Xot,
+    // a list of element names where we don't do indentation for the immediate content
     suppress: Vec<NameId>,
     stack: Vec<StackEntry>,
 }
@@ -113,9 +120,19 @@ impl<'a> Pretty<'a> {
             StartTagClose => {
                 let newline = if self.xot.first_child(node).is_some() {
                     if !self.has_text_child(node) {
-                        let space = self.element_space(node);
-
-                        self.unmixed(space);
+                        let suppress = if let Some(element) = self.xot.element(node) {
+                            self.suppress.contains(&element.name())
+                        } else {
+                            false
+                        };
+                        // treat suppress as mixed content, as we don't want to indent
+                        // anywhere inside
+                        if suppress {
+                            self.mixed();
+                        } else {
+                            let space = self.element_space(node);
+                            self.unmixed(space);
+                        }
                         self.get_newline()
                     } else {
                         self.mixed();
@@ -128,9 +145,9 @@ impl<'a> Pretty<'a> {
             }
             EndTag(_) => {
                 let indentation = if self.xot.first_child(node).is_some() {
-                    let was_in_mixed = self.in_mixed();
+                    let no_indentation = self.in_mixed();
                     self.pop();
-                    if !was_in_mixed {
+                    if !no_indentation {
                         self.get_indentation()
                     } else {
                         0
@@ -173,7 +190,8 @@ mod tests {
             ("preserve_nested", r#"<doc xml:space="preserve">  <p><foo>  </foo></p></doc>"#, vec![]),
             ("preserve_back_to_default", r#"<doc xml:space="preserve"><p xml:space="default"><foo><bar/></foo></p></doc>"#, vec![]),
             ("not suppressed", r#"<doc><a><b/></a></doc>"#, vec![]),
-            // ("suppressed", r#"<doc><a><b/></a></doc>"#, vec!["a"]),
+            ("suppressed", r#"<doc><a><b/></a></doc>"#, vec!["a"]),
+            ("suppressed nested", r#"<doc><a><b><c/></b></a></doc>"#, vec!["a"]),
         )]
         value: (&str, &str, Vec<&str>),
     ) {
