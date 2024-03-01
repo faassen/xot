@@ -170,8 +170,6 @@ mod tests {
 
     use crate::output;
 
-    use crate::serialize::SerializeOptions;
-
     #[rstest]
     fn pretty(
         #[values(

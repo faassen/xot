@@ -220,24 +220,24 @@ mod tests {
         );
     }
 
-    //     #[test]
-    //     fn test_xml_output_indent_suppress() {
-    //         let mut xot = Xot::new();
-    //         let p = xot.add_name("p");
-    //         let m = Parameters {
-    //             indentation: Some(Indentation { suppress: vec![p] }),
-    //             ..Default::default()
-    //         };
-    //         let doc = xot.parse("<doc><p><k>foo</k></p></doc>").unwrap();
+    #[test]
+    fn test_xml_output_indent_suppress() {
+        let mut xot = Xot::new();
+        let p = xot.add_name("p");
+        let m = Parameters {
+            indentation: Some(Indentation { suppress: vec![p] }),
+            ..Default::default()
+        };
+        let doc = xot.parse("<doc><p><k>foo</k></p></doc>").unwrap();
 
-    //         assert_eq!(
-    //             xot.serialize_xml(m, doc).unwrap(),
-    //             r#"<doc>
-    //   <p><k>foo</k></p>
-    // </doc>
-    // "#
-    //         );
-    //     }
+        assert_eq!(
+            xot.serialize_xml(m, doc).unwrap(),
+            r#"<doc>
+  <p><k>foo</k></p>
+</doc>
+"#
+        );
+    }
 
     #[test]
     fn test_xml_output_declaration() {
