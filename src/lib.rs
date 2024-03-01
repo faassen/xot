@@ -71,6 +71,7 @@ mod levelorder;
 mod manipulation;
 mod nameaccess;
 mod nodemap;
+pub mod output;
 mod parse;
 mod pretty;
 #[cfg(feature = "proptest")]

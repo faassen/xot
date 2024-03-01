@@ -1,6 +1,7 @@
 use std::io::Write;
 
 use crate::error::Error;
+use crate::output;
 use crate::pretty::Pretty;
 use crate::serializer::{gen_outputs, Output, OutputToken, XmlSerializer};
 
@@ -108,6 +109,90 @@ impl Xot {
     pub fn to_string(&self, node: Node) -> Result<String, Error> {
         self.with_serialize_options(SerializeOptions::default())
             .to_string(node)
+    }
+
+    /// Serialize to XML, with options.
+    ///
+    /// With the default parameters:
+    /// ```rust
+    /// use xot::Xot;
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse("<a><b/></a>")?;
+    ///
+    /// let xml = xot.serialize_xml(Default::default(), root)?;
+    /// assert_eq!(xml, "<a><b/></a>");
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    ///
+    /// With an XML declaration:
+    ///
+    /// ```rust
+    /// use xot::{Xot, output};
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse("<a><b/></a>")?;
+    ///
+    /// let xml = xot.serialize_xml(output::xml::Parameters {
+    ///     declaration: Some(Default::default()),
+    ///     ..Default::default()
+    /// }, root)?;
+    /// assert_eq!(xml, "<?xml version=\"1.0\"?>\n<a><b/></a>");
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    ///
+    /// XML declaration with an encoding declaration (does not affect output encoding):
+    ///
+    /// ```rust
+    /// use xot::{Xot, output};
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse("<a><b/></a>")?;
+    ///
+    /// let xml = xot.serialize_xml(output::xml::Parameters {
+    ///     declaration: Some(output::xml::Declaration {
+    ///         encoding: Some("UTF-8".to_string()),
+    ///         ..Default::default()
+    ///     }),
+    ///     ..Default::default()
+    /// }, root)?;
+    /// assert_eq!(xml, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<a><b/></a>");
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    ///
+    /// Pretty print XML:
+    ///
+    /// ```rust
+    /// use xot::{Xot, output};
+    ///
+    /// let mut xot = Xot::new();
+    /// let root = xot.parse("<a><b/></a>")?;
+    ///
+    /// let xml = xot.serialize_xml(output::xml::Parameters {
+    ///     indentation: Some(Default::default()),
+    ///     ..Default::default()
+    /// }, root)?;
+    /// assert_eq!(xml, "<a>\n  <b/>\n</a>\n");
+    /// # Ok::<(), xot::Error>(())
+    /// ```
+    pub fn serialize_xml(
+        &self,
+        parameters: output::xml::Parameters,
+        node: Node,
+    ) -> Result<String, Error> {
+        let mut buf = Vec::new();
+        if let Some(declaration) = parameters.declaration {
+            declaration.serialize(&mut buf)?;
+        }
+        let outputs = gen_outputs(self, node);
+        let mut serializer = XmlSerializer::new(self, node);
+        if let Some(_indentation) = parameters.indentation {
+            // TODO: unindent, suppress support
+            serializer.serialize_pretty(&mut buf, outputs)?;
+        } else {
+            serializer.serialize(&mut buf, outputs)?;
+        }
+        Ok(String::from_utf8(buf).unwrap())
     }
 
     /// Control XML serialization
