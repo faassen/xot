@@ -112,30 +112,49 @@ pub(crate) fn serialize_text(content: Cow<str>) -> Cow<str> {
 pub(crate) fn serialize_cdata(content: Cow<str>) -> Cow<str> {
     let mut result = String::new();
     result.push_str("<![CDATA[");
-    result.push_str(&content);
+    // we write the content, watching for any possible sequence of "]]>"
+    let mut closing_square_brackets_seen = 0;
+    for c in content.chars() {
+        match c {
+            ']' => {
+                if closing_square_brackets_seen < 2 {
+                    closing_square_brackets_seen += 1;
+                } else {
+                    // if we're three, so write it and then start counting again
+                    result.push(c);
+                    // we are still at the critical junction
+                    closing_square_brackets_seen = 2;
+                }
+            }
+            '>' => {
+                if closing_square_brackets_seen == 2 {
+                    // we are the sequence
+                    result.push_str("]]]]><![CDATA[>");
+                } else {
+                    // push any closing square brackets we've seen
+                    for _ in 0..closing_square_brackets_seen {
+                        result.push(']');
+                    }
+                    result.push(c);
+                }
+                closing_square_brackets_seen = 0;
+            }
+            _ => {
+                // push any closing square brackets we've seen
+                for _ in 0..closing_square_brackets_seen {
+                    result.push(']');
+                }
+                closing_square_brackets_seen = 0;
+                result.push(c)
+            }
+        }
+    }
+    // push any closing square brackets we've seen
+    for _ in 0..closing_square_brackets_seen {
+        result.push(']');
+    }
     result.push_str("]]>");
     result.into()
-    // let mut change = false;
-    // for c in content.chars() {
-    //     match c {
-    //         '&' => {
-    //             change = true;
-    //             result.push_str("&amp;")
-    //         }
-
-    //         '<' => {
-    //             change = true;
-    //             result.push_str("&lt;")
-    //         }
-    //         _ => result.push(c),
-    //     }
-    // }
-
-    // if !change {
-    //     content
-    // } else {
-    //     result.into()
-    // }
 }
 
 pub(crate) fn serialize_attribute(content: Cow<str>) -> Cow<str> {
@@ -338,5 +357,64 @@ mod tests {
     fn test_parse_character_broken_hex_entity() {
         let text = "A &xflub#; B";
         assert!(parse_text(text.into()).is_err());
+    }
+
+    #[test]
+    fn test_serialize_cdata_simple() {
+        let text = "hello";
+        assert_eq!(serialize_cdata(text.into()), "<![CDATA[hello]]>");
+    }
+
+    #[test]
+    fn test_serialize_cdata_end_sequence() {
+        let text = "hello]]>world";
+        assert_eq!(
+            serialize_cdata(text.into()),
+            "<![CDATA[hello]]]]><![CDATA[>world]]>"
+        );
+    }
+
+    #[test]
+    fn test_serialize_cdata_two_square_brackets() {
+        let text = "hello]]world";
+        assert_eq!(serialize_cdata(text.into()), "<![CDATA[hello]]world]]>");
+    }
+
+    // two square brackets at the end
+    #[test]
+    fn test_serialize_cdata_two_square_brackets_end() {
+        let text = "hello]]";
+        assert_eq!(serialize_cdata(text.into()), "<![CDATA[hello]]]]>");
+    }
+
+    // greater than sign by itself
+    #[test]
+    fn test_serialize_cdata_greater_than() {
+        let text = ">";
+        assert_eq!(serialize_cdata(text.into()), "<![CDATA[>]]>");
+    }
+
+    // special sequence by itself
+    #[test]
+    fn test_serialize_cdata_special_sequence() {
+        let text = "]]>";
+        assert_eq!(serialize_cdata(text.into()), "<![CDATA[]]]]><![CDATA[>]]>");
+    }
+
+    // three square brackets
+    #[test]
+    fn test_serialize_cdata_three_square_brackets() {
+        let text = "hello]]]world";
+        assert_eq!(serialize_cdata(text.into()), "<![CDATA[hello]]]world]]>");
+    }
+
+    // three square brackets ending in special sequence
+    #[test]
+    fn test_serialize_cdata_three_square_brackets_end_sequence() {
+        let text = "hello]]]>world";
+        assert_eq!(
+            serialize_cdata(text.into()),
+            "<![CDATA[hello]]]]]><![CDATA[>world]]>"
+        );
     }
 }

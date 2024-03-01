@@ -368,4 +368,20 @@ mod tests {
             r#"<doc><p><![CDATA[hello]]></p></doc>"#
         );
     }
+
+    #[test]
+    fn test_cdata_sections_elements_with_end_characters() {
+        let mut xot = Xot::new();
+        let p = xot.add_name("p");
+        let m = Parameters {
+            cdata_section_elements: vec![p],
+            ..Default::default()
+        };
+        let doc = xot.parse(r#"<doc><p>hello]]&gt; world</p></doc>"#).unwrap();
+
+        assert_eq!(
+            xot.serialize_xml_string(m, doc).unwrap(),
+            r#"<doc><p><![CDATA[hello]]]]><![CDATA[> world]]></p></doc>"#
+        );
+    }
 }
