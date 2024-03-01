@@ -97,19 +97,19 @@ pub struct Declaration {
 }
 
 impl Declaration {
-    pub(crate) fn serialize(&self, buf: &mut Vec<u8>) -> Result<(), std::io::Error> {
-        buf.write_all(b"<?xml version=\"1.0\"")?;
+    pub(crate) fn serialize(&self, w: &mut impl Write) -> Result<(), std::io::Error> {
+        w.write_all(b"<?xml version=\"1.0\"")?;
         if let Some(encoding) = &self.encoding {
-            buf.write_all(b" encoding=\"")?;
-            buf.write_all(encoding.as_bytes())?;
-            buf.write_all(b"\"")?;
+            w.write_all(b" encoding=\"")?;
+            w.write_all(encoding.as_bytes())?;
+            w.write_all(b"\"")?;
         }
         if let Some(standalone) = self.standalone {
-            buf.write_all(b" standalone=\"")?;
-            buf.write_all(if standalone { b"yes" } else { b"no" })?;
-            buf.write_all(b"\"")?;
+            w.write_all(b" standalone=\"")?;
+            w.write_all(if standalone { b"yes" } else { b"no" })?;
+            w.write_all(b"\"")?;
         }
-        buf.write_all(b"?>\n")?;
+        w.write_all(b"?>\n")?;
         Ok(())
     }
 }
@@ -142,24 +142,24 @@ pub enum DocType {
 }
 
 impl DocType {
-    pub(crate) fn serialize(&self, name: &str, buf: &mut Vec<u8>) -> Result<(), std::io::Error> {
-        buf.write_all(b"<!DOCTYPE ")?;
-        buf.write_all(name.as_bytes())?;
+    pub(crate) fn serialize(&self, name: &str, w: &mut impl Write) -> Result<(), std::io::Error> {
+        w.write_all(b"<!DOCTYPE ")?;
+        w.write_all(name.as_bytes())?;
         match self {
             DocType::Public { public, system } => {
-                buf.write_all(b" PUBLIC \"")?;
-                buf.write_all(public.as_bytes())?;
-                buf.write_all(b"\" \"")?;
-                buf.write_all(system.as_bytes())?;
-                buf.write_all(b"\"")?;
+                w.write_all(b" PUBLIC \"")?;
+                w.write_all(public.as_bytes())?;
+                w.write_all(b"\" \"")?;
+                w.write_all(system.as_bytes())?;
+                w.write_all(b"\"")?;
             }
             DocType::System { system } => {
-                buf.write_all(b" SYSTEM \"")?;
-                buf.write_all(system.as_bytes())?;
-                buf.write_all(b"\"")?;
+                w.write_all(b" SYSTEM \"")?;
+                w.write_all(system.as_bytes())?;
+                w.write_all(b"\"")?;
             }
         }
-        buf.write_all(b">\n")?;
+        w.write_all(b">\n")?;
         Ok(())
     }
 }
@@ -200,7 +200,7 @@ mod tests {
         let doc = xot.parse("<doc><p>hello</p></doc>").unwrap();
 
         assert_eq!(
-            xot.serialize_xml(m, doc).unwrap(),
+            xot.serialize_xml_string(m, doc).unwrap(),
             r#"<doc><p>hello</p></doc>"#
         );
     }
@@ -215,7 +215,7 @@ mod tests {
         let doc = xot.parse("<doc><p>hello</p></doc>").unwrap();
 
         assert_eq!(
-            xot.serialize_xml(m, doc).unwrap(),
+            xot.serialize_xml_string(m, doc).unwrap(),
             r#"<doc>
   <p>hello</p>
 </doc>
@@ -234,7 +234,7 @@ mod tests {
         let doc = xot.parse("<doc><p><k>foo</k></p></doc>").unwrap();
 
         assert_eq!(
-            xot.serialize_xml(m, doc).unwrap(),
+            xot.serialize_xml_string(m, doc).unwrap(),
             r#"<doc>
   <p>
     <k>foo</k>
@@ -255,7 +255,7 @@ mod tests {
         let doc = xot.parse("<doc><p><k>foo</k></p></doc>").unwrap();
 
         assert_eq!(
-            xot.serialize_xml(m, doc).unwrap(),
+            xot.serialize_xml_string(m, doc).unwrap(),
             r#"<doc>
   <p><k>foo</k></p>
 </doc>
@@ -273,7 +273,7 @@ mod tests {
         let doc = xot.parse("<doc/>").unwrap();
 
         assert_eq!(
-            xot.serialize_xml(m, doc).unwrap(),
+            xot.serialize_xml_string(m, doc).unwrap(),
             r#"<?xml version="1.0"?>
 <doc/>"#
         );
@@ -292,7 +292,7 @@ mod tests {
         let doc = xot.parse("<doc/>").unwrap();
 
         assert_eq!(
-            xot.serialize_xml(m, doc).unwrap(),
+            xot.serialize_xml_string(m, doc).unwrap(),
             r#"<?xml version="1.0" standalone="yes"?>
 <doc/>"#
         );
@@ -311,7 +311,7 @@ mod tests {
         let doc = xot.parse("<doc/>").unwrap();
 
         assert_eq!(
-            xot.serialize_xml(m, doc).unwrap(),
+            xot.serialize_xml_string(m, doc).unwrap(),
             r#"<!DOCTYPE doc PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <doc/>"#
         );
@@ -329,7 +329,7 @@ mod tests {
         let doc = xot.parse("<doc/>").unwrap();
 
         assert_eq!(
-            xot.serialize_xml(m, doc).unwrap(),
+            xot.serialize_xml_string(m, doc).unwrap(),
             r#"<!DOCTYPE doc SYSTEM "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <doc/>"#
         );
@@ -347,9 +347,25 @@ mod tests {
         let doc = xot.parse(r#"<prefix:doc xmlns:prefix="foo"/>"#).unwrap();
 
         assert_eq!(
-            xot.serialize_xml(m, doc).unwrap(),
+            xot.serialize_xml_string(m, doc).unwrap(),
             r#"<!DOCTYPE prefix:doc SYSTEM "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <prefix:doc xmlns:prefix="foo"/>"#
         );
     }
+
+    // #[test]
+    // fn test_cdata_sections_elements() {
+    //     let mut xot = Xot::new();
+    //     let p = xot.add_name("p");
+    //     let m = Parameters {
+    //         cdata_section_elements: vec![p],
+    //         ..Default::default()
+    //     };
+    //     let doc = xot.parse("<doc><p>hello</p></doc>").unwrap();
+
+    //     assert_eq!(
+    //         xot.serialize_xml(m, doc).unwrap(),
+    //         r#"<doc><p><![CDATA[hello]]></p></doc>"#
+    //     );
+    // }
 }

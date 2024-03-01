@@ -2,6 +2,16 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Breaking changes
+
+- Created a new API with much more control of serialization:
+
+  `Xot::serialize_xml_string` and `Xot::serialize_xml_write`, which are like
+  `Xot::to_string` and `Xot::write`, but allow fine-grained control of
+   serialization options, including pretty printing.
+
+- Removed `Xot::with_serialize_options`, `SerializeOptions`, `WithSerializeOptions` in favor of the new APIs.
+ 
 ## [0.22.0] - 2024-02-20
 
 ### Breaking changes

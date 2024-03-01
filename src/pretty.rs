@@ -199,7 +199,7 @@ mod tests {
 
         let document = xot.parse(xml).unwrap();
         let output_xml = xot
-            .serialize_xml(
+            .serialize_xml_string(
                 output::xml::Parameters {
                     indentation: Some(output::xml::Indentation { suppress }),
                     ..Default::default()
