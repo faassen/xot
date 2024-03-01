@@ -52,9 +52,7 @@ impl Xot {
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn write(&self, node: Node, w: &mut impl Write) -> Result<(), Error> {
-        let outputs = gen_outputs(self, node);
-        let mut serializer = XmlSerializer::new(self, node, vec![]);
-        serializer.serialize(w, outputs)
+        self.serialize_xml_write(Default::default(), node, w)
     }
 
     /// Serialize node as XML string.
@@ -80,9 +78,7 @@ impl Xot {
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn to_string(&self, node: Node) -> Result<String, Error> {
-        let mut buf = Vec::new();
-        self.write(node, &mut buf)?;
-        Ok(String::from_utf8(buf).unwrap())
+        self.serialize_xml_string(Default::default(), node)
     }
 
     /// Serialize to XML, with options.
