@@ -4,7 +4,7 @@ use std::io;
 use std::rc::Rc;
 
 use crate::access::NodeEdge;
-use crate::entity::{serialize_attribute, serialize_cdata, serialize_text};
+use crate::entity::{serialize_attribute, serialize_cdata, serialize_text, Normalizer};
 use crate::error::Error;
 use crate::fullname::FullnameSerializer;
 use crate::id::{NameId, NamespaceId, PrefixId};
@@ -125,10 +125,11 @@ fn gen_edge_end(xot: &Xot, node: Node) -> impl Iterator<Item = Output> + '_ {
     .into_iter()
 }
 
-pub(crate) struct XmlSerializer<'a> {
+pub(crate) struct XmlSerializer<'a, N: Normalizer> {
     xot: &'a Xot,
     cdata_section_names: &'a [NameId],
     fullname_serializer: FullnameSerializer<'a>,
+    normalizer: N,
 }
 
 /// Output token
@@ -143,8 +144,13 @@ pub struct OutputToken {
     pub text: String,
 }
 
-impl<'a> XmlSerializer<'a> {
-    pub(crate) fn new(xot: &'a Xot, node: Node, cdata_section_names: &'a [NameId]) -> Self {
+impl<'a, N: Normalizer> XmlSerializer<'a, N> {
+    pub(crate) fn new(
+        xot: &'a Xot,
+        node: Node,
+        cdata_section_names: &'a [NameId],
+        normalizer: N,
+    ) -> Self {
         let extra_prefixes = get_extra_prefixes(xot, node);
         let mut fullname_serializer = FullnameSerializer::new(xot);
         fullname_serializer.push(&extra_prefixes);
@@ -152,6 +158,7 @@ impl<'a> XmlSerializer<'a> {
             xot,
             cdata_section_names,
             fullname_serializer,
+            normalizer,
         }
     }
 
@@ -267,7 +274,11 @@ impl<'a> XmlSerializer<'a> {
                 let fullname = self.fullname_serializer.fullname_attr_or_err(*name_id)?;
                 OutputToken {
                     space: true,
-                    text: format!("{}=\"{}\"", fullname, serialize_attribute((*value).into())),
+                    text: format!(
+                        "{}=\"{}\"",
+                        fullname,
+                        serialize_attribute((*value).into(), &self.normalizer)
+                    ),
                 }
             }
             Text(text) => {
@@ -277,12 +288,12 @@ impl<'a> XmlSerializer<'a> {
                 if self.cdata_section_names.contains(&element.name()) {
                     OutputToken {
                         space: false,
-                        text: serialize_cdata((*text).into()).to_string(),
+                        text: serialize_cdata((*text).into(), &self.normalizer).to_string(),
                     }
                 } else {
                     OutputToken {
                         space: false,
-                        text: serialize_text((*text).into()).to_string(),
+                        text: serialize_text((*text).into(), &self.normalizer).to_string(),
                     }
                 }
             }

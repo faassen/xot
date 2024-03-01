@@ -1,5 +1,6 @@
 use std::io::Write;
 
+use crate::entity::NoopNormalizer;
 use crate::error::Error;
 use crate::pretty::Pretty;
 use crate::serializer::{gen_outputs, Output, OutputToken, XmlSerializer};
@@ -192,7 +193,12 @@ impl Xot {
             doctype.serialize(name.as_ref(), w)?;
         }
         let outputs = gen_outputs(self, node);
-        let mut serializer = XmlSerializer::new(self, node, &parameters.cdata_section_elements);
+        let mut serializer = XmlSerializer::new(
+            self,
+            node,
+            &parameters.cdata_section_elements,
+            NoopNormalizer,
+        );
         if let Some(indentation) = parameters.indentation {
             serializer.serialize_pretty(w, outputs, &indentation.suppress)?;
         } else {
@@ -234,7 +240,7 @@ impl Xot {
         cdata_section_elements: &'a [NameId],
     ) -> impl Iterator<Item = (Node, Output, OutputToken)> + 'a {
         let outputs = gen_outputs(self, node);
-        let mut serializer = XmlSerializer::new(self, node, cdata_section_elements);
+        let mut serializer = XmlSerializer::new(self, node, cdata_section_elements, NoopNormalizer);
         outputs.map(move |(node, output)| {
             let rendered = serializer.render_output(node, &output).unwrap();
             (node, output, rendered)
@@ -257,7 +263,7 @@ impl Xot {
         cdata_section_elements: &'a [NameId],
     ) -> impl Iterator<Item = (Node, Output, PrettyOutputToken)> + 'a {
         let outputs = gen_outputs(self, node);
-        let mut serializer = XmlSerializer::new(self, node, cdata_section_elements);
+        let mut serializer = XmlSerializer::new(self, node, cdata_section_elements, NoopNormalizer);
         let mut pretty = Pretty::new(self, suppress_elements);
         outputs.map(move |(node, output)| {
             let (indentation, newline) = pretty.prettify(node, &output);

@@ -167,7 +167,7 @@ impl DocType {
 /// Unicode normalization.
 #[cfg(feature = "icu")]
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum NormalizationForm {
+pub enum NormalizationForm {
     /// Normalization Form C, using the rules specified in [Character Model for
     /// the World Wide Web 1.0:
     /// Normalization](https://www.w3.org/TR/xslt-xquery-serialization/#charmod-norm).
@@ -366,6 +366,22 @@ mod tests {
         assert_eq!(
             xot.serialize_xml_string(m, doc).unwrap(),
             r#"<doc><p><![CDATA[hello]]></p></doc>"#
+        );
+    }
+
+    #[test]
+    fn test_cdata_sections_elements_multiple() {
+        let mut xot = Xot::new();
+        let p = xot.add_name("p");
+        let m = Parameters {
+            cdata_section_elements: vec![p],
+            ..Default::default()
+        };
+        let doc = xot.parse("<doc><p>hello<s> </s>world</p></doc>").unwrap();
+
+        assert_eq!(
+            xot.serialize_xml_string(m, doc).unwrap(),
+            r#"<doc><p><![CDATA[hello]]><s> </s><![CDATA[world]]></p></doc>"#
         );
     }
 

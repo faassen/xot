@@ -19,6 +19,23 @@
 - The `Xot::pretty_tokens` API has two additional parameters: a list of
   elements that should be included from indentation and a list of that should
   be serialized as cdata sections.
+
+## Changes
+
+### New `xml::output::Parameters` API to control serialization
+
+- You can cause an XML declaration to be output.
+
+- You can cause a doctype declaration to be output.
+
+- You can suppress specific element names from being pretty-printed.
+
+- You can cause specific element names content to be presented as CDATA
+  sections.
+
+- You can cause text content to be normalized using unicode normalization 
+  arguments. This requires the new feature `icu` feature to be enabled.
+
  
 ## [0.22.0] - 2024-02-20
 

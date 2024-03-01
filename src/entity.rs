@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use crate::error::Error;
+use crate::output;
 
 pub(crate) fn parse_text(content: Cow<str>) -> Result<Cow<str>, Error> {
     parse_content(content, false)
@@ -84,7 +85,10 @@ fn parse_content(content: Cow<str>, attribute: bool) -> Result<Cow<str>, Error> 
     }
 }
 
-pub(crate) fn serialize_text(content: Cow<str>) -> Cow<str> {
+pub(crate) fn serialize_text<'a, N: Normalizer>(
+    content: Cow<'a, str>,
+    normalize: &N,
+) -> Cow<'a, str> {
     let mut result = String::new();
     let mut change = false;
     for c in content.chars() {
@@ -109,7 +113,10 @@ pub(crate) fn serialize_text(content: Cow<str>) -> Cow<str> {
     }
 }
 
-pub(crate) fn serialize_cdata(content: Cow<str>) -> Cow<str> {
+pub(crate) fn serialize_cdata<'a, N: Normalizer>(
+    content: Cow<'a, str>,
+    normalize: &N,
+) -> Cow<'a, str> {
     let mut result = String::new();
     result.push_str("<![CDATA[");
     // we write the content, watching for any possible sequence of "]]>"
@@ -157,7 +164,10 @@ pub(crate) fn serialize_cdata(content: Cow<str>) -> Cow<str> {
     result.into()
 }
 
-pub(crate) fn serialize_attribute(content: Cow<str>) -> Cow<str> {
+pub(crate) fn serialize_attribute<'a, N: Normalizer>(
+    content: Cow<'a, str>,
+    normalize: &N,
+) -> Cow<'a, str> {
     let mut result = String::new();
     let mut change = false;
     for c in content.chars() {
@@ -189,8 +199,66 @@ pub(crate) fn serialize_attribute(content: Cow<str>) -> Cow<str> {
     }
 }
 
+pub(crate) trait Normalizer {
+    fn normalize(content: &str) -> Cow<str>;
+}
+
+pub(crate) struct NoopNormalizer;
+
+impl Normalizer for NoopNormalizer {
+    fn normalize(content: &str) -> Cow<str> {
+        content.into()
+    }
+}
+
+// #[cfg(feature = "icu")]
+// pub(crate) fn create_normalize(
+//     provider: &impl icu_provider::AnyProvider,
+//     normalization_form: Option<output::xml::NormalizationForm>,
+// ) -> Result<Normalize, Error> {
+//     if let Some(normalization_form) = normalization_form {
+//         use crate::output::xml::NormalizationForm::*;
+//         use icu::normalizer::{ComposingNormalizer, DecomposingNormalizer};
+
+//         match normalization_form {
+//             Nfc => {
+//                 let normalizer = ComposingNormalizer::try_new_nfc_with_any_provider(provider)?;
+//                 Ok(Box::new(move |content| {
+//                     normalizer.normalize(content).into()
+//                 }))
+//             }
+//             Nfd => {
+//                 let normalizer = DecomposingNormalizer::try_new_nfd_with_any_provider(provider)?;
+//                 Ok(Box::new(move |content| {
+//                     normalizer.normalize(content).into()
+//                 }))
+//             }
+//             Nfkc => {
+//                 let normalizer = ComposingNormalizer::try_new_nfkc_with_any_provider(provider)?;
+//                 Ok(Box::new(move |content| {
+//                     normalizer.normalize(content).into()
+//                 }))
+//             }
+//             Nfkd => {
+//                 let normalizer = DecomposingNormalizer::try_new_nfkd_with_any_provider(provider)?;
+//                 Ok(Box::new(move |content| {
+//                     normalizer.normalize(content).into()
+//                 }))
+//             }
+//         }
+//     } else {
+//         Ok(Box::new(|content| content.into()))
+//     }
+// }
+
+pub(crate) fn noop_normalize(content: &str) -> Cow<str> {
+    content.into()
+}
+
 #[cfg(test)]
 mod tests {
+    use core::str;
+
     use super::*;
 
     #[test]
@@ -286,19 +354,22 @@ mod tests {
     #[test]
     fn test_serialize_text() {
         let text = "A & B";
-        assert_eq!(serialize_text(text.into()), "A &amp; B");
+        assert_eq!(serialize_text(text.into(), &NoopNormalizer), "A &amp; B");
     }
 
     #[test]
     fn test_serialize_text_multiple() {
         let text = "&<'\">";
-        assert_eq!(serialize_text(text.into()), "&amp;&lt;'\">");
+        assert_eq!(
+            serialize_text(text.into(), &NoopNormalizer),
+            "&amp;&lt;'\">"
+        );
     }
 
     #[test]
     fn test_serialize_text_no_entities() {
         let text = "hello";
-        let result = serialize_text(text.into());
+        let result = serialize_text(text.into(), &NoopNormalizer);
         // this is the same slice
         assert!(std::ptr::eq(text, result.as_ref()));
     }
@@ -306,25 +377,34 @@ mod tests {
     #[test]
     fn test_serialize_attribute() {
         let text = "A & B";
-        assert_eq!(serialize_attribute(text.into()), "A &amp; B");
+        assert_eq!(
+            serialize_attribute(text.into(), &NoopNormalizer),
+            "A &amp; B"
+        );
     }
 
     #[test]
     fn test_serialize_attribute_multiple_single() {
         let text = "&<'";
-        assert_eq!(serialize_attribute(text.into()), "&amp;&lt;&apos;");
+        assert_eq!(
+            serialize_attribute(text.into(), &NoopNormalizer),
+            "&amp;&lt;&apos;"
+        );
     }
 
     #[test]
     fn test_serialize_attribute_multiple_double() {
         let text = "&<\"";
-        assert_eq!(serialize_attribute(text.into()), "&amp;&lt;&quot;");
+        assert_eq!(
+            serialize_attribute(text.into(), &NoopNormalizer),
+            "&amp;&lt;&quot;"
+        );
     }
 
     #[test]
     fn test_serialize_attribute_no_entities() {
         let text = "hello";
-        let result = serialize_attribute(text.into());
+        let result = serialize_attribute(text.into(), &NoopNormalizer);
         // this is the same slice
         assert!(std::ptr::eq(text, result.as_ref()));
     }
@@ -362,14 +442,17 @@ mod tests {
     #[test]
     fn test_serialize_cdata_simple() {
         let text = "hello";
-        assert_eq!(serialize_cdata(text.into()), "<![CDATA[hello]]>");
+        assert_eq!(
+            serialize_cdata(text.into(), &NoopNormalizer),
+            "<![CDATA[hello]]>"
+        );
     }
 
     #[test]
     fn test_serialize_cdata_end_sequence() {
         let text = "hello]]>world";
         assert_eq!(
-            serialize_cdata(text.into()),
+            serialize_cdata(text.into(), &NoopNormalizer),
             "<![CDATA[hello]]]]><![CDATA[>world]]>"
         );
     }
@@ -377,35 +460,50 @@ mod tests {
     #[test]
     fn test_serialize_cdata_two_square_brackets() {
         let text = "hello]]world";
-        assert_eq!(serialize_cdata(text.into()), "<![CDATA[hello]]world]]>");
+        assert_eq!(
+            serialize_cdata(text.into(), &NoopNormalizer),
+            "<![CDATA[hello]]world]]>"
+        );
     }
 
     // two square brackets at the end
     #[test]
     fn test_serialize_cdata_two_square_brackets_end() {
         let text = "hello]]";
-        assert_eq!(serialize_cdata(text.into()), "<![CDATA[hello]]]]>");
+        assert_eq!(
+            serialize_cdata(text.into(), &NoopNormalizer),
+            "<![CDATA[hello]]]]>"
+        );
     }
 
     // greater than sign by itself
     #[test]
     fn test_serialize_cdata_greater_than() {
         let text = ">";
-        assert_eq!(serialize_cdata(text.into()), "<![CDATA[>]]>");
+        assert_eq!(
+            serialize_cdata(text.into(), &NoopNormalizer),
+            "<![CDATA[>]]>"
+        );
     }
 
     // special sequence by itself
     #[test]
     fn test_serialize_cdata_special_sequence() {
         let text = "]]>";
-        assert_eq!(serialize_cdata(text.into()), "<![CDATA[]]]]><![CDATA[>]]>");
+        assert_eq!(
+            serialize_cdata(text.into(), &NoopNormalizer),
+            "<![CDATA[]]]]><![CDATA[>]]>"
+        );
     }
 
     // three square brackets
     #[test]
     fn test_serialize_cdata_three_square_brackets() {
         let text = "hello]]]world";
-        assert_eq!(serialize_cdata(text.into()), "<![CDATA[hello]]]world]]>");
+        assert_eq!(
+            serialize_cdata(text.into(), &NoopNormalizer),
+            "<![CDATA[hello]]]world]]>"
+        );
     }
 
     // three square brackets ending in special sequence
@@ -413,7 +511,7 @@ mod tests {
     fn test_serialize_cdata_three_square_brackets_end_sequence() {
         let text = "hello]]]>world";
         assert_eq!(
-            serialize_cdata(text.into()),
+            serialize_cdata(text.into(), &NoopNormalizer),
             "<![CDATA[hello]]]]]><![CDATA[>world]]>"
         );
     }
