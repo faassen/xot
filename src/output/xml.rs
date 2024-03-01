@@ -13,8 +13,6 @@ use crate::NameId;
 /// enums to make the API more ergonomic where there are multiple interacting
 /// parameters.
 ///
-/// The `normalization_form` parameter is only included if the `icu` feature is
-/// enabled.
 ///
 /// Here is how we diverge from the specification:
 ///
@@ -39,9 +37,6 @@ pub struct Parameters {
     pub declaration: Option<Declaration>,
     /// The doctype declaration, if any.
     pub doctype: Option<DocType>,
-    /// Unicode normalization form, if any.
-    #[cfg(feature = "icu")]
-    pub normalization_form: Option<NormalizationForm>,
     // TODO: character maps
 }
 
@@ -162,27 +157,6 @@ impl DocType {
         w.write_all(b">\n")?;
         Ok(())
     }
-}
-
-/// Unicode normalization.
-#[cfg(feature = "icu")]
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum NormalizationForm {
-    /// Normalization Form C, using the rules specified in [Character Model for
-    /// the World Wide Web 1.0:
-    /// Normalization](https://www.w3.org/TR/xslt-xquery-serialization/#charmod-norm).
-    Nfc,
-    /// NFD specifies the serialized result will be in Normalization Form D, as
-    /// specified in [UAX #15: Unicode Normalization
-    /// Forms](https://www.w3.org/TR/xslt-xquery-serialization/#UNICODE-NORMALIZATION-FORM).
-    Nfd,
-    /// Normalization Form KC, as specified in [UAX #15: Unicode Normalization
-    /// Forms](https://www.w3.org/TR/xslt-xquery-serialization/#UNICODE-NORMALIZATION-FORM).
-    Nfkc,
-    /// Normalization Form KD, as specified in [UAX #15: Unicode Normalization
-    /// Forms](https://www.w3.org/TR/xslt-xquery-serialization/#UNICODE-NORMALIZATION-FORM).
-    Nfkd,
-    // TODO: fully normalized
 }
 
 #[cfg(test)]

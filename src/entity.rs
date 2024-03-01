@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use crate::error::Error;
-use crate::output;
+use crate::output::{self, Normalizer};
 
 pub(crate) fn parse_text(content: Cow<str>) -> Result<Cow<str>, Error> {
     parse_content(content, false)
@@ -199,65 +199,10 @@ pub(crate) fn serialize_attribute<'a, N: Normalizer>(
     }
 }
 
-pub(crate) trait Normalizer {
-    fn normalize(content: &str) -> Cow<str>;
-}
-
-pub(crate) struct NoopNormalizer;
-
-impl Normalizer for NoopNormalizer {
-    fn normalize(content: &str) -> Cow<str> {
-        content.into()
-    }
-}
-
-// #[cfg(feature = "icu")]
-// pub(crate) fn create_normalize(
-//     provider: &impl icu_provider::AnyProvider,
-//     normalization_form: Option<output::xml::NormalizationForm>,
-// ) -> Result<Normalize, Error> {
-//     if let Some(normalization_form) = normalization_form {
-//         use crate::output::xml::NormalizationForm::*;
-//         use icu::normalizer::{ComposingNormalizer, DecomposingNormalizer};
-
-//         match normalization_form {
-//             Nfc => {
-//                 let normalizer = ComposingNormalizer::try_new_nfc_with_any_provider(provider)?;
-//                 Ok(Box::new(move |content| {
-//                     normalizer.normalize(content).into()
-//                 }))
-//             }
-//             Nfd => {
-//                 let normalizer = DecomposingNormalizer::try_new_nfd_with_any_provider(provider)?;
-//                 Ok(Box::new(move |content| {
-//                     normalizer.normalize(content).into()
-//                 }))
-//             }
-//             Nfkc => {
-//                 let normalizer = ComposingNormalizer::try_new_nfkc_with_any_provider(provider)?;
-//                 Ok(Box::new(move |content| {
-//                     normalizer.normalize(content).into()
-//                 }))
-//             }
-//             Nfkd => {
-//                 let normalizer = DecomposingNormalizer::try_new_nfkd_with_any_provider(provider)?;
-//                 Ok(Box::new(move |content| {
-//                     normalizer.normalize(content).into()
-//                 }))
-//             }
-//         }
-//     } else {
-//         Ok(Box::new(|content| content.into()))
-//     }
-// }
-
-pub(crate) fn noop_normalize(content: &str) -> Cow<str> {
-    content.into()
-}
-
 #[cfg(test)]
 mod tests {
-    use core::str;
+
+    use crate::output::NoopNormalizer;
 
     use super::*;
 

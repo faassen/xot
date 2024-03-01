@@ -1,7 +1,7 @@
 use std::io::Write;
 
-use crate::entity::NoopNormalizer;
 use crate::error::Error;
+use crate::output::{NoopNormalizer, Normalizer};
 use crate::pretty::Pretty;
 use crate::serializer::{gen_outputs, Output, OutputToken, XmlSerializer};
 use crate::xmlname::NameStrInfo;
@@ -159,10 +159,31 @@ impl Xot {
         parameters: output::xml::Parameters,
         node: Node,
     ) -> Result<String, Error> {
+        self.serialize_xml_string_with_normalizer(parameters, node, NoopNormalizer)
+    }
+
+    /// Serialize a string using a normalizer for any text and attribute values.
+    pub fn serialize_xml_string_with_normalizer<N: Normalizer>(
+        &self,
+        parameters: output::xml::Parameters,
+        node: Node,
+        normalizer: N,
+    ) -> Result<String, Error> {
         let mut buf = Vec::new();
-        self.serialize_xml_write(parameters, node, &mut buf)?;
+        self.serialize_xml_write_with_normalizer(parameters, node, &mut buf, normalizer)?;
         Ok(String::from_utf8(buf).unwrap())
     }
+
+    // pub fn serialize_xml_string_with_normalizer<N: Normalizer>(
+    //     &self,
+    //     parameters: output::xml::Parameters,
+    //     node: Node,
+    //     normalizer: N,
+    // ) -> Result<String, Error> {
+    //     let mut buf = Vec::new();
+    //     self.serialize_xml_write(parameters, node, &mut buf)?;
+    //     Ok(String::from_utf8(buf).unwrap())
+    // }
 
     /// Serialize to XML via a [`Write`], with options.
     ///
@@ -174,6 +195,17 @@ impl Xot {
         parameters: output::xml::Parameters,
         node: Node,
         w: &mut impl Write,
+    ) -> Result<(), Error> {
+        self.serialize_xml_write_with_normalizer(parameters, node, w, NoopNormalizer)
+    }
+
+    /// Write XML with a normalizer for text and attribute values.
+    pub fn serialize_xml_write_with_normalizer<N: Normalizer>(
+        &self,
+        parameters: output::xml::Parameters,
+        node: Node,
+        w: &mut impl Write,
+        normalizer: N,
     ) -> Result<(), Error> {
         if let Some(declaration) = parameters.declaration {
             declaration.serialize(w)?;
@@ -193,12 +225,8 @@ impl Xot {
             doctype.serialize(name.as_ref(), w)?;
         }
         let outputs = gen_outputs(self, node);
-        let mut serializer = XmlSerializer::new(
-            self,
-            node,
-            &parameters.cdata_section_elements,
-            NoopNormalizer,
-        );
+        let mut serializer =
+            XmlSerializer::new(self, node, &parameters.cdata_section_elements, normalizer);
         if let Some(indentation) = parameters.indentation {
             serializer.serialize_pretty(w, outputs, &indentation.suppress)?;
         } else {

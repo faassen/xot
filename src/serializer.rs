@@ -4,10 +4,11 @@ use std::io;
 use std::rc::Rc;
 
 use crate::access::NodeEdge;
-use crate::entity::{serialize_attribute, serialize_cdata, serialize_text, Normalizer};
+use crate::entity::{serialize_attribute, serialize_cdata, serialize_text};
 use crate::error::Error;
 use crate::fullname::FullnameSerializer;
 use crate::id::{NameId, NamespaceId, PrefixId};
+use crate::output::Normalizer;
 use crate::pretty::Pretty;
 use crate::xmlvalue::{Element, Prefixes};
 use crate::xmlvalue::{Value, ValueType};
