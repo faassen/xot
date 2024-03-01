@@ -174,17 +174,6 @@ impl Xot {
         Ok(String::from_utf8(buf).unwrap())
     }
 
-    // pub fn serialize_xml_string_with_normalizer<N: Normalizer>(
-    //     &self,
-    //     parameters: output::xml::Parameters,
-    //     node: Node,
-    //     normalizer: N,
-    // ) -> Result<String, Error> {
-    //     let mut buf = Vec::new();
-    //     self.serialize_xml_write(parameters, node, &mut buf)?;
-    //     Ok(String::from_utf8(buf).unwrap())
-    // }
-
     /// Serialize to XML via a [`Write`], with options.
     ///
     /// This is like [`Xot::serialize_xml_string`] but writes to a [`Write`]. This
