@@ -4,7 +4,7 @@ use std::io;
 use std::rc::Rc;
 
 use crate::access::NodeEdge;
-use crate::entity::{serialize_attribute, serialize_text};
+use crate::entity::{serialize_attribute, serialize_cdata, serialize_text};
 use crate::error::Error;
 use crate::fullname::FullnameSerializer;
 use crate::id::{NameId, NamespaceId, PrefixId};
@@ -270,10 +270,22 @@ impl<'a> XmlSerializer<'a> {
                     text: format!("{}=\"{}\"", fullname, serialize_attribute((*value).into())),
                 }
             }
-            Text(text) => OutputToken {
-                space: false,
-                text: serialize_text((*text).into()).to_string(),
-            },
+            Text(text) => {
+                // a text node is always a child of an element
+                let parent = self.xot.parent(node).unwrap();
+                let element = self.xot.element(parent).unwrap();
+                if self.cdata_section_names.contains(&element.name()) {
+                    OutputToken {
+                        space: false,
+                        text: serialize_cdata((*text).into()).to_string(),
+                    }
+                } else {
+                    OutputToken {
+                        space: false,
+                        text: serialize_text((*text).into()).to_string(),
+                    }
+                }
+            }
             Comment(text) => OutputToken {
                 space: false,
                 text: format!("<!--{}-->", text),

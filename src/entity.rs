@@ -109,6 +109,35 @@ pub(crate) fn serialize_text(content: Cow<str>) -> Cow<str> {
     }
 }
 
+pub(crate) fn serialize_cdata(content: Cow<str>) -> Cow<str> {
+    let mut result = String::new();
+    result.push_str("<![CDATA[");
+    result.push_str(&content);
+    result.push_str("]]>");
+    result.into()
+    // let mut change = false;
+    // for c in content.chars() {
+    //     match c {
+    //         '&' => {
+    //             change = true;
+    //             result.push_str("&amp;")
+    //         }
+
+    //         '<' => {
+    //             change = true;
+    //             result.push_str("&lt;")
+    //         }
+    //         _ => result.push(c),
+    //     }
+    // }
+
+    // if !change {
+    //     content
+    // } else {
+    //     result.into()
+    // }
+}
+
 pub(crate) fn serialize_attribute(content: Cow<str>) -> Cow<str> {
     let mut result = String::new();
     let mut change = false;

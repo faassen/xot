@@ -353,19 +353,19 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn test_cdata_sections_elements() {
-    //     let mut xot = Xot::new();
-    //     let p = xot.add_name("p");
-    //     let m = Parameters {
-    //         cdata_section_elements: vec![p],
-    //         ..Default::default()
-    //     };
-    //     let doc = xot.parse("<doc><p>hello</p></doc>").unwrap();
+    #[test]
+    fn test_cdata_sections_elements() {
+        let mut xot = Xot::new();
+        let p = xot.add_name("p");
+        let m = Parameters {
+            cdata_section_elements: vec![p],
+            ..Default::default()
+        };
+        let doc = xot.parse("<doc><p>hello</p></doc>").unwrap();
 
-    //     assert_eq!(
-    //         xot.serialize_xml(m, doc).unwrap(),
-    //         r#"<doc><p><![CDATA[hello]]></p></doc>"#
-    //     );
-    // }
+        assert_eq!(
+            xot.serialize_xml_string(m, doc).unwrap(),
+            r#"<doc><p><![CDATA[hello]]></p></doc>"#
+        );
+    }
 }
