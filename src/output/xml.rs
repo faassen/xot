@@ -13,9 +13,11 @@ use crate::NameId;
 /// enums to make the API more ergonomic where there are multiple interacting
 /// parameters.
 ///
-///
 /// Here is how we diverge from the specification:
 ///
+/// * `normalization-form` is not directly supported, but if you enable the `icu`
+///   feature you can use [`Xot::serialize_xml_with_normalizer`] to control
+///   normalization with an ICU normalizer.
 /// * There is no way to declare the `version` parameter, as only XML 1.0 is
 ///   permitted at this time.
 /// * You can only influence encoding parameter of the XML declaration, and

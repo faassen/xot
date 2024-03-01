@@ -163,6 +163,27 @@ impl Xot {
     }
 
     /// Serialize a string using a normalizer for any text and attribute values.
+    ///
+    /// If you enable the [`icu`] feature then support for [icu normalizers](https://docs.rs/icu/latest/icu/normalizer/index.html)
+    /// is provided.
+    #[cfg_attr(
+        feature = "icu",
+        doc = r##"
+You can pass in an icu normalizer like this:
+
+```rust
+use xot::{Xot, output};
+use icu::normalizer::ComposingNormalizer;
+let normalizer = ComposingNormalizer::new_nfc();
+// example taken from https://www.unicode.org/reports/tr15/ figure 5, second example
+let xml = "<doc>\u{1E0B}\u{0323}</doc>";
+let mut xot = Xot::new();
+let root = xot.parse(xml).unwrap();
+let s = xot.serialize_xml_string_with_normalizer(output::xml::Parameters::default(), root, normalizer).unwrap();
+assert_eq!(s, "<doc>\u{1E0D}\u{0307}</doc>");
+```
+"##
+    )]
     pub fn serialize_xml_string_with_normalizer<N: Normalizer>(
         &self,
         parameters: output::xml::Parameters,

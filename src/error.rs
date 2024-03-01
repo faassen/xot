@@ -62,10 +62,6 @@ pub enum Error {
 
     /// IO error
     Io(std::io::Error),
-
-    /// ICU normalizer error
-    #[cfg(feature = "icu")]
-    IcuNormalizer(icu::normalizer::Error),
 }
 
 impl From<indextree::NodeError> for Error {
@@ -86,14 +82,6 @@ impl From<xmlparser::Error> for Error {
     #[inline]
     fn from(e: xmlparser::Error) -> Self {
         Error::Parser(e)
-    }
-}
-
-#[cfg(feature = "icu")]
-impl From<icu::normalizer::Error> for Error {
-    #[inline]
-    fn from(e: icu::normalizer::Error) -> Self {
-        Error::IcuNormalizer(e)
     }
 }
 
@@ -122,8 +110,6 @@ impl std::fmt::Display for Error {
             Error::DtdUnsupported => write!(f, "DTD is not supported"),
             Error::Parser(e) => write!(f, "Parser error: {}", e),
             Error::Io(e) => write!(f, "IO error: {}", e),
-            #[cfg(feature = "icu")]
-            Error::IcuNormalizer(e) => write!(f, "ICU normalizer error: {}", e),
         }
     }
 }

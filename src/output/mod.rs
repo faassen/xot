@@ -5,7 +5,4 @@ mod normalizer;
 /// such as pretty printing and the inclusion of a XML declaration.
 pub mod xml;
 
-#[cfg(feature = "icu")]
-pub use icu_normalization::NormalizationForm;
-
 pub use normalizer::{NoopNormalizer, Normalizer};

@@ -14,7 +14,7 @@ keywords = ["xml", "tree", "dom"]
 [features]
 proptest = ["dep:proptest"]
 serde = ["dep:serde"]
-icu = ["dep:icu", "dep:icu_provider"]
+icu = ["dep:icu"]
 
 [package.metadata.docs.rs]
 all-features = true
@@ -29,7 +29,6 @@ xhtmlchardet = "2.2.0"
 genawaiter = "0.99.1"
 serde = { version = "~1", features = ["derive"], optional = true }
 icu = { version = "~1", optional = true }
-icu_provider = { version = "~1", optional = true }
 
 [dev-dependencies]
 insta = { version = "1.21.2" }

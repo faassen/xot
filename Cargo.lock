@@ -1217,7 +1217,6 @@ dependencies = [
  "encoding_rs",
  "genawaiter",
  "icu",
- "icu_provider",
  "indextree",
  "insta",
  "proptest",

@@ -91,7 +91,9 @@ pub(crate) fn serialize_text<'a, N: Normalizer>(
 ) -> Cow<'a, str> {
     let mut result = String::new();
     let mut change = false;
-    for c in content.chars() {
+    // if we had normalized_iter on the trait we avoid this string allocation
+    let normalized_content = normalize.normalize(content);
+    for c in normalized_content.chars() {
         match c {
             '&' => {
                 change = true;
@@ -107,7 +109,7 @@ pub(crate) fn serialize_text<'a, N: Normalizer>(
     }
 
     if !change {
-        content
+        normalized_content
     } else {
         result.into()
     }
@@ -115,13 +117,14 @@ pub(crate) fn serialize_text<'a, N: Normalizer>(
 
 pub(crate) fn serialize_cdata<'a, N: Normalizer>(
     content: Cow<'a, str>,
-    normalize: &N,
+    normalizer: &N,
 ) -> Cow<'a, str> {
     let mut result = String::new();
     result.push_str("<![CDATA[");
     // we write the content, watching for any possible sequence of "]]>"
     let mut closing_square_brackets_seen = 0;
-    for c in content.chars() {
+    let normalized_content = normalizer.normalize(content);
+    for c in normalized_content.chars() {
         match c {
             ']' => {
                 if closing_square_brackets_seen < 2 {
@@ -166,11 +169,12 @@ pub(crate) fn serialize_cdata<'a, N: Normalizer>(
 
 pub(crate) fn serialize_attribute<'a, N: Normalizer>(
     content: Cow<'a, str>,
-    normalize: &N,
+    normalizer: &N,
 ) -> Cow<'a, str> {
     let mut result = String::new();
     let mut change = false;
-    for c in content.chars() {
+    let normalized_content = normalizer.normalize(content);
+    for c in normalized_content.chars() {
         match c {
             '&' => {
                 change = true;
@@ -193,7 +197,7 @@ pub(crate) fn serialize_attribute<'a, N: Normalizer>(
     }
 
     if !change {
-        content
+        normalized_content
     } else {
         result.into()
     }
