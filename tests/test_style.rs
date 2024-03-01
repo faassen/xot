@@ -15,7 +15,9 @@ fn test_style() -> Result<(), Error> {
     // now we unwrap the style
     xot.element_unwrap(style).unwrap();
 
-    let pretty_tokens = xot.pretty_tokens(root);
+    let suppress = vec![];
+    let cdata = vec![];
+    let pretty_tokens = xot.pretty_tokens(root, &suppress, &cdata);
 
     #[derive(Debug, PartialEq, Eq)]
     enum Style {
@@ -68,7 +70,9 @@ fn test_style_element() -> Result<(), Error> {
     let a = xot.first_child(root).unwrap();
     let b = xot.first_child(a).unwrap();
 
-    let pretty_tokens = xot.pretty_tokens(root);
+    let suppress = vec![];
+    let cdata = vec![];
+    let pretty_tokens = xot.pretty_tokens(root, &suppress, &cdata);
 
     #[derive(Debug, PartialEq, Eq)]
     enum Style {
@@ -125,7 +129,9 @@ fn test_style_attribute() -> Result<(), Error> {
     let root = xot.parse(r#"<doc a="A" b="B"/>"#)?;
     let name_a = xot.add_name("a");
 
-    let pretty_tokens = xot.pretty_tokens(root);
+    let suppress = vec![];
+    let cdata = vec![];
+    let pretty_tokens = xot.pretty_tokens(root, &suppress, &cdata);
 
     #[derive(Debug, PartialEq, Eq)]
     enum Style {

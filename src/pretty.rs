@@ -25,12 +25,12 @@ enum StackEntry {
 pub(crate) struct Pretty<'a> {
     xot: &'a Xot,
     // a list of element names where we don't do indentation for the immediate content
-    suppress: Vec<NameId>,
+    suppress: &'a [NameId],
     stack: Vec<StackEntry>,
 }
 
 impl<'a> Pretty<'a> {
-    pub(crate) fn new(xot: &'a Xot, suppress: Vec<NameId>) -> Pretty<'a> {
+    pub(crate) fn new(xot: &'a Xot, suppress: &'a [NameId]) -> Pretty<'a> {
         Pretty {
             xot,
             suppress,

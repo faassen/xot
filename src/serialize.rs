@@ -4,7 +4,7 @@ use crate::error::Error;
 use crate::pretty::Pretty;
 use crate::serializer::{gen_outputs, Output, OutputToken, XmlSerializer};
 use crate::xmlname::NameStrInfo;
-use crate::{output, Value};
+use crate::{output, NameId, Value};
 
 use crate::xotdata::{Node, Xot};
 
@@ -192,10 +192,9 @@ impl Xot {
             doctype.serialize(name.as_ref(), w)?;
         }
         let outputs = gen_outputs(self, node);
-        let mut serializer =
-            XmlSerializer::new(self, node, parameters.cdata_section_elements.clone());
+        let mut serializer = XmlSerializer::new(self, node, &parameters.cdata_section_elements);
         if let Some(indentation) = parameters.indentation {
-            serializer.serialize_pretty(w, outputs, indentation.suppress.clone())?;
+            serializer.serialize_pretty(w, outputs, &indentation.suppress)?;
         } else {
             serializer.serialize(w, outputs)?;
         }
@@ -226,9 +225,16 @@ impl Xot {
     /// This creates an iterator that represents the serialized XML. You
     /// can use this to write custom renderers that serialize the XML in
     /// a different way, for instance with inline styling.
-    pub fn tokens(&self, node: Node) -> impl Iterator<Item = (Node, Output, OutputToken)> + '_ {
+    ///
+    /// You can include a list of element names that should be serialized as a
+    /// CDATA section.
+    pub fn tokens<'a>(
+        &'a self,
+        node: Node,
+        cdata_section_elements: &'a [NameId],
+    ) -> impl Iterator<Item = (Node, Output, OutputToken)> + 'a {
         let outputs = gen_outputs(self, node);
-        let mut serializer = XmlSerializer::new(self, node, vec![]);
+        let mut serializer = XmlSerializer::new(self, node, cdata_section_elements);
         outputs.map(move |(node, output)| {
             let rendered = serializer.render_output(node, &output).unwrap();
             (node, output, rendered)
@@ -237,16 +243,22 @@ impl Xot {
 
     /// Serialize node into outputs and pretty printed tokens.
     ///
-    /// This creates an iterator that represents the serialized XML. You
-    /// can use this to write custom renderers that serialize the XML in
-    /// a different way, for instance with inline styling.
-    pub fn pretty_tokens(
-        &self,
+    /// This creates an iterator that represents the serialized XML. You can
+    /// use this to write custom renderers that serialize the XML in a
+    /// different way, for instance with inline styling.
+    ///
+    /// You can include a list of elements names that are excluded from
+    /// indentation, and a list of elements that should be serialized as a
+    /// CDATA section.
+    pub fn pretty_tokens<'a>(
+        &'a self,
         node: Node,
-    ) -> impl Iterator<Item = (Node, Output, PrettyOutputToken)> + '_ {
+        suppress_elements: &'a [NameId],
+        cdata_section_elements: &'a [NameId],
+    ) -> impl Iterator<Item = (Node, Output, PrettyOutputToken)> + 'a {
         let outputs = gen_outputs(self, node);
-        let mut serializer = XmlSerializer::new(self, node, vec![]);
-        let mut pretty = Pretty::new(self, vec![]);
+        let mut serializer = XmlSerializer::new(self, node, cdata_section_elements);
+        let mut pretty = Pretty::new(self, suppress_elements);
         outputs.map(move |(node, output)| {
             let (indentation, newline) = pretty.prettify(node, &output);
             let rendered = serializer.render_output(node, &output).unwrap();

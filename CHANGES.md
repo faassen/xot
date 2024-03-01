@@ -11,6 +11,14 @@
    serialization options, including pretty printing.
 
 - Removed `Xot::with_serialize_options`, `SerializeOptions`, `WithSerializeOptions` in favor of the new APIs.
+
+- The `Xot::tokens` API has an additional parameter, a list of element names
+  that should be serialized as cdata sections. Putting in an empty vec is fine
+  if you don't want any.
+
+- The `Xot::pretty_tokens` API has two additional parameters: a list of
+  elements that should be included from indentation and a list of that should
+  be serialized as cdata sections.
  
 ## [0.22.0] - 2024-02-20
 

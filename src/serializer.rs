@@ -127,7 +127,7 @@ fn gen_edge_end(xot: &Xot, node: Node) -> impl Iterator<Item = Output> + '_ {
 
 pub(crate) struct XmlSerializer<'a> {
     xot: &'a Xot,
-    cdata_section_names: Vec<NameId>,
+    cdata_section_names: &'a [NameId],
     fullname_serializer: FullnameSerializer<'a>,
 }
 
@@ -144,7 +144,7 @@ pub struct OutputToken {
 }
 
 impl<'a> XmlSerializer<'a> {
-    pub(crate) fn new(xot: &'a Xot, node: Node, cdata_section_names: Vec<NameId>) -> Self {
+    pub(crate) fn new(xot: &'a Xot, node: Node, cdata_section_names: &'a [NameId]) -> Self {
         let extra_prefixes = get_extra_prefixes(xot, node);
         let mut fullname_serializer = FullnameSerializer::new(xot);
         fullname_serializer.push(&extra_prefixes);
@@ -170,7 +170,7 @@ impl<'a> XmlSerializer<'a> {
         &mut self,
         w: &mut W,
         outputs: impl Iterator<Item = (Node, Output<'a>)>,
-        suppress: Vec<NameId>,
+        suppress: &[NameId],
     ) -> Result<(), Error> {
         let mut pretty = Pretty::new(self.xot, suppress);
         for (node, output) in outputs {
