@@ -3,6 +3,7 @@
 //! This module lets you control serialization in various ways.
 mod common;
 pub mod html5;
+mod html5_serializer;
 #[cfg(feature = "icu")]
 mod icu_normalization;
 mod normalizer;

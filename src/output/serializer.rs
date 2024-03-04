@@ -11,7 +11,7 @@ use crate::xotdata::{Node, Xot};
 /// Output of serialization
 ///
 /// Given an [`OutputToken`] or
-/// [`PrettyOutputToken`](`crate::serialize::PrettyOutputToken`), this enum
+/// [`PrettyOutputToken`](`crate::output::PrettyOutputToken`), this enum
 /// represents what the token represents in the XML tree.
 ///
 /// You can use this information for customized serialization.
