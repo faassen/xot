@@ -1,30 +1,13 @@
 use std::io::Write;
 
 use crate::error::Error;
-use crate::output::Pretty;
 use crate::output::{gen_outputs, Output, OutputToken, XmlSerializer};
 use crate::output::{NoopNormalizer, Normalizer};
+use crate::output::{Pretty, PrettyOutputToken};
 use crate::xmlname::NameStrInfo;
 use crate::{output, NameId, Value};
 
 use crate::xotdata::{Node, Xot};
-
-/// Pretty output token
-///
-/// Like [`OutputToken`](`crate::output::OutputToken`) but with extra information for
-/// pretty printing.
-pub struct PrettyOutputToken {
-    /// indentation level.
-    pub indentation: usize,
-    /// Whether the token is prefixed by a space character.
-    pub space: bool,
-    /// The token
-    ///
-    /// This is a fragment of XML like `"<p"`, `a="A"` or `"</p>"`.
-    pub text: String,
-    /// Whether the token is suffixed by a newline character.
-    pub newline: bool,
-}
 
 /// ## Serialization
 impl Xot {

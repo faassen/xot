@@ -3,6 +3,23 @@ use crate::xmlvalue::ValueType;
 use crate::xotdata::{Node, Xot};
 use crate::NameId;
 
+/// Pretty output token
+///
+/// Like [`OutputToken`](`crate::output::OutputToken`) but with extra information for
+/// pretty printing.
+pub struct PrettyOutputToken {
+    /// indentation level.
+    pub indentation: usize,
+    /// Whether the token is prefixed by a space character.
+    pub space: bool,
+    /// The token
+    ///
+    /// This is a fragment of XML like `"<p"`, `a="A"` or `"</p>"`.
+    pub text: String,
+    /// Whether the token is suffixed by a newline character.
+    pub newline: bool,
+}
+
 // we need to track where we are in xml:space, so that we can know when to
 // insert newlines and indentation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

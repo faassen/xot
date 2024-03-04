@@ -22,8 +22,8 @@
   be serialized as cdata sections. You can also pass in a normalizer (if you don't
   care, use the `xot::output::NoopNormalizer`).
 
-- `xot::Output` and `xot::OutputToken` are now importable from `xot::output` instead of
-  from `xot` directly.
+- `xot::Output`, `xot::OutputToken`, `xot::PrettyOutputToken` are now
+  importable from `xot::output` instead of from `xot` directly.
 
 ## Changes
 

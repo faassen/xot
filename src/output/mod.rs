@@ -13,5 +13,6 @@ pub mod xml;
 pub use common::Indentation;
 pub use normalizer::{NoopNormalizer, Normalizer};
 pub(crate) use pretty::Pretty;
+pub use pretty::PrettyOutputToken;
 pub(crate) use serializer::{gen_outputs, XmlSerializer};
 pub use serializer::{Output, OutputToken};
