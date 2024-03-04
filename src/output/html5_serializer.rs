@@ -251,4 +251,17 @@ mod tests {
         let s = xot.to_html5_string(root).unwrap();
         assert_eq!(s, "<!DOCTYPE html><html><head></head><body></body></html>");
     }
+
+    #[test]
+    fn test_never_empty_xml_element() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse(r#"<html><head><foo xmlns="foo"><bar></bar></foo></head><body></body></html>"#)
+            .unwrap();
+        let s = xot.to_html5_string(root).unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html><head><foo xmlns="foo"><bar></bar></foo></head><body></body></html>"#
+        );
+    }
 }
