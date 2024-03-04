@@ -1,6 +1,7 @@
 use indextree::{Arena, NodeId};
 
 use crate::id::{Name, NameId, NameLookup, NamespaceId, NamespaceLookup, PrefixId, PrefixLookup};
+use crate::output::Html5Elements;
 use crate::xmlvalue::Value;
 
 pub(crate) type XmlArena = Arena<Value>;
@@ -58,6 +59,7 @@ pub struct Xot {
     pub(crate) xml_space_id: NameId,
     pub(crate) xml_prefixes: [PrefixId; 1],
     pub(crate) text_consolidation: bool,
+    pub(crate) html5_elements: Html5Elements,
 }
 
 impl Xot {
@@ -71,6 +73,9 @@ impl Xot {
         let xml_prefix_id = prefix_lookup.get_id_mut("xml");
         let mut name_lookup = NameLookup::new();
         let xml_space_id = name_lookup.get_id_mut(&Name::new("space", xml_namespace_id));
+        let html5_elements =
+            Html5Elements::new(&mut namespace_lookup, &mut name_lookup, no_namespace_id);
+
         Xot {
             arena: XmlArena::new(),
             namespace_lookup,
@@ -83,6 +88,7 @@ impl Xot {
             xml_space_id,
             xml_prefixes: [xml_prefix_id],
             text_consolidation: true,
+            html5_elements,
         }
     }
 
