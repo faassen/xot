@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use crate::error::Error;
-use crate::output::{gen_outputs, Output, OutputToken, XmlSerializer};
+use crate::output::{gen_outputs, Html5Serializer, Output, OutputToken, XmlSerializer};
 use crate::output::{NoopNormalizer, Normalizer};
 use crate::output::{Pretty, PrettyOutputToken};
 use crate::xmlname::NameStrInfo;
@@ -39,6 +39,11 @@ impl Xot {
         self.serialize_xml_write(Default::default(), node, w)
     }
 
+    /// Write to HTML5, default settings.
+    pub fn write_html5(&self, node: Node, w: &mut impl Write) -> Result<(), Error> {
+        self.serialize_html5_write(Default::default(), node, w)
+    }
+
     /// Serialize node as XML string.
     ///
     /// This uses the default serialization parameters: no XML declaration, no
@@ -63,6 +68,11 @@ impl Xot {
     /// ```
     pub fn to_string(&self, node: Node) -> Result<String, Error> {
         self.serialize_xml_string(Default::default(), node)
+    }
+
+    /// Serialize to HTML5, default settings.
+    pub fn to_html5_string(&self, node: Node) -> Result<String, Error> {
+        self.serialize_html5_string(Default::default(), node)
     }
 
     /// Serialize to XML, with options.
@@ -145,6 +155,15 @@ impl Xot {
         self.serialize_xml_string_with_normalizer(parameters, node, NoopNormalizer)
     }
 
+    /// Serialize to HTML 5 string.
+    pub fn serialize_html5_string(
+        &self,
+        parameters: output::html5::Parameters,
+        node: Node,
+    ) -> Result<String, Error> {
+        self.serialize_html5_string_with_normalizer(parameters, node, NoopNormalizer)
+    }
+
     /// Serialize a string using a normalizer for any text and attribute values.
     ///
     /// If you enable the `icu` feature then support for [icu normalizers](https://docs.rs/icu/latest/icu/normalizer/index.html)
@@ -178,6 +197,18 @@ assert_eq!(s, "<doc>\u{1E0D}\u{0307}</doc>");
         Ok(String::from_utf8(buf).unwrap())
     }
 
+    /// Serialize to HTML 5 string, with normalizer.
+    pub fn serialize_html5_string_with_normalizer<N: Normalizer>(
+        &self,
+        parameters: output::html5::Parameters,
+        node: Node,
+        normalizer: N,
+    ) -> Result<String, Error> {
+        let mut buf = Vec::new();
+        self.serialize_html5_write_with_normalizer(parameters, node, &mut buf, normalizer)?;
+        Ok(String::from_utf8(buf).unwrap())
+    }
+
     /// Serialize to XML via a [`Write`], with options.
     ///
     /// This is like [`Xot::serialize_xml_string`] but writes to a [`Write`]. This
@@ -190,6 +221,16 @@ assert_eq!(s, "<doc>\u{1E0D}\u{0307}</doc>");
         w: &mut impl Write,
     ) -> Result<(), Error> {
         self.serialize_xml_write_with_normalizer(parameters, node, w, NoopNormalizer)
+    }
+
+    /// Serialize to HTML 5 via a [`Write`], with options.
+    pub fn serialize_html5_write(
+        &self,
+        parameters: output::html5::Parameters,
+        node: Node,
+        w: &mut impl Write,
+    ) -> Result<(), Error> {
+        self.serialize_html5_write_with_normalizer(parameters, node, w, NoopNormalizer)
     }
 
     /// Write XML with a normalizer for text and attribute values.
@@ -222,6 +263,26 @@ assert_eq!(s, "<doc>\u{1E0D}\u{0307}</doc>");
         let outputs = gen_outputs(self, node);
         let mut serializer =
             XmlSerializer::new(self, node, &parameters.cdata_section_elements, normalizer);
+        if let Some(indentation) = parameters.indentation {
+            serializer.serialize_pretty(w, outputs, &indentation.suppress)?;
+        } else {
+            serializer.serialize(w, outputs)?;
+        }
+        Ok(())
+    }
+
+    /// Write HTML 5 with a normalizer for text and attribute values.
+    pub fn serialize_html5_write_with_normalizer<N: Normalizer>(
+        &self,
+        parameters: output::html5::Parameters,
+        node: Node,
+        w: &mut impl Write,
+        normalizer: N,
+    ) -> Result<(), Error> {
+        w.write_all(b"<!DOCTYPE html>").unwrap();
+        let outputs = gen_outputs(self, node);
+        let mut serializer =
+            Html5Serializer::new(self, node, &parameters.cdata_section_elements, normalizer);
         if let Some(indentation) = parameters.indentation {
             serializer.serialize_pretty(w, outputs, &indentation.suppress)?;
         } else {

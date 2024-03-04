@@ -13,6 +13,7 @@ use crate::NamespaceId;
 use super::serializer::get_extra_prefixes;
 use super::{Output, OutputToken, Pretty};
 
+// used to determine whether something is a HTML 5 element
 const XHTML_NS: &str = "https://www.w3.org/1999/xhtml";
 
 struct HtmlElements {
@@ -154,33 +155,17 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
                     ),
                 }
             }
-            StartTagClose => {
-                if self.xot.first_child(node).is_none() {
-                    OutputToken {
-                        space: false,
-                        text: "/>".to_string(),
-                    }
-                } else {
-                    OutputToken {
-                        space: false,
-                        text: ">".to_string(),
-                    }
-                }
-            }
+            StartTagClose => OutputToken {
+                space: false,
+                text: ">".to_string(),
+            },
             EndTag(element) => {
-                let r = if self.xot.first_child(node).is_some() {
-                    OutputToken {
-                        space: false,
-                        text: format!(
-                            "</{}>",
-                            self.fullname_serializer.fullname_or_err(element.name_id)?
-                        ),
-                    }
-                } else {
-                    OutputToken {
-                        space: false,
-                        text: "".to_string(),
-                    }
+                let r = OutputToken {
+                    space: false,
+                    text: format!(
+                        "</{}>",
+                        self.fullname_serializer.fullname_or_err(element.name_id)?
+                    ),
                 };
                 self.fullname_serializer.pop();
                 r
@@ -250,5 +235,20 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
             }
         };
         Ok(r)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_never_empty_html() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse("<html><head></head><body></body></html>")
+            .unwrap();
+        let s = xot.to_html5_string(root).unwrap();
+        assert_eq!(s, "<!DOCTYPE html><html><head></head><body></body></html>");
     }
 }
