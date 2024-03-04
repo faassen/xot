@@ -1,9 +1,9 @@
 use std::io::Write;
 
 use crate::error::Error;
+use crate::output::{gen_outputs, Output, OutputToken, XmlSerializer};
 use crate::output::{NoopNormalizer, Normalizer};
 use crate::pretty::Pretty;
-use crate::serializer::{gen_outputs, Output, OutputToken, XmlSerializer};
 use crate::xmlname::NameStrInfo;
 use crate::{output, NameId, Value};
 

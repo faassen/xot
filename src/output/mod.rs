@@ -6,7 +6,10 @@ pub mod html5;
 #[cfg(feature = "icu")]
 mod icu_normalization;
 mod normalizer;
+mod serializer;
 pub mod xml;
 
 pub use common::Indentation;
 pub use normalizer::{NoopNormalizer, Normalizer};
+pub(crate) use serializer::{gen_outputs, XmlSerializer};
+pub use serializer::{Output, OutputToken};

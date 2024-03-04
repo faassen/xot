@@ -77,7 +77,7 @@ mod pretty;
 #[cfg(feature = "proptest")]
 pub mod proptest;
 mod serialize;
-mod serializer;
+
 mod unpretty;
 mod valueaccess;
 pub mod xmlname;
@@ -91,9 +91,9 @@ pub use levelorder::LevelOrder;
 pub use nodemap::{
     Attributes, Entry, MutableAttributes, MutableNamespaces, MutableNodeMap, Namespaces, NodeMap,
 };
+pub use output::{Output, OutputToken};
 pub use parse::{Span, SpanInfo, SpanInfoKey};
 pub use serialize::PrettyOutputToken;
-pub use serializer::{Output, OutputToken};
 pub use xmlvalue::{
     Attribute, Comment, Element, Namespace, Prefixes, ProcessingInstruction, Text, Value, ValueType,
 };

@@ -1,4 +1,4 @@
-use crate::serializer::Output;
+use crate::output::Output;
 use crate::xmlvalue::ValueType;
 use crate::xotdata::{Node, Xot};
 use crate::NameId;
