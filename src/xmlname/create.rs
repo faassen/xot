@@ -86,6 +86,7 @@ impl From<CreateName> for NameId {
 ///
 /// You can pass it as an argument into [`CreateName`] to create an object in a
 /// namespace.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CreateNamespace {
     pub(crate) prefix_id: PrefixId,
     pub(crate) namespace_id: NamespaceId,
