@@ -73,6 +73,10 @@ impl Xot {
         let xml_prefix_id = prefix_lookup.get_id_mut("xml");
         let mut name_lookup = NameLookup::new();
         let xml_space_id = name_lookup.get_id_mut(&Name::new("space", xml_namespace_id));
+        // constructing this costs a bit of effort even though HTML5 serialization isn't
+        // always required. We could construct this later, but then we need some kind of
+        // ref cell so keep it cached, which then requires a mutable reference to the
+        // namespace and name lookup, which is a bit of a hassle.
         let html5_elements =
             Html5Elements::new(&mut namespace_lookup, &mut name_lookup, no_namespace_id);
 
