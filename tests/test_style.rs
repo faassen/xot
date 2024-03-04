@@ -1,4 +1,4 @@
-use xot::{Error, Output, Xot};
+use xot::{output::Output, Error, Xot};
 
 #[test]
 fn test_style() -> Result<(), Error> {

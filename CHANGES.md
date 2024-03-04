@@ -5,12 +5,12 @@
 ### Breaking changes
 
 - Created a new API with much more control of serialization:
-
   `Xot::serialize_xml_string` and `Xot::serialize_xml_write`, which are like
   `Xot::to_string` and `Xot::write`, but allow fine-grained control of
-   serialization options, including pretty printing.
+  serialization options, including pretty printing.
 
-- Removed `Xot::with_serialize_options`, `SerializeOptions`, `WithSerializeOptions` in favor of the new APIs.
+- Removed `Xot::with_serialize_options`, `SerializeOptions`, `WithSerializeOptions` in    
+  favor of the new APIs.
 
 - The low-level `Xot::tokens` API has additional parameters, a list of element
   names that should be serialized as cdata sections. Putting in an empty vec is
@@ -22,6 +22,8 @@
   be serialized as cdata sections. You can also pass in a normalizer (if you don't
   care, use the `xot::output::NoopNormalizer`).
 
+- `xot::Output` and `xot::OutputToken` are now importable from `xot::output` instead of
+  from `xot` directly.
 
 ## Changes
 

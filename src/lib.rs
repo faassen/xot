@@ -91,7 +91,6 @@ pub use levelorder::LevelOrder;
 pub use nodemap::{
     Attributes, Entry, MutableAttributes, MutableNamespaces, MutableNodeMap, Namespaces, NodeMap,
 };
-pub use output::{Output, OutputToken};
 pub use parse::{Span, SpanInfo, SpanInfoKey};
 pub use serialize::PrettyOutputToken;
 pub use xmlvalue::{
