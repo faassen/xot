@@ -76,7 +76,7 @@ impl Xot {
 
     /// Create a new, unattached element node given element name.
     ///
-    /// You supply a `[crate::NamedId`] or a [`crate::xmlname`] structure that
+    /// You supply a [`crate::NameId`] or a [`crate::xmlname`] structure that
     /// can be turned into a name id.
     ///
     /// To create a potentially new name you can use [`Xot::add_name`] or
