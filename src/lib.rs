@@ -73,7 +73,6 @@ mod nameaccess;
 mod nodemap;
 pub mod output;
 mod parse;
-mod pretty;
 #[cfg(feature = "proptest")]
 pub mod proptest;
 mod serialize;

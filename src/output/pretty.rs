@@ -201,7 +201,7 @@ mod tests {
         let output_xml = xot
             .serialize_xml_string(
                 output::xml::Parameters {
-                    indentation: Some(output::xml::Indentation { suppress }),
+                    indentation: Some(output::Indentation { suppress }),
                     ..Default::default()
                 },
                 document,

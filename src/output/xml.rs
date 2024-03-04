@@ -13,6 +13,8 @@ use std::io::Write;
 
 use crate::NameId;
 
+use super::Indentation;
+
 /// XML output method.
 ///
 /// You can use this method with [`Xot::serialize_xml_string`] to control the XML
@@ -67,13 +69,6 @@ pub enum Encoding {
         /// Whether to include the byte order mark.
         byte_order_mark: bool,
     },
-}
-
-/// Indentation: pretty-print XML.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct Indentation {
-    /// A list of element names where indentation changes are suppressed.
-    pub suppress: Vec<NameId>,
 }
 
 /// How to format the XML declaration.
@@ -174,7 +169,7 @@ impl DocType {
 
 #[cfg(test)]
 mod tests {
-    use crate::Xot;
+    use crate::{output::Indentation, Xot};
 
     use super::*;
 

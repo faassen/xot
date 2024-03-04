@@ -9,10 +9,11 @@ use crate::error::Error;
 use crate::fullname::FullnameSerializer;
 use crate::id::{NameId, NamespaceId, PrefixId};
 use crate::output::Normalizer;
-use crate::pretty::Pretty;
 use crate::xmlvalue::{Element, Prefixes};
 use crate::xmlvalue::{Value, ValueType};
 use crate::xotdata::{Node, Xot};
+
+use super::Pretty;
 
 /// Output of serialization
 ///

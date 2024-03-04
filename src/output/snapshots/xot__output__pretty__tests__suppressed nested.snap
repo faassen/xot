@@ -1,5 +1,5 @@
 ---
-source: src/pretty.rs
+source: src/output/pretty.rs
 expression: "<doc><a><b><c/></b></a></doc>"
 ---
 <doc>

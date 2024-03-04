@@ -1,9 +1,9 @@
 use std::io::Write;
 
 use crate::error::Error;
+use crate::output::Pretty;
 use crate::output::{gen_outputs, Output, OutputToken, XmlSerializer};
 use crate::output::{NoopNormalizer, Normalizer};
-use crate::pretty::Pretty;
 use crate::xmlname::NameStrInfo;
 use crate::{output, NameId, Value};
 
@@ -11,7 +11,7 @@ use crate::xotdata::{Node, Xot};
 
 /// Pretty output token
 ///
-/// Like [`OutputToken`](`crate::OutputToken`) but with extra information for
+/// Like [`OutputToken`](`crate::output::OutputToken`) but with extra information for
 /// pretty printing.
 pub struct PrettyOutputToken {
     /// indentation level.
