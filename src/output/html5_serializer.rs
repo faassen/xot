@@ -364,10 +364,6 @@ pub(crate) fn serialize_attribute_html<'a, N: Normalizer>(
                 change = true;
                 result.push_str("&amp;")
             }
-            '<' => {
-                change = true;
-                result.push_str("&lt;")
-            }
             '\'' => {
                 change = true;
                 result.push_str("&apos;")
@@ -510,6 +506,16 @@ mod tests {
             s,
             r#"<!DOCTYPE html><html><body foo="&nbsp;">bar</body></html>"#
         );
+    }
+
+    #[test]
+    fn test_serialize_attribute_dont_escape_lt() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse("<html><body foo='&lt;'>bar</body></html>")
+            .unwrap();
+        let s = xot.html5().to_string(root).unwrap();
+        assert_eq!(s, r#"<!DOCTYPE html><html><body foo="<">bar</body></html>"#);
     }
     // #[test]
     // fn test_html_no_xml_namespace() {
