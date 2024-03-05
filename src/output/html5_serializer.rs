@@ -256,7 +256,7 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
                     text: format!(
                         "{}=\"{}\"",
                         fullname,
-                        serialize_attribute((*value).into(), &self.normalizer)
+                        serialize_attribute_html((*value).into(), &self.normalizer)
                     ),
                 }
             }
@@ -331,14 +331,55 @@ pub(crate) fn serialize_text_html<'a, N: Normalizer>(
                 change = true;
                 result.push_str("&amp;")
             }
+            '<' => {
+                change = true;
+                result.push_str("&lt;")
+            }
             // non-breaking space
             '\u{a0}' => {
                 change = true;
                 result.push_str("&nbsp;")
             }
+            _ => result.push(c),
+        }
+    }
+
+    if !change {
+        normalized_content
+    } else {
+        result.into()
+    }
+}
+
+pub(crate) fn serialize_attribute_html<'a, N: Normalizer>(
+    content: Cow<'a, str>,
+    normalizer: &N,
+) -> Cow<'a, str> {
+    let mut result = String::new();
+    let mut change = false;
+    let normalized_content = normalizer.normalize(content);
+    for c in normalized_content.chars() {
+        match c {
+            '&' => {
+                change = true;
+                result.push_str("&amp;")
+            }
             '<' => {
                 change = true;
                 result.push_str("&lt;")
+            }
+            '\'' => {
+                change = true;
+                result.push_str("&apos;")
+            }
+            '"' => {
+                change = true;
+                result.push_str("&quot;")
+            }
+            // non-breaking space
+            '\u{a0}' => {
+                change = true;
+                result.push_str("&nbsp;")
             }
             _ => result.push(c),
         }
@@ -456,6 +497,19 @@ mod tests {
             .unwrap();
         let s = xot.html5().to_string(root).unwrap();
         assert_eq!(s, "<!DOCTYPE html><html><body>foo&nbsp;bar</body></html>");
+    }
+
+    #[test]
+    fn test_serialize_attribute_nbsp() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse("<html><body foo='\u{00a0}'>bar</body></html>")
+            .unwrap();
+        let s = xot.html5().to_string(root).unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html><body foo="&nbsp;">bar</body></html>"#
+        );
     }
     // #[test]
     // fn test_html_no_xml_namespace() {
