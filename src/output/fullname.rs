@@ -315,6 +315,6 @@ mod tests {
 
         let fullname_serializer = FullnameSerializer::new(&xot, vec![(xot.empty_prefix(), ns)]);
 
-        assert_eq!(fullname_serializer.fullname_attribute(a), None,);
+        assert_eq!(fullname_serializer.fullname_attribute(a), None);
     }
 }
