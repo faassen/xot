@@ -112,7 +112,11 @@ impl Html5Elements {
 
     fn is_html_element(&self, xot: &Xot, name_id: NameId) -> bool {
         let namespace = xot.namespace_for_name(name_id);
-        namespace == self.xhtml_namespace_id || namespace == xot.no_namespace()
+        self.is_html_namespace(xot, namespace)
+    }
+
+    fn is_html_namespace(&self, xot: &Xot, namespace_id: NamespaceId) -> bool {
+        namespace_id == self.xhtml_namespace_id || namespace_id == xot.no_namespace()
     }
 }
 
@@ -251,6 +255,17 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
             }
             Attribute(name_id, value) => {
                 let fullname = self.fullname_serializer.fullname_attr_or_err(*name_id)?;
+                let namespace = self.xot.namespace_for_name(*name_id);
+                if self.html5_elements.is_html_namespace(self.xot, namespace) {
+                    let local_name = self.xot.local_name_str(*name_id);
+                    // boolean attribute
+                    if local_name.to_ascii_lowercase() == value.to_ascii_lowercase() {
+                        return Ok(OutputToken {
+                            space: true,
+                            text: format!("{}", fullname),
+                        });
+                    }
+                }
                 OutputToken {
                     space: true,
                     text: format!(
@@ -517,6 +532,33 @@ mod tests {
         let s = xot.html5().to_string(root).unwrap();
         assert_eq!(s, r#"<!DOCTYPE html><html><body foo="<">bar</body></html>"#);
     }
+
+    #[test]
+    fn test_serialize_attribute_boolean() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse(r#"<html><body><option selected="selected"/></body></html>"#)
+            .unwrap();
+        let s = xot.html5().to_string(root).unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html><body><option selected></option></body></html>"#
+        );
+    }
+
+    #[test]
+    fn test_serialize_attribute_boolean_case_insensitive() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse(r#"<html><body><option selected="SeLecTed"/></body></html>"#)
+            .unwrap();
+        let s = xot.html5().to_string(root).unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html><body><option selected></option></body></html>"#
+        );
+    }
+
     // #[test]
     // fn test_html_no_xml_namespace() {
     //     let mut xot = Xot::new();
