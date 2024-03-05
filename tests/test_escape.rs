@@ -19,13 +19,13 @@ fn test_add_attribute_entities() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<doc/>"#).unwrap();
     let el_id = xot.document_element(doc).unwrap();
-    assert!(xot.name("a").is_none());
-    let a = xot.add_name("a");
+    assert!(xot.name("z").is_none());
+    let a = xot.add_name("z");
 
     let mut attributes = xot.attributes_mut(el_id);
     attributes.insert(a, "Created & set".to_string());
     assert_eq!(
         xot.to_string(doc).unwrap(),
-        r#"<doc a="Created &amp; set"/>"#
+        r#"<doc z="Created &amp; set"/>"#
     );
 }

@@ -18,52 +18,54 @@ const XHTML_NS: &str = "https://www.w3.org/1999/xhtml";
 
 #[derive(Debug)]
 pub(crate) struct Html5Elements {
-    xhtml_ns: NamespaceId,
-    name_ids: HashSet<NameId>,
+    xhtml_namespace_id: NamespaceId,
+    phrasing_content_names: HtmlNames,
+    void_names: HtmlNames,
+    formatted_names: HtmlNames,
+}
+
+#[derive(Debug)]
+struct HtmlNames {
+    ids: HashSet<NameId>,
     names: HashSet<String>,
 }
 
-impl Html5Elements {
-    pub(crate) fn new(
+impl HtmlNames {
+    fn new(
         namespace_lookup: &mut NamespaceLookup,
         name_lookup: &mut NameLookup,
         no_namespace_id: NamespaceId,
+        xhtml_namespace_id: NamespaceId,
+        names: &[&str],
     ) -> Self {
-        let names = [
-            "area", "base", "br", "col", "embed", "hr", "img", "input", "keygen", "link", "meta",
-            "param", "source", "track", "wbr",
-            // extra elements not in the HTML5 spec but null in HTML 4
-            "basefont", "frame", "isindex",
-        ];
-        let mut name_ids = HashSet::new();
-        let xhtml_ns = namespace_lookup.get_id_mut(XHTML_NS);
+        let mut ids = HashSet::new();
         for name in names {
             // lowercase names, no namespace
-            name_ids.insert(name_lookup.get_id_mut(&Name::new(name, no_namespace_id)));
+            ids.insert(name_lookup.get_id_mut(&Name::new(*name, no_namespace_id)));
             // uppercase names, no namespace
-            name_ids.insert(
-                name_lookup.get_id_mut(&Name::new(&name.to_ascii_uppercase(), no_namespace_id)),
+            ids.insert(
+                name_lookup.get_id_mut(&Name::new(name.to_ascii_uppercase(), no_namespace_id)),
             );
             // lowercase names, XHTML namespace
-            name_ids.insert(name_lookup.get_id_mut(&Name::new(name, xhtml_ns)));
+            ids.insert(name_lookup.get_id_mut(&Name::new(*name, xhtml_namespace_id)));
             // uppercase names, XHTML namespace
-            name_ids
-                .insert(name_lookup.get_id_mut(&Name::new(&name.to_ascii_uppercase(), xhtml_ns)));
+            ids.insert(
+                name_lookup.get_id_mut(&Name::new(name.to_ascii_uppercase(), xhtml_namespace_id)),
+            );
         }
         Self {
-            xhtml_ns,
+            ids,
             names: names.iter().map(|name| name.to_string()).collect(),
-            name_ids,
         }
     }
 
     fn is_html_element(&self, xot: &Xot, name_id: NameId) -> bool {
         let namespace = xot.namespace_for_name(name_id);
-        namespace == self.xhtml_ns || namespace == xot.no_namespace()
+        namespace == xot.html5_elements.xhtml_namespace_id || namespace == xot.no_namespace()
     }
 
-    fn is_void(&self, xot: &Xot, name_id: NameId) -> bool {
-        if self.name_ids.contains(&name_id) {
+    fn matches(&self, xot: &Xot, name_id: NameId) -> bool {
+        if self.ids.contains(&name_id) {
             return true;
         }
         if !self.is_html_element(xot, name_id) {
@@ -73,6 +75,65 @@ impl Html5Elements {
         // now lowercase the name and look it up
         let name = name.to_ascii_lowercase();
         self.names.contains(&name)
+    }
+}
+
+impl Html5Elements {
+    pub(crate) fn new(
+        namespace_lookup: &mut NamespaceLookup,
+        name_lookup: &mut NameLookup,
+        no_namespace_id: NamespaceId,
+    ) -> Self {
+        let void_names = [
+            "area", "base", "br", "col", "embed", "hr", "img", "input", "keygen", "link", "meta",
+            "param", "source", "track", "wbr",
+            // extra elements not in the HTML5 spec but null in HTML 4
+            "basefont", "frame", "isindex",
+        ];
+        let xhtml_namespace_id = namespace_lookup.get_id_mut(XHTML_NS);
+        let void_names = HtmlNames::new(
+            namespace_lookup,
+            name_lookup,
+            no_namespace_id,
+            xhtml_namespace_id,
+            &void_names,
+        );
+
+        let phrasing_content_names = [
+            "a", "abbr", "area", "audio", "b", "bdi", "bdo", "br", "button", "canvas", "cite",
+            "code", "command", "datalist", "del", "dfn", "em", "embed", "i", "iframe", "img",
+            "input", "ins", "kbd", "keygen", "label", "map", "mark", "math", "meter", "noscript",
+            "object", "output", "progress", "q", "ruby", "s", "samp", "script", "select", "small",
+            "span", "strong", "sub", "sup", "svg", "textarea", "time", "u", "var", "video", "wbr",
+        ];
+        let phrasing_content_names = HtmlNames::new(
+            namespace_lookup,
+            name_lookup,
+            no_namespace_id,
+            xhtml_namespace_id,
+            &phrasing_content_names,
+        );
+
+        let formatted_names = ["pre", "script", "style", "title", "textarea"];
+        let formatted_names = HtmlNames::new(
+            namespace_lookup,
+            name_lookup,
+            no_namespace_id,
+            xhtml_namespace_id,
+            &formatted_names,
+        );
+
+        Self {
+            xhtml_namespace_id,
+            void_names,
+            phrasing_content_names,
+            formatted_names,
+        }
+    }
+
+    fn is_html_element(&self, xot: &Xot, name_id: NameId) -> bool {
+        let namespace = xot.namespace_for_name(name_id);
+        namespace == self.xhtml_namespace_id || namespace == xot.no_namespace()
     }
 }
 
@@ -168,7 +229,12 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
                 text: ">".to_string(),
             },
             EndTag(element) => {
-                let r = if self.xot.html5_elements.is_void(self.xot, element.name()) {
+                let r = if self
+                    .xot
+                    .html5_elements
+                    .void_names
+                    .matches(self.xot, element.name())
+                {
                     // void elements don't get their end tag, so we just emit an
                     // empty string
                     OutputToken {

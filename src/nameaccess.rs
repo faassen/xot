@@ -45,10 +45,10 @@ impl Xot {
     /// use xot::Xot;
     ///
     /// let mut xot = Xot::new();
-    /// assert!(xot.name("a").is_none());
+    /// assert!(xot.name("z").is_none());
     ///
-    /// let name = xot.add_name("a");
-    /// assert_eq!(xot.name("a"), Some(name));
+    /// let name = xot.add_name("z");
+    /// assert_eq!(xot.name("z"), Some(name));
     /// ```
     pub fn name(&self, name: &str) -> Option<NameId> {
         self.name_ns(name, self.no_namespace_id)
