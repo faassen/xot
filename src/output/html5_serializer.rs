@@ -26,34 +26,26 @@ pub(crate) struct Html5Elements {
 
 #[derive(Debug)]
 struct HtmlNames {
+    xhtml_namespace_id: NamespaceId,
     ids: HashSet<NameId>,
     names: HashSet<String>,
 }
 
 impl HtmlNames {
-    fn new(
-        namespace_lookup: &mut NamespaceLookup,
-        name_lookup: &mut NameLookup,
-        no_namespace_id: NamespaceId,
-        xhtml_namespace_id: NamespaceId,
-        names: &[&str],
-    ) -> Self {
+    fn new(xot: &mut Xot, xhtml_namespace_id: NamespaceId, names: &[&str]) -> Self {
         let mut ids = HashSet::new();
         for name in names {
             // lowercase names, no namespace
-            ids.insert(name_lookup.get_id_mut(&Name::new(*name, no_namespace_id)));
+            ids.insert(xot.add_name_ns(*name, xot.no_namespace()));
             // uppercase names, no namespace
-            ids.insert(
-                name_lookup.get_id_mut(&Name::new(name.to_ascii_uppercase(), no_namespace_id)),
-            );
+            ids.insert(xot.add_name_ns(&name.to_ascii_uppercase(), xot.no_namespace()));
             // lowercase names, XHTML namespace
-            ids.insert(name_lookup.get_id_mut(&Name::new(*name, xhtml_namespace_id)));
+            ids.insert(xot.add_name_ns(*name, xhtml_namespace_id));
             // uppercase names, XHTML namespace
-            ids.insert(
-                name_lookup.get_id_mut(&Name::new(name.to_ascii_uppercase(), xhtml_namespace_id)),
-            );
+            ids.insert(xot.add_name_ns(&name.to_ascii_uppercase(), xhtml_namespace_id));
         }
         Self {
+            xhtml_namespace_id,
             ids,
             names: names.iter().map(|name| name.to_string()).collect(),
         }
@@ -61,7 +53,7 @@ impl HtmlNames {
 
     fn is_html_element(&self, xot: &Xot, name_id: NameId) -> bool {
         let namespace = xot.namespace_for_name(name_id);
-        namespace == xot.html5_elements.xhtml_namespace_id || namespace == xot.no_namespace()
+        namespace == self.xhtml_namespace_id || namespace == xot.no_namespace()
     }
 
     fn matches(&self, xot: &Xot, name_id: NameId) -> bool {
@@ -79,25 +71,15 @@ impl HtmlNames {
 }
 
 impl Html5Elements {
-    pub(crate) fn new(
-        namespace_lookup: &mut NamespaceLookup,
-        name_lookup: &mut NameLookup,
-        no_namespace_id: NamespaceId,
-    ) -> Self {
+    pub(crate) fn new(xot: &mut Xot) -> Self {
         let void_names = [
             "area", "base", "br", "col", "embed", "hr", "img", "input", "keygen", "link", "meta",
             "param", "source", "track", "wbr",
             // extra elements not in the HTML5 spec but null in HTML 4
             "basefont", "frame", "isindex",
         ];
-        let xhtml_namespace_id = namespace_lookup.get_id_mut(XHTML_NS);
-        let void_names = HtmlNames::new(
-            namespace_lookup,
-            name_lookup,
-            no_namespace_id,
-            xhtml_namespace_id,
-            &void_names,
-        );
+        let xhtml_namespace_id = xot.add_namespace(XHTML_NS);
+        let void_names = HtmlNames::new(xot, xhtml_namespace_id, &void_names);
 
         let phrasing_content_names = [
             "a", "abbr", "area", "audio", "b", "bdi", "bdo", "br", "button", "canvas", "cite",
@@ -106,22 +88,11 @@ impl Html5Elements {
             "object", "output", "progress", "q", "ruby", "s", "samp", "script", "select", "small",
             "span", "strong", "sub", "sup", "svg", "textarea", "time", "u", "var", "video", "wbr",
         ];
-        let phrasing_content_names = HtmlNames::new(
-            namespace_lookup,
-            name_lookup,
-            no_namespace_id,
-            xhtml_namespace_id,
-            &phrasing_content_names,
-        );
+        let phrasing_content_names =
+            HtmlNames::new(xot, xhtml_namespace_id, &phrasing_content_names);
 
         let formatted_names = ["pre", "script", "style", "title", "textarea"];
-        let formatted_names = HtmlNames::new(
-            namespace_lookup,
-            name_lookup,
-            no_namespace_id,
-            xhtml_namespace_id,
-            &formatted_names,
-        );
+        let formatted_names = HtmlNames::new(xot, xhtml_namespace_id, &formatted_names);
 
         Self {
             xhtml_namespace_id,
@@ -139,6 +110,7 @@ impl Html5Elements {
 
 pub(crate) struct Html5Serializer<'a, N: Normalizer> {
     xot: &'a Xot,
+    html5_elements: &'a Html5Elements,
     cdata_section_names: &'a [NameId],
     fullname_serializer: FullnameSerializer<'a>,
     normalizer: N,
@@ -147,6 +119,7 @@ pub(crate) struct Html5Serializer<'a, N: Normalizer> {
 impl<'a, N: Normalizer> Html5Serializer<'a, N> {
     pub(crate) fn new(
         xot: &'a Xot,
+        html5_elements: &'a Html5Elements,
         node: Node,
         cdata_section_names: &'a [NameId],
         normalizer: N,
@@ -156,6 +129,7 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
         fullname_serializer.push(&extra_prefixes);
         Self {
             xot,
+            html5_elements,
             cdata_section_names,
             fullname_serializer,
             normalizer,
@@ -230,7 +204,6 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
             },
             EndTag(element) => {
                 let r = if self
-                    .xot
                     .html5_elements
                     .void_names
                     .matches(self.xot, element.name())
@@ -331,7 +304,7 @@ mod tests {
         let root = xot
             .parse("<html><head></head><body></body></html>")
             .unwrap();
-        let s = xot.to_html5_string(root).unwrap();
+        let s = xot.html5().to_string(root).unwrap();
         assert_eq!(s, "<!DOCTYPE html><html><head></head><body></body></html>");
     }
 
@@ -341,7 +314,7 @@ mod tests {
         let root = xot
             .parse(r#"<html><head><foo xmlns="foo"><bar></bar></foo></head><body></body></html>"#)
             .unwrap();
-        let s = xot.to_html5_string(root).unwrap();
+        let s = xot.html5().to_string(root).unwrap();
         assert_eq!(
             s,
             r#"<!DOCTYPE html><html><head><foo xmlns="foo"><bar></bar></foo></head><body></body></html>"#
@@ -352,7 +325,7 @@ mod tests {
     fn test_void_element() {
         let mut xot = Xot::new();
         let root = xot.parse("<html><body>foo<br/>bar</body></html>").unwrap();
-        let s = xot.to_html5_string(root).unwrap();
+        let s = xot.html5().to_string(root).unwrap();
         assert_eq!(s, "<!DOCTYPE html><html><body>foo<br>bar</body></html>");
     }
 }
