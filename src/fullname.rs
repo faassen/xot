@@ -1,4 +1,4 @@
-use ahash::HashMap;
+use ahash::{HashMap, HashMapExt};
 use std::borrow::Cow;
 
 use crate::error::Error;
@@ -66,6 +66,15 @@ impl<'a> FullnameSerializer<'a> {
         self.prefix_stack.push((entry, to_prefixes));
     }
 
+    pub(crate) fn add_empty_prefix(&mut self, namespace_id: NamespaceId) {
+        let top_index = self.prefix_stack.len() - 1;
+        let mut entry = self.top_prefixes().clone();
+        entry.insert(self.xot.empty_prefix_id, namespace_id);
+        // inverse
+        let to_prefixes = inverse_prefixes(&entry);
+        self.prefix_stack[top_index] = (entry, to_prefixes);
+    }
+
     pub(crate) fn pop(&mut self) {
         self.prefix_stack.pop();
     }
@@ -111,7 +120,14 @@ impl<'a> FullnameSerializer<'a> {
         }
     }
 
-    pub(crate) fn element_prefix(&'a self, name_id: NameId) -> Option<&[PrefixId]> {
+    pub(crate) fn has_empty_prefix(&self, namespace_id: NamespaceId) -> bool {
+        self.top_to_prefixes()
+            .get(&namespace_id)
+            .map(|p| p.contains(&self.xot.empty_prefix_id))
+            .unwrap_or(false)
+    }
+
+    pub(crate) fn element_prefix(&self, name_id: NameId) -> Option<&[PrefixId]> {
         let namespace_id = self.xot.namespace_for_name(name_id);
         self.top_to_prefixes()
             .get(&namespace_id)
