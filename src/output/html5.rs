@@ -3,6 +3,8 @@
 //! The main entry point is [`Parameters`], which you can pass into various
 //! serialization methods to control the output.
 //!
+//! You can use these parameters to control the HTML5 serialization, which you
+//! can obtain using [`Xot::html5`].
 
 use crate::NameId;
 

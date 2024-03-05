@@ -5,7 +5,7 @@ use ahash::{HashSet, HashSetExt};
 use crate::entity::{serialize_attribute, serialize_cdata, serialize_text};
 use crate::error::Error;
 use crate::fullname::FullnameSerializer;
-use crate::id::{Name, NameId, NameLookup, NamespaceLookup};
+use crate::id::NameId;
 use crate::output::Normalizer;
 use crate::xotdata::{Node, Xot};
 use crate::NamespaceId;
@@ -36,11 +36,11 @@ impl HtmlNames {
         let mut ids = HashSet::new();
         for name in names {
             // lowercase names, no namespace
-            ids.insert(xot.add_name_ns(*name, xot.no_namespace()));
+            ids.insert(xot.add_name_ns(name, xot.no_namespace()));
             // uppercase names, no namespace
             ids.insert(xot.add_name_ns(&name.to_ascii_uppercase(), xot.no_namespace()));
             // lowercase names, XHTML namespace
-            ids.insert(xot.add_name_ns(*name, xhtml_namespace_id));
+            ids.insert(xot.add_name_ns(name, xhtml_namespace_id));
             // uppercase names, XHTML namespace
             ids.insert(xot.add_name_ns(&name.to_ascii_uppercase(), xhtml_namespace_id));
         }
