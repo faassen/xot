@@ -57,12 +57,15 @@ impl HtmlNames {
     }
 
     fn matches(&self, xot: &Xot, name_id: NameId) -> bool {
+        // if we match any of the known ids, we're done right away
         if self.ids.contains(&name_id) {
             return true;
         }
+        // if this is not an HTML element, we know it isn't one of the HTML names
         if !self.is_html_element(xot, name_id) {
             return false;
         }
+        // otherwise, we do a case-insensitive lookup of the local name
         let name = xot.local_name_str(name_id);
         // now lowercase the name and look it up
         let name = name.to_ascii_lowercase();
