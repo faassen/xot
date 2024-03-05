@@ -1,10 +1,9 @@
+use std::borrow::Cow;
 use std::io;
 
 use ahash::{HashSet, HashSetExt};
 
-use crate::entity::{
-    serialize_attribute, serialize_cdata, serialize_text, serialize_text_no_escape,
-};
+use crate::entity::{serialize_attribute, serialize_cdata, serialize_text};
 use crate::error::Error;
 use crate::fullname::FullnameSerializer;
 use crate::id::NameId;
@@ -283,7 +282,7 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
                 } else {
                     OutputToken {
                         space: false,
-                        text: serialize_text((*text).into(), &self.normalizer).to_string(),
+                        text: serialize_text_html((*text).into(), &self.normalizer).to_string(),
                     }
                 }
             }
@@ -316,6 +315,47 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
         };
         Ok(r)
     }
+}
+
+pub(crate) fn serialize_text_html<'a, N: Normalizer>(
+    content: Cow<'a, str>,
+    normalizer: &N,
+) -> Cow<'a, str> {
+    let mut result = String::new();
+    let mut change = false;
+    // if we had normalized_iter on the trait we avoid this string allocation
+    let normalized_content = normalizer.normalize(content);
+    for c in normalized_content.chars() {
+        match c {
+            '&' => {
+                change = true;
+                result.push_str("&amp;")
+            }
+            // non-breaking space
+            '\u{a0}' => {
+                change = true;
+                result.push_str("&nbsp;")
+            }
+            '<' => {
+                change = true;
+                result.push_str("&lt;")
+            }
+            _ => result.push(c),
+        }
+    }
+
+    if !change {
+        normalized_content
+    } else {
+        result.into()
+    }
+}
+
+pub(crate) fn serialize_text_no_escape<'a, N: Normalizer>(
+    content: Cow<'a, str>,
+    normalizer: &N,
+) -> Cow<'a, str> {
+    normalizer.normalize(content)
 }
 
 #[cfg(test)]
@@ -406,6 +446,16 @@ mod tests {
             }
             _ => unreachable!(),
         }
+    }
+
+    #[test]
+    fn test_serialize_text_nbsp() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse("<html><body>foo\u{00a0}bar</body></html>")
+            .unwrap();
+        let s = xot.html5().to_string(root).unwrap();
+        assert_eq!(s, "<!DOCTYPE html><html><body>foo&nbsp;bar</body></html>");
     }
     // #[test]
     // fn test_html_no_xml_namespace() {

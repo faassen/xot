@@ -115,13 +115,6 @@ pub(crate) fn serialize_text<'a, N: Normalizer>(
     }
 }
 
-pub(crate) fn serialize_text_no_escape<'a, N: Normalizer>(
-    content: Cow<'a, str>,
-    normalizer: &N,
-) -> Cow<'a, str> {
-    normalizer.normalize(content)
-}
-
 pub(crate) fn serialize_cdata<'a, N: Normalizer>(
     content: Cow<'a, str>,
     normalizer: &N,
