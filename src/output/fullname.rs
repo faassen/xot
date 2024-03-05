@@ -232,6 +232,38 @@ mod tests {
     }
 
     #[test]
+    fn test_element_default_namespace_empty_prefix_preferred() {
+        let mut xot = Xot::new();
+
+        let ns = xot.add_namespace("ns");
+        let a = xot.add_name_ns("a", ns);
+        let p = xot.add_prefix("p");
+        let fullname_serializer =
+            FullnameSerializer::new(&xot, vec![(xot.empty_prefix(), ns), (p, ns)]);
+
+        assert_eq!(
+            fullname_serializer.fullname_element(a),
+            Some(Cow::Borrowed("a"))
+        );
+    }
+
+    #[test]
+    fn test_element_most_recently_defined_prefix_preferred() {
+        let mut xot = Xot::new();
+
+        let ns = xot.add_namespace("ns");
+        let a = xot.add_name_ns("a", ns);
+        let p1 = xot.add_prefix("p1");
+        let p2 = xot.add_prefix("p2");
+        let fullname_serializer = FullnameSerializer::new(&xot, vec![(p1, ns), (p2, ns)]);
+
+        assert_eq!(
+            fullname_serializer.fullname_element(a),
+            Some(Cow::Owned("p2:a".to_string()))
+        );
+    }
+
+    #[test]
     fn test_attribute_explicit_prefix_used_over_empty_prefix() {
         let mut xot = Xot::new();
 
