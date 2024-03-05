@@ -264,6 +264,17 @@ mod tests {
     }
 
     #[test]
+    fn test_element_missing_prefix() {
+        let mut xot = Xot::new();
+
+        let ns = xot.add_namespace("ns");
+        let a = xot.add_name_ns("a", ns);
+        let fullname_serializer = FullnameSerializer::new(&xot, vec![]);
+
+        assert_eq!(fullname_serializer.fullname_element(a), None);
+    }
+
+    #[test]
     fn test_attribute_explicit_prefix_used_over_empty_prefix() {
         let mut xot = Xot::new();
 
