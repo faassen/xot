@@ -291,15 +291,21 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
             Prefix(prefix_id, namespace_id) => {
                 let element = self.xot.element(node).unwrap();
                 // skip rendering this prefix if it's already rendered as a default
-                // TODO: handle attributes cases
-                if self
-                    .must_render_namespace_without_prefix(element.name_id)
-                    .is_some()
+                if let Some(namespace_id) =
+                    self.must_render_namespace_without_prefix(element.name_id)
                 {
-                    return Ok(OutputToken {
-                        space: false,
-                        text: "".to_string(),
-                    });
+                    // unless there is an attribute in this node that uses this namespace
+                    if !self
+                        .xot
+                        .attributes(node)
+                        .keys()
+                        .any(|name_id| self.xot.namespace_for_name(name_id) == namespace_id)
+                    {
+                        return Ok(OutputToken {
+                            space: false,
+                            text: "".to_string(),
+                        });
+                    }
                 }
 
                 // if the namespace node is the XML namespace, it's ignored by the HTML
@@ -330,7 +336,10 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
                 if self.html5_elements.is_html_namespace(self.xot, namespace) {
                     let local_name = self.xot.local_name_str(*name_id);
                     // boolean attribute
-                    if local_name.to_ascii_lowercase() == value.to_ascii_lowercase() {
+                    // no prefix and local name is the same as value
+                    if self.fullname_serializer.element_prefix(*name_id).is_none()
+                        && local_name.to_ascii_lowercase() == value.to_ascii_lowercase()
+                    {
                         return Ok(OutputToken {
                             space: true,
                             text: format!("{}", fullname),
@@ -618,6 +627,32 @@ mod tests {
     }
 
     #[test]
+    fn test_serialize_attribute_boolean_with_prefix() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse(r#"<html><body><option xmlns:foo="foo" foo:selected="selected"/></body></html>"#)
+            .unwrap();
+        let s = xot.html5().to_string(root).unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html><body><option xmlns:foo="foo" foo:selected="selected"></option></body></html>"#
+        );
+    }
+
+    #[test]
+    fn test_serialize_attribute_boolean_with_xhtml_prefix() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse(r#"<html><body><option xmlns:foo="https://www.w3.org/1999/xhtml" foo:selected="selected"/></body></html>"#)
+            .unwrap();
+        let s = xot.html5().to_string(root).unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html><body><option xmlns:foo="https://www.w3.org/1999/xhtml" foo:selected="selected"></option></body></html>"#
+        );
+    }
+
+    #[test]
     fn test_serialize_attribute_boolean_case_insensitive() {
         let mut xot = Xot::new();
         let root = xot
@@ -652,6 +687,19 @@ mod tests {
         assert_eq!(
             s,
             r#"<!DOCTYPE html><html xmlns="https://www.w3.org/1999/xhtml"></html>"#
+        );
+    }
+
+    #[test]
+    fn test_xhtml_namespace_without_prefix_but_with_attribute() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse(r#"<prefix:html xmlns:prefix="https://www.w3.org/1999/xhtml" prefix:a="A"></prefix:html>"#)
+            .unwrap();
+        let s = xot.html5().to_string(root).unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html xmlns="https://www.w3.org/1999/xhtml" xmlns:prefix="https://www.w3.org/1999/xhtml" prefix:a="A"></html>"#
         );
     }
 }
