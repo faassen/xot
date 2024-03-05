@@ -205,9 +205,12 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
         // if we're in the xhtml namespace and our prefix is not the default one, we
         // need to render this with the default namespace anyway
         if self.html5_elements.is_xhtml_element(self.xot, name_id) {
-            let prefix = self.fullname_serializer.element_prefix(name_id);
-            if let Some(prefix) = prefix {
-                if prefix != self.xot.empty_prefix() {
+            let prefixes = self.fullname_serializer.element_prefix(name_id);
+            if let Some(prefixes) = prefixes {
+                if !prefixes
+                    .iter()
+                    .any(|prefix| *prefix == self.xot.empty_prefix())
+                {
                     return Some(self.xot.namespace_for_name(name_id));
                 }
             } else {
@@ -233,7 +236,6 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
                 if let Some(namespace_id) =
                     self.must_render_namespace_without_prefix(element.name_id)
                 {
-                    // we need to render this with the default namespace
                     let local_name = self.xot.local_name_str(element.name_id);
                     let namespace_uri = self.xot.namespace_str(namespace_id);
                     OutputToken {
@@ -702,4 +704,17 @@ mod tests {
             r#"<!DOCTYPE html><html xmlns="https://www.w3.org/1999/xhtml" xmlns:prefix="https://www.w3.org/1999/xhtml" prefix:a="A"></html>"#
         );
     }
+
+    // #[test]
+    // fn test_xhtml_namespace_without_prefix_dont_redeclare() {
+    //     let mut xot = Xot::new();
+    //     let root = xot
+    //         .parse(r#"<prefix:html xmlns:prefix="https://www.w3.org/1999/xhtml"><prefix:body></prefix:body></prefix:html>"#)
+    //         .unwrap();
+    //     let s = xot.html5().to_string(root).unwrap();
+    //     assert_eq!(
+    //         s,
+    //         r#"<!DOCTYPE html><html xmlns="https://www.w3.org/1999/xhtml"><body></body></html>"#
+    //     );
+    // }
 }

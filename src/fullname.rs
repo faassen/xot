@@ -111,22 +111,11 @@ impl<'a> FullnameSerializer<'a> {
         }
     }
 
-    pub(crate) fn element_prefix(&'a self, name_id: NameId) -> Option<PrefixId> {
-        match self.name_info(name_id) {
-            NameInfo::NoNamespace { .. } => None,
-            NameInfo::Prefixes {
-                name: _, prefixes, ..
-            } => {
-                // if any of the prefixes is the empty prefix, prefer that
-                if prefixes.iter().any(|p| *p == self.xot.empty_prefix_id) {
-                    Some(self.xot.empty_prefix_id)
-                } else {
-                    // otherwise, use the first prefix
-                    Some(prefixes[0])
-                }
-            }
-            NameInfo::MissingPrefix { .. } => None,
-        }
+    pub(crate) fn element_prefix(&'a self, name_id: NameId) -> Option<&[PrefixId]> {
+        let namespace_id = self.xot.namespace_for_name(name_id);
+        self.top_to_prefixes()
+            .get(&namespace_id)
+            .map(|p| p.as_slice())
     }
 
     pub(crate) fn fullname(&'a self, name_id: NameId) -> Fullname<'a> {
