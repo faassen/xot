@@ -239,6 +239,14 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
                 r
             }
             Prefix(prefix_id, namespace_id) => {
+                // if the namespace node is the XML namespace, it's ignored by the HTML
+                // output method.
+                if namespace_id == &self.xot.xml_namespace() {
+                    return Ok(OutputToken {
+                        space: false,
+                        text: "".to_string(),
+                    });
+                }
                 let namespace = self.xot.namespace_str(*namespace_id);
                 if *prefix_id == self.xot.empty_prefix_id {
                     OutputToken {
@@ -559,13 +567,15 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn test_html_no_xml_namespace() {
-    //     let mut xot = Xot::new();
-    //     let root = xot
-    //         .parse(r#"<html xmlns:xml="https://www.w3.org/XML/1998/namespace"></html>"#)
-    //         .unwrap();
-    //     let s = xot.html5().to_string(root).unwrap();
-    //     assert_eq!(s, "<!DOCTYPE html><html></html>");
-    // }
+    #[test]
+    fn test_html_no_xml_namespace() {
+        let mut xot = Xot::new();
+        // note that the serialization spec illegitimately places the XML namespace in
+        // https, but it's in http
+        let root = xot
+            .parse(r#"<html xmlns:xml="http://www.w3.org/XML/1998/namespace"></html>"#)
+            .unwrap();
+        let s = xot.html5().to_string(root).unwrap();
+        assert_eq!(s, "<!DOCTYPE html><html></html>");
+    }
 }
