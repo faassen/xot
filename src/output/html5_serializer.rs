@@ -2,7 +2,9 @@ use std::io;
 
 use ahash::{HashSet, HashSetExt};
 
-use crate::entity::{serialize_attribute, serialize_cdata, serialize_text};
+use crate::entity::{
+    serialize_attribute, serialize_cdata, serialize_text, serialize_text_no_escape,
+};
 use crate::error::Error;
 use crate::fullname::FullnameSerializer;
 use crate::id::NameId;
@@ -22,6 +24,7 @@ pub(crate) struct Html5Elements {
     phrasing_content_names: HtmlNames,
     void_names: HtmlNames,
     formatted_names: HtmlNames,
+    no_escape_names: HtmlNames,
 }
 
 #[derive(Debug)]
@@ -97,11 +100,14 @@ impl Html5Elements {
         let formatted_names = ["pre", "script", "style", "title", "textarea"];
         let formatted_names = HtmlNames::new(xot, xhtml_namespace_id, &formatted_names);
 
+        let no_escape_names = ["script", "style"];
+        let no_escape_names = HtmlNames::new(xot, xhtml_namespace_id, &no_escape_names);
         Self {
             xhtml_namespace_id,
             void_names,
             phrasing_content_names,
             formatted_names,
+            no_escape_names,
         }
     }
 
@@ -259,7 +265,17 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
                 // a text node is always a child of an element
                 let parent = self.xot.parent(node).unwrap();
                 let element = self.xot.element(parent).unwrap();
-                if self.cdata_section_names.contains(&element.name()) {
+                if self
+                    .html5_elements
+                    .no_escape_names
+                    .matches(self.xot, element.name())
+                {
+                    OutputToken {
+                        space: false,
+                        text: serialize_text_no_escape((*text).into(), &self.normalizer)
+                            .to_string(),
+                    }
+                } else if self.cdata_section_names.contains(&element.name()) {
                     OutputToken {
                         space: false,
                         text: serialize_cdata((*text).into(), &self.normalizer).to_string(),
@@ -330,5 +346,30 @@ mod tests {
         let root = xot.parse("<html><body>foo<br/>bar</body></html>").unwrap();
         let s = xot.html5().to_string(root).unwrap();
         assert_eq!(s, "<!DOCTYPE html><html><body>foo<br>bar</body></html>");
+    }
+
+    #[test]
+    fn test_escaping_for_normal_content() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse(r#"<html><head><title>foo &amp; bar</title></head><body>foo &amp; bar</body></html>"#)
+            .unwrap();
+        let s = xot.html5().to_string(root).unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html><head><title>foo &amp; bar</title></head><body>foo &amp; bar</body></html>"#
+        );
+    }
+    #[test]
+    fn test_no_escaping_for_script_and_style() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse(r#"<html><head><script>if (a &lt; b) foo()</script><style>a &lt; b</style></head><body></body></html>"#)
+            .unwrap();
+        let s = xot.html5().to_string(root).unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html><head><script>if (a < b) foo()</script><style>a < b</style></head><body></body></html>"#
+        );
     }
 }

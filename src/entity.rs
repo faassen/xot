@@ -87,12 +87,12 @@ fn parse_content(content: Cow<str>, attribute: bool) -> Result<Cow<str>, Error> 
 
 pub(crate) fn serialize_text<'a, N: Normalizer>(
     content: Cow<'a, str>,
-    normalize: &N,
+    normalizer: &N,
 ) -> Cow<'a, str> {
     let mut result = String::new();
     let mut change = false;
     // if we had normalized_iter on the trait we avoid this string allocation
-    let normalized_content = normalize.normalize(content);
+    let normalized_content = normalizer.normalize(content);
     for c in normalized_content.chars() {
         match c {
             '&' => {
@@ -113,6 +113,13 @@ pub(crate) fn serialize_text<'a, N: Normalizer>(
     } else {
         result.into()
     }
+}
+
+pub(crate) fn serialize_text_no_escape<'a, N: Normalizer>(
+    content: Cow<'a, str>,
+    normalizer: &N,
+) -> Cow<'a, str> {
+    normalizer.normalize(content)
 }
 
 pub(crate) fn serialize_cdata<'a, N: Normalizer>(
