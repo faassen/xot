@@ -30,6 +30,9 @@ pub enum Error {
     /// prefix is declared. Use [`Xot::create_missing_prefixes`](crate::xotdata::Xot::create_missing_prefixes)
     /// to fix this.
     MissingPrefix(String),
+    /// It's not allowed to serialize a processing instruction to HTML with a > in it.
+    ProcessingInstructionGtInHtml(String),
+
     /// It's not allowed to include a namespace prefix in a processing instruction
     /// target name.
     NamespaceInProcessingInstruction,
@@ -95,6 +98,9 @@ impl std::fmt::Display for Error {
             Error::NotElement(_) => write!(f, "Not an element"),
             Error::NodeError(e) => write!(f, "Node error: {}", e),
             Error::MissingPrefix(_) => write!(f, "Missing prefix"),
+            Error::ProcessingInstructionGtInHtml(s) => {
+                write!(f, "Processing instruction with > in HTML: {}", s)
+            }
             Error::NamespaceInProcessingInstruction => {
                 write!(f, "Namespace in processing instruction target")
             }

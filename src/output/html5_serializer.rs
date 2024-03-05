@@ -296,15 +296,20 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
                 if !ns.is_empty() {
                     return Err(Error::NamespaceInProcessingInstruction);
                 }
+                // for some reason the HTML output method does allow processing
+                // instructions, but they don't end with ?>
                 if let Some(data) = data {
+                    if data.contains('>') {
+                        return Err(Error::ProcessingInstructionGtInHtml(data.to_string()));
+                    }
                     OutputToken {
                         space: false,
-                        text: format!("<?{} {}?>", target, data),
+                        text: format!("<?{} {}>", target, data),
                     }
                 } else {
                     OutputToken {
                         space: false,
-                        text: format!("<?{}?>", target),
+                        text: format!("<?{}>", target),
                     }
                 }
             }
@@ -372,4 +377,43 @@ mod tests {
             r#"<!DOCTYPE html><html><head><script>if (a < b) foo()</script><style>a < b</style></head><body></body></html>"#
         );
     }
+
+    #[test]
+    fn test_processing_instruction() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse(r#"<html><head><?foo bar?></head><body></body></html>"#)
+            .unwrap();
+        let s = xot.html5().to_string(root).unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html><head><?foo bar></head><body></body></html>"#
+        );
+    }
+
+    #[test]
+    fn test_processing_instruction_no_gt() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse(r#"<html><head><?foo >bar?></head><body></body></html>"#)
+            .unwrap();
+        let e = xot.html5().to_string(root).unwrap_err();
+
+        assert!(matches!(e, Error::ProcessingInstructionGtInHtml(_)));
+        match e {
+            Error::ProcessingInstructionGtInHtml(s) => {
+                assert_eq!(s, ">bar");
+            }
+            _ => unreachable!(),
+        }
+    }
+    // #[test]
+    // fn test_html_no_xml_namespace() {
+    //     let mut xot = Xot::new();
+    //     let root = xot
+    //         .parse(r#"<html xmlns:xml="https://www.w3.org/XML/1998/namespace"></html>"#)
+    //         .unwrap();
+    //     let s = xot.html5().to_string(root).unwrap();
+    //     assert_eq!(s, "<!DOCTYPE html><html></html>");
+    // }
 }
