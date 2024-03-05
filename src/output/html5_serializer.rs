@@ -118,6 +118,11 @@ impl Html5Elements {
     fn is_html_namespace(&self, xot: &Xot, namespace_id: NamespaceId) -> bool {
         namespace_id == self.xhtml_namespace_id || namespace_id == xot.no_namespace()
     }
+
+    fn is_xhtml_element(&self, xot: &Xot, name_id: NameId) -> bool {
+        let namespace = xot.namespace_for_name(name_id);
+        namespace == self.xhtml_namespace_id
+    }
 }
 
 pub(crate) struct Html5Serializer<'a, N: Normalizer> {
@@ -193,6 +198,29 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
         Ok(())
     }
 
+    pub(crate) fn must_render_namespace_without_prefix(
+        &self,
+        name_id: NameId,
+    ) -> Option<NamespaceId> {
+        // if we're in the xhtml namespace and our prefix is not the default one, we
+        // need to render this with the default namespace anyway
+        if self.html5_elements.is_xhtml_element(self.xot, name_id) {
+            let prefix = self.fullname_serializer.element_prefix(name_id);
+            if let Some(prefix) = prefix {
+                if prefix != self.xot.empty_prefix() {
+                    return Some(self.xot.namespace_for_name(name_id));
+                }
+            } else {
+                // no prefix is already impossible a this point as we confirmed it's an xhtml element
+
+                // so it's a missing prefix , so we say no; it will fail with a
+                // missing prefix later
+                return None;
+            }
+        }
+        None
+    }
+
     pub(crate) fn render_output(
         &mut self,
         node: Node,
@@ -202,12 +230,24 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
         let r = match output {
             StartTagOpen(element) => {
                 self.fullname_serializer.push(&self.xot.prefixes(node));
-                OutputToken {
-                    space: false,
-                    text: format!(
-                        "<{}",
-                        self.fullname_serializer.fullname_or_err(element.name_id)?
-                    ),
+                if let Some(namespace_id) =
+                    self.must_render_namespace_without_prefix(element.name_id)
+                {
+                    // we need to render this with the default namespace
+                    let local_name = self.xot.local_name_str(element.name_id);
+                    let namespace_uri = self.xot.namespace_str(namespace_id);
+                    OutputToken {
+                        space: false,
+                        text: format!("<{} xmlns=\"{}\"", local_name, namespace_uri),
+                    }
+                } else {
+                    OutputToken {
+                        space: false,
+                        text: format!(
+                            "<{}",
+                            self.fullname_serializer.fullname_or_err(element.name_id)?
+                        ),
+                    }
                 }
             }
             StartTagClose => OutputToken {
@@ -226,6 +266,16 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
                         space: false,
                         text: "".to_string(),
                     }
+                } else if self
+                    .must_render_namespace_without_prefix(element.name_id)
+                    .is_some()
+                {
+                    // we need to render this with the default namespace
+                    let local_name = self.xot.local_name_str(element.name_id);
+                    OutputToken {
+                        space: false,
+                        text: format!("</{}>", local_name),
+                    }
                 } else {
                     OutputToken {
                         space: false,
@@ -239,6 +289,19 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
                 r
             }
             Prefix(prefix_id, namespace_id) => {
+                let element = self.xot.element(node).unwrap();
+                // skip rendering this prefix if it's already rendered as a default
+                // TODO: handle attributes cases
+                if self
+                    .must_render_namespace_without_prefix(element.name_id)
+                    .is_some()
+                {
+                    return Ok(OutputToken {
+                        space: false,
+                        text: "".to_string(),
+                    });
+                }
+
                 // if the namespace node is the XML namespace, it's ignored by the HTML
                 // output method.
                 if namespace_id == &self.xot.xml_namespace() {
@@ -577,5 +640,18 @@ mod tests {
             .unwrap();
         let s = xot.html5().to_string(root).unwrap();
         assert_eq!(s, "<!DOCTYPE html><html></html>");
+    }
+
+    #[test]
+    fn test_xhtml_namespace_without_prefix() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse(r#"<prefix:html xmlns:prefix="https://www.w3.org/1999/xhtml"></prefix:html>"#)
+            .unwrap();
+        let s = xot.html5().to_string(root).unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html xmlns="https://www.w3.org/1999/xhtml"></html>"#
+        );
     }
 }
