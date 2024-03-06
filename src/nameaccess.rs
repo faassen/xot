@@ -719,33 +719,19 @@ impl Xot {
     }
 
     pub(crate) fn prefixes_in_scope(&self, node: Node) -> Prefixes {
-        let mut prefixes = Prefixes::new();
-        for ancestor in self.ancestors(node) {
-            let namespaces = self.namespaces(ancestor);
-            for (prefix_id, namespace_id) in namespaces.iter() {
-                // prefixes defined later override those defined earlier
-                if prefixes.contains_key(&prefix_id) {
-                    continue;
-                }
-                prefixes.insert(prefix_id, *namespace_id);
-            }
-        }
-        prefixes
-    }
-
-    pub(crate) fn prefixes_in_scope2(&self, node: Node) -> NamespaceDeclarations {
-        let mut declarations = NamespaceDeclarations::new();
-        for ancestor in self.ancestors(node) {
-            let namespaces = self.namespaces(ancestor);
-            let n = namespaces
-                .iter()
-                .map(|(prefix, namespace)| (prefix, *namespace))
-                .collect::<Vec<_>>();
-            declarations.extend(n);
-        }
-        // namespaces more recently declared should override those declared earlier
-        declarations.reverse();
-        declarations
+        self.namespaces_in_scope(node).collect()
+        // let mut prefixes = Prefixes::new();
+        // for ancestor in self.ancestors(node) {
+        //     let namespaces = self.namespaces(ancestor);
+        //     for (prefix_id, namespace_id) in namespaces.iter() {
+        //         // prefixes defined later override those defined earlier
+        //         if prefixes.contains_key(&prefix_id) {
+        //             continue;
+        //         }
+        //         prefixes.insert(prefix_id, *namespace_id);
+        //     }
+        // }
+        // prefixes
     }
 
     /// Get namespaces without prefix within node or its descendants.
@@ -900,17 +886,21 @@ mod tests {
 
         assert_eq!(
             xot.prefixes_in_scope(doc_el),
-            Prefixes::from_iter(vec![(foo, ns)])
+            Prefixes::from_iter(vec![(foo, ns), (xot.xml_prefix(), xot.xml_namespace())])
         );
 
         assert_eq!(
             xot.prefixes_in_scope(a),
-            Prefixes::from_iter(vec![(foo, ns)])
+            Prefixes::from_iter(vec![(foo, ns), (xot.xml_prefix(), xot.xml_namespace())])
         );
 
         assert_eq!(
             xot.prefixes_in_scope(b),
-            Prefixes::from_iter(vec![(foo, ns_foo), (bar, ns_bar)])
+            Prefixes::from_iter(vec![
+                (foo, ns_foo),
+                (bar, ns_bar),
+                (xot.xml_prefix(), xot.xml_namespace())
+            ])
         );
     }
 }

@@ -24,7 +24,6 @@ impl<'a, N: Normalizer> XmlSerializer<'a, N> {
         normalizer: N,
     ) -> Self {
         let extra_declarations = xot.namespaces_in_scope(node).collect();
-        // let extra_prefixes = get_extra_prefixes2(xot, node);
         let fullname_serializer = FullnameSerializer::new(xot, extra_declarations);
         Self {
             xot,
@@ -130,6 +129,13 @@ impl<'a, N: Normalizer> XmlSerializer<'a, N> {
                 r
             }
             Prefix(prefix_id, namespace_id) => {
+                // we don't want to output the xml prefix
+                if *namespace_id == self.xot.xml_namespace() {
+                    return Ok(OutputToken {
+                        space: false,
+                        text: "".to_string(),
+                    });
+                }
                 let namespace = self.xot.namespace_str(*namespace_id);
                 if *prefix_id == self.xot.empty_prefix_id {
                     OutputToken {

@@ -73,18 +73,6 @@ pub(crate) fn get_extra_prefixes(xot: &Xot, node: Node) -> Prefixes {
     }
 }
 
-pub(crate) fn get_extra_prefixes2(xot: &Xot, node: Node) -> NamespaceDeclarations {
-    if let Some(parent) = xot.parent(node) {
-        if xot.value_type(parent) != ValueType::Document {
-            xot.prefixes_in_scope2(parent)
-        } else {
-            NamespaceDeclarations::new()
-        }
-    } else {
-        NamespaceDeclarations::new()
-    }
-}
-
 fn gen_edge_start(
     xot: &Xot,
     top_node: Node,
