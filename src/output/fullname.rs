@@ -5,18 +5,12 @@
 
 use std::borrow::Cow;
 
-use ahash::{HashSet, HashSetExt};
-
 use crate::{Error, NameId, NamespaceId, PrefixId, Xot};
 
 pub(crate) type NamespaceDeclarations = Vec<(PrefixId, NamespaceId)>;
 
-// this structure maintains everything we need to know about a name per element
 #[derive(Debug)]
 struct FullnameInfo {
-    // all namespaces defined on this node
-    defined_namespaces: NamespaceDeclarations,
-    // namespaces known on this node
     all_namespaces: NamespaceDeclarations,
 }
 
@@ -32,10 +26,7 @@ impl FullnameInfo {
             .chain(node_namespaces.iter())
             .copied()
             .collect();
-        Self {
-            defined_namespaces: node_namespaces,
-            all_namespaces,
-        }
+        Self { all_namespaces }
     }
 
     fn namespace_by_prefix(&self, prefix: PrefixId) -> Option<NamespaceId> {
@@ -85,7 +76,6 @@ impl<'a> FullnameSerializer<'a> {
         Self {
             xot,
             stack: vec![FullnameInfo {
-                defined_namespaces: defined_namespaces.clone(),
                 all_namespaces: defined_namespaces,
             }],
         }
@@ -108,7 +98,6 @@ impl<'a> FullnameSerializer<'a> {
     pub(crate) fn add_empty_prefix(&mut self, namespace_id: NamespaceId) {
         let current_fullname_info = self.stack.last_mut().unwrap();
         let empty_entry = (self.xot.empty_prefix(), namespace_id);
-        current_fullname_info.defined_namespaces.push(empty_entry);
         current_fullname_info.all_namespaces.push(empty_entry);
     }
 

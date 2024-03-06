@@ -7,7 +7,6 @@ use crate::output::Normalizer;
 use crate::xotdata::{Node, Xot};
 
 use super::fullname::FullnameSerializer;
-use super::serializer::{get_extra_prefixes, get_extra_prefixes2};
 use super::{Output, OutputToken, Pretty};
 
 pub(crate) struct XmlSerializer<'a, N: Normalizer> {
