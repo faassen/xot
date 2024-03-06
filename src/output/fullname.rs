@@ -5,6 +5,8 @@
 
 use std::borrow::Cow;
 
+use ahash::{HashSet, HashSetExt};
+
 use crate::{Error, NameId, NamespaceId, PrefixId, Xot};
 
 pub(crate) type NamespaceDeclarations = Vec<(PrefixId, NamespaceId)>;
@@ -20,9 +22,13 @@ struct FullnameInfo {
 
 impl FullnameInfo {
     fn new(node_namespaces: NamespaceDeclarations, current_fullname_info: &FullnameInfo) -> Self {
-        let all_namespaces = current_fullname_info
+        let current_namespaces = current_fullname_info
             .all_namespaces
             .iter()
+            // filter out any overridden prefixes
+            .filter(|(p, _)| !node_namespaces.iter().any(|(p2, _)| p2 == p));
+
+        let all_namespaces = current_namespaces
             .chain(node_namespaces.iter())
             .copied()
             .collect();
@@ -322,5 +328,26 @@ mod tests {
         let fullname_serializer = FullnameSerializer::new(&xot, vec![(xot.empty_prefix(), ns)]);
 
         assert!(fullname_serializer.fullname_attribute(a).is_err());
+    }
+
+    #[test]
+    fn test_overridden_prefix() {
+        let mut xot = Xot::new();
+
+        let ns1 = xot.add_namespace("ns1");
+        let ns2 = xot.add_namespace("ns2");
+        let a1 = xot.add_name_ns("a", ns1);
+        let a2 = xot.add_name_ns("a", ns2);
+
+        let p = xot.add_prefix("p");
+        // override the prefix p so that ns1 isn't accessible anymore
+        let mut fullname_serializer = FullnameSerializer::new(&xot, vec![(p, ns1)]);
+        fullname_serializer.push(vec![(p, ns2)]);
+
+        assert_eq!(
+            fullname_serializer.fullname_element(a2).unwrap(),
+            Cow::Owned::<str>("p:a".to_string())
+        );
+        assert!(fullname_serializer.fullname_attribute(a1).is_err());
     }
 }

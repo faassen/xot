@@ -24,8 +24,9 @@ impl<'a, N: Normalizer> XmlSerializer<'a, N> {
         cdata_section_names: &'a [NameId],
         normalizer: N,
     ) -> Self {
-        let extra_prefixes = get_extra_prefixes2(xot, node);
-        let mut fullname_serializer = FullnameSerializer::new(xot, extra_prefixes);
+        let extra_declarations = xot.namespaces_in_scope(node).collect();
+        // let extra_prefixes = get_extra_prefixes2(xot, node);
+        let fullname_serializer = FullnameSerializer::new(xot, extra_declarations);
         Self {
             xot,
             cdata_section_names,
