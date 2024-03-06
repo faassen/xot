@@ -9,10 +9,22 @@ use crate::fullname::FullnameSerializer;
 use crate::id::NameId;
 use crate::output::Normalizer;
 use crate::xotdata::{Node, Xot};
-use crate::NamespaceId;
+use crate::{NamespaceId, Prefixes, ValueType};
 
-use super::serializer::get_extra_prefixes;
 use super::{Output, OutputToken, Pretty};
+
+pub(crate) fn get_extra_prefixes(xot: &Xot, node: Node) -> Prefixes {
+    // collect namespace prefixes for all ancestors of the fragment
+    if let Some(parent) = xot.parent(node) {
+        if xot.value_type(parent) != ValueType::Document {
+            xot.prefixes_in_scope(parent)
+        } else {
+            Prefixes::new()
+        }
+    } else {
+        Prefixes::new()
+    }
+}
 
 // used to determine whether something is a HTML 5 element
 const XHTML_NS: &str = "https://www.w3.org/1999/xhtml";

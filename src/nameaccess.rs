@@ -6,7 +6,6 @@ use crate::access::NodeEdge;
 use crate::error::Error;
 use crate::fullname::{Fullname, FullnameSerializer};
 use crate::id::{Name, NameId, NamespaceId, PrefixId};
-use crate::output::NamespaceDeclarations;
 use crate::xmlvalue::Prefixes;
 use crate::xotdata::{Node, Xot};
 use crate::{xmlname, Value};
@@ -720,18 +719,6 @@ impl Xot {
 
     pub(crate) fn prefixes_in_scope(&self, node: Node) -> Prefixes {
         self.namespaces_in_scope(node).collect()
-        // let mut prefixes = Prefixes::new();
-        // for ancestor in self.ancestors(node) {
-        //     let namespaces = self.namespaces(ancestor);
-        //     for (prefix_id, namespace_id) in namespaces.iter() {
-        //         // prefixes defined later override those defined earlier
-        //         if prefixes.contains_key(&prefix_id) {
-        //             continue;
-        //         }
-        //         prefixes.insert(prefix_id, *namespace_id);
-        //     }
-        // }
-        // prefixes
     }
 
     /// Get namespaces without prefix within node or its descendants.

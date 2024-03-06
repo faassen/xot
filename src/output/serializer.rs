@@ -1,14 +1,11 @@
 use genawaiter::rc::gen;
 use genawaiter::yield_;
-use std::rc::Rc;
 
 use crate::access::NodeEdge;
 use crate::id::{NameId, NamespaceId, PrefixId};
 use crate::xmlvalue::{Element, Prefixes};
 use crate::xmlvalue::{Value, ValueType};
 use crate::xotdata::{Node, Xot};
-
-use super::fullname::NamespaceDeclarations;
 
 /// Output of serialization
 ///
@@ -39,11 +36,10 @@ pub enum Output<'a> {
 
 pub(crate) fn gen_outputs(xot: &Xot, node: Node) -> impl Iterator<Item = (Node, Output)> + '_ {
     gen!({
-        let extra_prefixes = Rc::new(get_extra_prefixes(xot, node));
         for edge in xot.traverse(node) {
             match edge {
                 NodeEdge::Start(current_node) => {
-                    let gen = gen_edge_start(xot, node, current_node, extra_prefixes.clone());
+                    let gen = gen_edge_start(xot, node, current_node);
                     for output in gen {
                         yield_!((current_node, output));
                     }
@@ -60,25 +56,7 @@ pub(crate) fn gen_outputs(xot: &Xot, node: Node) -> impl Iterator<Item = (Node, 
     .into_iter()
 }
 
-pub(crate) fn get_extra_prefixes(xot: &Xot, node: Node) -> Prefixes {
-    // collect namespace prefixes for all ancestors of the fragment
-    if let Some(parent) = xot.parent(node) {
-        if xot.value_type(parent) != ValueType::Document {
-            xot.prefixes_in_scope(parent)
-        } else {
-            Prefixes::new()
-        }
-    } else {
-        Prefixes::new()
-    }
-}
-
-fn gen_edge_start(
-    xot: &Xot,
-    top_node: Node,
-    node: Node,
-    extra_prefixes: Rc<Prefixes>,
-) -> impl Iterator<Item = Output> + '_ {
+fn gen_edge_start(xot: &Xot, top_node: Node, node: Node) -> impl Iterator<Item = Output> + '_ {
     gen!({
         let value = xot.value(node);
 
@@ -91,9 +69,9 @@ fn gen_edge_start(
                 // a fragment and they aren't declared already
                 let namespaces = xot.namespaces(node);
                 if node == top_node {
-                    for (prefix_id, namespace_id) in extra_prefixes.iter() {
-                        if !namespaces.contains_key(*prefix_id) {
-                            yield_!(Output::Prefix(*prefix_id, *namespace_id,));
+                    for (prefix_id, namespace_id) in xot.namespaces_in_scope(node) {
+                        if !namespaces.contains_key(prefix_id) {
+                            yield_!(Output::Prefix(prefix_id, namespace_id,));
                         }
                     }
                 }
@@ -162,6 +140,8 @@ mod tests {
 
         let v = iter.next().unwrap().1;
         assert_eq!(v, Output::StartTagOpen(*doc_el));
+        let v = iter.next().unwrap().1;
+        assert_eq!(v, Output::Prefix(xot.xml_prefix(), xot.xml_namespace()));
         let v = iter.next().unwrap().1;
         assert_eq!(v, Output::Attribute(a_id, "A"));
         let v = iter.next().unwrap().1;

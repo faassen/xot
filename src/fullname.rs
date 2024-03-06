@@ -1,4 +1,4 @@
-use ahash::{HashMap, HashMapExt};
+use ahash::HashMap;
 use std::borrow::Cow;
 
 use crate::error::Error;
