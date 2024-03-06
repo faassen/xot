@@ -14,6 +14,7 @@ pub mod xml;
 mod xml_serializer;
 
 pub use common::Indentation;
+pub(crate) use fullname::NamespaceDeclarations;
 pub(crate) use html5_serializer::{Html5Elements, Html5Serializer};
 pub use normalizer::{NoopNormalizer, Normalizer};
 pub(crate) use pretty::Pretty;

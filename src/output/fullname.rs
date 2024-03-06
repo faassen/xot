@@ -5,21 +5,21 @@
 
 use std::borrow::Cow;
 
-use crate::{NameId, NamespaceId, PrefixId, Xot};
+use crate::{Error, NameId, NamespaceId, PrefixId, Xot};
 
-type Namespaces = Vec<(PrefixId, NamespaceId)>;
+pub(crate) type NamespaceDeclarations = Vec<(PrefixId, NamespaceId)>;
 
 // this structure maintains everything we need to know about a name per element
 #[derive(Debug)]
 struct FullnameInfo {
     // all namespaces defined on this node
-    defined_namespaces: Namespaces,
+    defined_namespaces: NamespaceDeclarations,
     // namespaces known on this node
-    all_namespaces: Namespaces,
+    all_namespaces: NamespaceDeclarations,
 }
 
 impl FullnameInfo {
-    fn new(node_namespaces: Namespaces, current_fullname_info: &FullnameInfo) -> Self {
+    fn new(node_namespaces: NamespaceDeclarations, current_fullname_info: &FullnameInfo) -> Self {
         let all_namespaces = current_fullname_info
             .all_namespaces
             .iter()
@@ -75,7 +75,7 @@ pub(crate) struct FullnameSerializer<'a> {
 }
 
 impl<'a> FullnameSerializer<'a> {
-    pub(crate) fn new(xot: &'a Xot, defined_namespaces: Namespaces) -> Self {
+    pub(crate) fn new(xot: &'a Xot, defined_namespaces: NamespaceDeclarations) -> Self {
         Self {
             xot,
             stack: vec![FullnameInfo {
@@ -85,7 +85,7 @@ impl<'a> FullnameSerializer<'a> {
         }
     }
 
-    pub(crate) fn push(&mut self, defined_namespaces: Namespaces) {
+    pub(crate) fn push(&mut self, defined_namespaces: NamespaceDeclarations) {
         // optimization; we don't need to recalculate anything if we
         // already have the same namespaces. the cost is that we need
         // to keep track of whether this node defined namespaces for pop as well.
@@ -118,19 +118,22 @@ impl<'a> FullnameSerializer<'a> {
 
     // get the fullname. if None, we cannot generate the fullname due to a missing
     // prefix
-    pub(crate) fn fullname_element(&self, name_id: NameId) -> Option<Cow<'a, str>> {
+    pub(crate) fn fullname_element(&self, name_id: NameId) -> Result<Cow<'a, str>, Error> {
         let namespace_id = self.xot.namespace_for_name(name_id);
         if namespace_id == self.xot.no_namespace_id {
-            Some(Cow::Borrowed(self.xot.local_name_str(name_id)))
+            Ok(Cow::Borrowed(self.xot.local_name_str(name_id)))
         } else {
             let prefix_id = self
                 .top()
-                .element_prefix_by_namespace(self.xot, namespace_id)?;
+                .element_prefix_by_namespace(self.xot, namespace_id)
+                .ok_or_else(|| {
+                    Error::MissingPrefix(self.xot.namespace_str(namespace_id).to_string())
+                })?;
             if prefix_id == self.xot.empty_prefix() {
-                Some(Cow::Borrowed(self.xot.local_name_str(name_id)))
+                Ok(Cow::Borrowed(self.xot.local_name_str(name_id)))
             } else {
                 let prefix = self.xot.prefix_str(prefix_id);
-                Some(Cow::Owned(format!(
+                Ok(Cow::Owned(format!(
                     "{}:{}",
                     prefix,
                     self.xot.local_name_str(name_id)
@@ -139,16 +142,19 @@ impl<'a> FullnameSerializer<'a> {
         }
     }
 
-    pub(crate) fn fullname_attribute(&self, name_id: NameId) -> Option<Cow<'a, str>> {
+    pub(crate) fn fullname_attribute(&self, name_id: NameId) -> Result<Cow<'a, str>, Error> {
         let namespace_id = self.xot.namespace_for_name(name_id);
         if namespace_id == self.xot.no_namespace_id {
-            Some(Cow::Borrowed(self.xot.local_name_str(name_id)))
+            Ok(Cow::Borrowed(self.xot.local_name_str(name_id)))
         } else {
             let prefix_id = self
                 .top()
-                .attribute_prefix_by_namespace(self.xot, namespace_id)?;
+                .attribute_prefix_by_namespace(self.xot, namespace_id)
+                .ok_or_else(|| {
+                    Error::MissingPrefix(self.xot.namespace_str(namespace_id).to_string())
+                })?;
             let prefix = self.xot.prefix_str(prefix_id);
-            Some(Cow::Owned(format!(
+            Ok(Cow::Owned(format!(
                 "{}:{}",
                 prefix,
                 self.xot.local_name_str(name_id)
@@ -169,8 +175,8 @@ mod tests {
         let fullname_serializer = FullnameSerializer::new(&xot, vec![]);
 
         assert_eq!(
-            fullname_serializer.fullname_element(a),
-            Some(Cow::Borrowed("a"))
+            fullname_serializer.fullname_element(a).unwrap(),
+            Cow::Borrowed("a")
         );
     }
 
@@ -182,8 +188,8 @@ mod tests {
         let fullname_serializer = FullnameSerializer::new(&xot, vec![]);
 
         assert_eq!(
-            fullname_serializer.fullname_attribute(a),
-            Some(Cow::Borrowed("a"))
+            fullname_serializer.fullname_attribute(a).unwrap(),
+            Cow::Borrowed("a")
         );
     }
 
@@ -197,8 +203,8 @@ mod tests {
         let fullname_serializer = FullnameSerializer::new(&xot, vec![(prefix, ns)]);
 
         assert_eq!(
-            fullname_serializer.fullname_element(a),
-            Some(Cow::Owned("p:a".to_string()))
+            fullname_serializer.fullname_element(a).unwrap(),
+            Cow::Owned::<str>("p:a".to_string())
         );
     }
 
@@ -212,8 +218,8 @@ mod tests {
         let fullname_serializer = FullnameSerializer::new(&xot, vec![(prefix, ns)]);
 
         assert_eq!(
-            fullname_serializer.fullname_attribute(a),
-            Some(Cow::Owned("p:a".to_string()))
+            fullname_serializer.fullname_attribute(a).unwrap(),
+            Cow::Owned::<str>("p:a".to_string())
         );
     }
 
@@ -226,8 +232,8 @@ mod tests {
         let fullname_serializer = FullnameSerializer::new(&xot, vec![(xot.empty_prefix(), ns)]);
 
         assert_eq!(
-            fullname_serializer.fullname_element(a),
-            Some(Cow::Borrowed("a"))
+            fullname_serializer.fullname_element(a).unwrap(),
+            Cow::Borrowed("a")
         );
     }
 
@@ -242,8 +248,8 @@ mod tests {
             FullnameSerializer::new(&xot, vec![(xot.empty_prefix(), ns), (p, ns)]);
 
         assert_eq!(
-            fullname_serializer.fullname_element(a),
-            Some(Cow::Borrowed("a"))
+            fullname_serializer.fullname_element(a).unwrap(),
+            Cow::Borrowed("a")
         );
     }
 
@@ -258,8 +264,8 @@ mod tests {
         let fullname_serializer = FullnameSerializer::new(&xot, vec![(p1, ns), (p2, ns)]);
 
         assert_eq!(
-            fullname_serializer.fullname_element(a),
-            Some(Cow::Owned("p2:a".to_string()))
+            fullname_serializer.fullname_element(a).unwrap(),
+            Cow::Owned::<str>("p2:a".to_string())
         );
     }
 
@@ -271,7 +277,7 @@ mod tests {
         let a = xot.add_name_ns("a", ns);
         let fullname_serializer = FullnameSerializer::new(&xot, vec![]);
 
-        assert_eq!(fullname_serializer.fullname_element(a), None);
+        assert!(fullname_serializer.fullname_element(a).is_err());
     }
 
     #[test]
@@ -285,8 +291,8 @@ mod tests {
             FullnameSerializer::new(&xot, vec![(xot.empty_prefix(), ns), (p, ns)]);
 
         assert_eq!(
-            fullname_serializer.fullname_attribute(a),
-            Some(Cow::Owned("p:a".to_string()))
+            fullname_serializer.fullname_attribute(a).unwrap(),
+            Cow::Owned::<str>("p:a".to_string())
         );
     }
 
@@ -301,8 +307,8 @@ mod tests {
             FullnameSerializer::new(&xot, vec![(p, ns), (xot.empty_prefix(), ns)]);
 
         assert_eq!(
-            fullname_serializer.fullname_attribute(a),
-            Some(Cow::Owned("p:a".to_string()))
+            fullname_serializer.fullname_attribute(a).unwrap(),
+            Cow::Owned::<str>("p:a".to_string())
         );
     }
 
@@ -315,6 +321,6 @@ mod tests {
 
         let fullname_serializer = FullnameSerializer::new(&xot, vec![(xot.empty_prefix(), ns)]);
 
-        assert_eq!(fullname_serializer.fullname_attribute(a), None);
+        assert!(fullname_serializer.fullname_attribute(a).is_err());
     }
 }

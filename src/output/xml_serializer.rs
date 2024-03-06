@@ -2,12 +2,12 @@ use std::io;
 
 use crate::entity::{serialize_attribute, serialize_cdata, serialize_text};
 use crate::error::Error;
-use crate::fullname::FullnameSerializer;
 use crate::id::NameId;
 use crate::output::Normalizer;
 use crate::xotdata::{Node, Xot};
 
-use super::serializer::get_extra_prefixes;
+use super::fullname::FullnameSerializer;
+use super::serializer::{get_extra_prefixes, get_extra_prefixes2};
 use super::{Output, OutputToken, Pretty};
 
 pub(crate) struct XmlSerializer<'a, N: Normalizer> {
@@ -24,9 +24,8 @@ impl<'a, N: Normalizer> XmlSerializer<'a, N> {
         cdata_section_names: &'a [NameId],
         normalizer: N,
     ) -> Self {
-        let extra_prefixes = get_extra_prefixes(xot, node);
-        let mut fullname_serializer = FullnameSerializer::new(xot);
-        fullname_serializer.push(&extra_prefixes);
+        let extra_prefixes = get_extra_prefixes2(xot, node);
+        let mut fullname_serializer = FullnameSerializer::new(xot, extra_prefixes);
         Self {
             xot,
             cdata_section_names,
@@ -88,12 +87,13 @@ impl<'a, N: Normalizer> XmlSerializer<'a, N> {
         use Output::*;
         let r = match output {
             StartTagOpen(element) => {
-                self.fullname_serializer.push(&self.xot.prefixes(node));
+                self.fullname_serializer
+                    .push(self.xot.namespace_declarations(node));
                 OutputToken {
                     space: false,
                     text: format!(
                         "<{}",
-                        self.fullname_serializer.fullname_or_err(element.name_id)?
+                        self.fullname_serializer.fullname_element(element.name_id)?
                     ),
                 }
             }
@@ -116,7 +116,7 @@ impl<'a, N: Normalizer> XmlSerializer<'a, N> {
                         space: false,
                         text: format!(
                             "</{}>",
-                            self.fullname_serializer.fullname_or_err(element.name_id)?
+                            self.fullname_serializer.fullname_element(element.name_id)?
                         ),
                     }
                 } else {
@@ -125,7 +125,8 @@ impl<'a, N: Normalizer> XmlSerializer<'a, N> {
                         text: "".to_string(),
                     }
                 };
-                self.fullname_serializer.pop();
+                self.fullname_serializer
+                    .pop(self.xot.has_namespace_declarations(node));
                 r
             }
             Prefix(prefix_id, namespace_id) => {
@@ -144,7 +145,7 @@ impl<'a, N: Normalizer> XmlSerializer<'a, N> {
                 }
             }
             Attribute(name_id, value) => {
-                let fullname = self.fullname_serializer.fullname_attr_or_err(*name_id)?;
+                let fullname = self.fullname_serializer.fullname_attribute(*name_id)?;
                 OutputToken {
                     space: true,
                     text: format!(

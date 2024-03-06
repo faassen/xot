@@ -3,6 +3,7 @@ use indextree::NodeEdge as IndexTreeNodeEdge;
 use crate::error::Error;
 use crate::levelorder::{level_order_traverse, LevelOrder};
 use crate::nodemap::{category_predicate, Attributes, Namespaces};
+use crate::output::NamespaceDeclarations;
 use crate::xmlvalue::{Value, ValueCategory, ValueType};
 use crate::xotdata::{Node, Xot};
 use crate::{MutableAttributes, MutableNamespaces, Prefixes};
@@ -229,6 +230,18 @@ impl Xot {
             prefixes.insert(prefix, *ns);
         }
         prefixes
+    }
+
+    /// Copy the namespace declarations as a namespace declarations vec.
+    pub fn namespace_declarations(&self, node: Node) -> NamespaceDeclarations {
+        self.namespaces(node)
+            .iter()
+            .map(|(prefix, ns)| (prefix, *ns))
+            .collect()
+    }
+
+    pub(crate) fn has_namespace_declarations(&self, node: Node) -> bool {
+        self.namespaces(node).iter().next().is_some()
     }
 
     /// Mutable namespaces accessor.
