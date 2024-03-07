@@ -264,24 +264,6 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
         Ok(())
     }
 
-    pub(crate) fn must_render_namespace_without_prefix(
-        &self,
-        name_id: NameId,
-    ) -> Result<Option<NamespaceId>, Error> {
-        // if we're in the xhtml namespace and our prefix is not the default
-        // one, we need to render this with the default namespace anyway
-        if self.html5_elements.is_xhtml_element(self.xot, name_id) {
-            let prefix = self.fullname_serializer.element_prefix(name_id)?;
-            if prefix.is_some() {
-                return Ok(Some(self.xot.namespace_for_name(name_id)));
-            }
-            // if let Some(prefix) = prefix {
-            //     if prefix != self.xot.empty_prefix() {
-            //     }
-            // }
-        }
-        Ok(None)
-    }
 
     pub(crate) fn render_output(
         &mut self,
@@ -779,6 +761,8 @@ mod tests {
     //         .parse(r#"<prefix:html xmlns:prefix="https://www.w3.org/1999/xhtml"><prefix:body xmlns="different"><prefix:p></prefix:p></prefix:body></prefix:html>"#)
     //         .unwrap();
     //     let s = xot.html5().to_string(root).unwrap();
+    //     // TODO: this is probably wrong; we don't expect an additional namespace declaration. On
+    //     // the other hand, there was an intervening prefix, but it should have been ignored.
     //     assert_eq!(
     //         s,
     //         r#"<!DOCTYPE html><html xmlns="https://www.w3.org/1999/xhtml"><body></body></html>"#
