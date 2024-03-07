@@ -122,7 +122,7 @@ impl<'a> FullnameSerializer<'a> {
         self.stack.last().unwrap()
     }
 
-    pub(crate) fn element_prefix(&self, name_id: NameId) -> Result<Option<&'a str>, Error> {
+    pub(crate) fn element_prefix(&self, name_id: NameId) -> Result<Option<PrefixId>, Error> {
         let namespace_id = self.xot.namespace_for_name(name_id);
         if namespace_id == self.xot.no_namespace_id {
             // no namespace, therefore no prefix to show
@@ -137,7 +137,7 @@ impl<'a> FullnameSerializer<'a> {
                     Ok(None)
                 } else {
                     // a prefix
-                    Ok(Some(self.xot.prefix_str(prefix_id)))
+                    Ok(Some(prefix_id))
                 }
             } else {
                 // missing prefix
@@ -154,7 +154,7 @@ impl<'a> FullnameSerializer<'a> {
         if let Some(prefix) = self.element_prefix(name_id)? {
             Ok(Cow::Owned(format!(
                 "{}:{}",
-                prefix,
+                self.xot.prefix_str(prefix),
                 self.xot.local_name_str(name_id)
             )))
         } else {
@@ -162,7 +162,7 @@ impl<'a> FullnameSerializer<'a> {
         }
     }
 
-    pub(crate) fn attribute_prefix(&self, name_id: NameId) -> Result<Option<&'a str>, Error> {
+    pub(crate) fn attribute_prefix(&self, name_id: NameId) -> Result<Option<PrefixId>, Error> {
         let namespace_id = self.xot.namespace_for_name(name_id);
         if namespace_id == self.xot.no_namespace_id {
             // no namespace, therefore no prefix to show
@@ -173,7 +173,7 @@ impl<'a> FullnameSerializer<'a> {
                 .attribute_prefix_by_namespace(self.xot, namespace_id);
             if let Some(prefix_id) = prefix_id {
                 // a prefix, which cannot be empty
-                Ok(Some(self.xot.prefix_str(prefix_id)))
+                Ok(Some(prefix_id))
             } else {
                 // missing prefix
                 Err(Error::MissingPrefix(
@@ -187,7 +187,7 @@ impl<'a> FullnameSerializer<'a> {
         if let Some(prefix) = self.attribute_prefix(name_id)? {
             Ok(Cow::Owned(format!(
                 "{}:{}",
-                prefix,
+                self.xot.prefix_str(prefix),
                 self.xot.local_name_str(name_id)
             )))
         } else {
@@ -241,7 +241,7 @@ mod tests {
             fullname_serializer.element_fullname(a).unwrap(),
             Cow::Owned::<str>("p:a".to_string())
         );
-        assert_eq!(fullname_serializer.element_prefix(a).unwrap(), Some("p"))
+        assert_eq!(fullname_serializer.element_prefix(a).unwrap(), Some(prefix))
     }
 
     #[test]
@@ -257,7 +257,7 @@ mod tests {
             fullname_serializer.attribute_fullname(a).unwrap(),
             Cow::Owned::<str>("p:a".to_string())
         );
-        assert_eq!(fullname_serializer.element_prefix(a).unwrap(), Some("p"))
+        assert_eq!(fullname_serializer.element_prefix(a).unwrap(), Some(prefix))
     }
 
     #[test]
@@ -306,7 +306,7 @@ mod tests {
             fullname_serializer.element_fullname(a).unwrap(),
             Cow::Owned::<str>("p2:a".to_string())
         );
-        assert_eq!(fullname_serializer.element_prefix(a).unwrap(), Some("p2"))
+        assert_eq!(fullname_serializer.element_prefix(a).unwrap(), Some(p2))
     }
 
     #[test]
@@ -335,7 +335,7 @@ mod tests {
             fullname_serializer.attribute_fullname(a).unwrap(),
             Cow::Owned::<str>("p:a".to_string())
         );
-        assert_eq!(fullname_serializer.attribute_prefix(a).unwrap(), Some("p"));
+        assert_eq!(fullname_serializer.attribute_prefix(a).unwrap(), Some(p));
     }
 
     #[test]
@@ -352,7 +352,7 @@ mod tests {
             fullname_serializer.attribute_fullname(a).unwrap(),
             Cow::Owned::<str>("p:a".to_string())
         );
-        assert_eq!(fullname_serializer.attribute_prefix(a).unwrap(), Some("p"));
+        assert_eq!(fullname_serializer.attribute_prefix(a).unwrap(), Some(p));
     }
 
     #[test]

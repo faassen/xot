@@ -5,12 +5,12 @@ use ahash::{HashSet, HashSetExt};
 
 use crate::entity::{serialize_attribute, serialize_cdata, serialize_text};
 use crate::error::Error;
-use crate::fullname::FullnameSerializer;
 use crate::id::NameId;
 use crate::output::Normalizer;
 use crate::xotdata::{Node, Xot};
 use crate::{NamespaceId, Prefixes, ValueType};
 
+use super::fullname::FullnameSerializer;
 use super::{Output, OutputToken, Pretty};
 
 pub(crate) fn get_extra_prefixes(xot: &Xot, node: Node) -> Prefixes {
@@ -137,12 +137,39 @@ impl Html5Elements {
     }
 }
 
+// in order to know which prefix declarations we should not suppress, we keep
+// a list of all namespace ids used by attributes.
+// It's okay if no namespace ends up in there, as it's never declared anyway.
+struct AttributeNamespaces {
+    namespace_ids: HashSet<NamespaceId>,
+}
+
+impl AttributeNamespaces {
+    fn new(xot: &Xot, node: Node) -> Self {
+        // walk through the entire tree, find any attributes that are
+        // in an explicit namespace, and record those namespaces
+        let mut namespace_ids = HashSet::new();
+        for descendant in xot.descendants(node) {
+            for name in xot.attributes(descendant).keys() {
+                let namespace_id = xot.namespace_for_name(name);
+                namespace_ids.insert(namespace_id);
+            }
+        }
+        Self { namespace_ids }
+    }
+
+    fn is_used(&self, namespace_id: NamespaceId) -> bool {
+        self.namespace_ids.contains(&namespace_id)
+    }
+}
+
 pub(crate) struct Html5Serializer<'a, N: Normalizer> {
     xot: &'a Xot,
     html5_elements: &'a Html5Elements,
     cdata_section_names: &'a [NameId],
     fullname_serializer: FullnameSerializer<'a>,
     normalizer: N,
+    attribute_namespaces: AttributeNamespaces,
 }
 
 impl<'a, N: Normalizer> Html5Serializer<'a, N> {
@@ -153,15 +180,15 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
         cdata_section_names: &'a [NameId],
         normalizer: N,
     ) -> Self {
-        let extra_prefixes = get_extra_prefixes(xot, node);
-        let mut fullname_serializer = FullnameSerializer::new(xot);
-        fullname_serializer.push(&extra_prefixes);
+        let extra_declarations = xot.namespaces_in_scope(node).collect();
+        let fullname_serializer = FullnameSerializer::new(xot, extra_declarations);
         Self {
             xot,
             html5_elements,
             cdata_section_names,
             fullname_serializer,
             normalizer,
+            attribute_namespaces: AttributeNamespaces::new(xot, node),
         }
     }
 
@@ -213,27 +240,20 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
     pub(crate) fn must_render_namespace_without_prefix(
         &self,
         name_id: NameId,
-    ) -> Option<NamespaceId> {
-        // if we're in the xhtml namespace and our prefix is not the default one, we
-        // need to render this with the default namespace anyway
+    ) -> Result<Option<NamespaceId>, Error> {
+        // if we're in the xhtml namespace and our prefix is not the default
+        // one, we need to render this with the default namespace anyway
         if self.html5_elements.is_xhtml_element(self.xot, name_id) {
-            let prefixes = self.fullname_serializer.element_prefix(name_id);
-            if let Some(prefixes) = prefixes {
-                if !prefixes
-                    .iter()
-                    .any(|prefix| *prefix == self.xot.empty_prefix())
-                {
-                    return Some(self.xot.namespace_for_name(name_id));
-                }
-            } else {
-                // no prefix is already impossible a this point as we confirmed it's an xhtml element
-
-                // so it's a missing prefix , so we say no; it will fail with a
-                // missing prefix later
-                return None;
+            let prefix = self.fullname_serializer.element_prefix(name_id)?;
+            if prefix.is_some() {
+                return Ok(Some(self.xot.namespace_for_name(name_id)));
             }
+            // if let Some(prefix) = prefix {
+            //     if prefix != self.xot.empty_prefix() {
+            //     }
+            // }
         }
-        None
+        Ok(None)
     }
 
     pub(crate) fn render_output(
@@ -244,12 +264,13 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
         use Output::*;
         let r = match output {
             StartTagOpen(element) => {
-                self.fullname_serializer.push(&self.xot.prefixes(node));
+                self.fullname_serializer
+                    .push(self.xot.namespace_declarations(node));
                 if let Some(namespace_id) =
-                    self.must_render_namespace_without_prefix(element.name_id)
+                    self.must_render_namespace_without_prefix(element.name_id)?
                 {
-                    // add the empty prefix for the namespace if needed
                     if !self.fullname_serializer.has_empty_prefix(namespace_id) {
+                        // add the empty prefix for the namespace, if needed
                         self.fullname_serializer.add_empty_prefix(namespace_id);
                         // we also need to serialize the additional xmlns
                         let local_name = self.xot.local_name_str(element.name_id);
@@ -264,7 +285,7 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
                     space: false,
                     text: format!(
                         "<{}",
-                        self.fullname_serializer.fullname_or_err(element.name_id)?
+                        self.fullname_serializer.element_fullname(element.name_id)?
                     ),
                 }
             }
@@ -289,40 +310,34 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
                         space: false,
                         text: format!(
                             "</{}>",
-                            self.fullname_serializer.fullname_or_err(element.name_id)?
+                            self.fullname_serializer.element_fullname(element.name_id)?
                         ),
                     }
                 };
-                self.fullname_serializer.pop();
+                self.fullname_serializer
+                    .pop(self.xot.has_namespace_declarations(node));
                 r
             }
             Prefix(prefix_id, namespace_id) => {
-                // let element = self.xot.element(node).unwrap();
-                // // if we must render without a prefix, we can skip rendering the prefix,
+                // if this namespace must be rendered without a prefix,
+                // we can skip the prefix declaration, unless it's used
+                // by any attribute
+                // TODO: this is wrong, only if it's used by any attribute
+                // *under* the declaration should it be declared...
+                let element = self.xot.element(node).unwrap();
+                if let Some(namespace_id) =
+                    self.must_render_namespace_without_prefix(element.name_id)?
+                {
+                    if !self.attribute_namespaces.is_used(namespace_id) {
+                        return Ok(OutputToken {
+                            space: false,
+                            text: "".to_string(),
+                        });
+                    }
+                }
 
-                // if let Some(namespace_id) =
-                //     self.must_render_namespace_without_prefix(element.name_id)
-                // {
-                //     // we can skip the prefix if none of the attributes uses this
-                //     // prefix explicitly (it has to be a prefixed, as unprefixed
-                //     // attributes aren't in the default namespace but without one)
-                //     dbg!(&self.xot.attributes(node).keys().collect::<Vec<_>>());
-
-                //     if !self
-                //         .xot
-                //         .attributes(node)
-                //         .keys()
-                //         .any(|name_id| self.xot.namespace_for_name(name_id) == namespace_id)
-                //     {
-                //         return Ok(OutputToken {
-                //             space: false,
-                //             text: "".to_string(),
-                //         });
-                //     }
-                // }
-
-                // if the namespace node is the XML namespace, it's ignored by the HTML
-                // output method.
+                // if the namespace node is the XML namespace, we just ignore it.
+                // This is okay even with the XML spec itself.
                 if namespace_id == &self.xot.xml_namespace() {
                     return Ok(OutputToken {
                         space: false,
@@ -344,13 +359,16 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
                 }
             }
             Attribute(name_id, value) => {
-                let fullname = self.fullname_serializer.fullname_attr_or_err(*name_id)?;
+                let fullname = self.fullname_serializer.attribute_fullname(*name_id)?;
                 let namespace = self.xot.namespace_for_name(*name_id);
                 if self.html5_elements.is_html_namespace(self.xot, namespace) {
                     let local_name = self.xot.local_name_str(*name_id);
                     // boolean attribute
                     // no prefix and local name is the same as value
-                    if self.fullname_serializer.element_prefix(*name_id).is_none()
+                    if self
+                        .fullname_serializer
+                        .attribute_prefix(*name_id)?
+                        .is_none()
                         && local_name.to_ascii_lowercase() == value.to_ascii_lowercase()
                     {
                         return Ok(OutputToken {
