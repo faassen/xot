@@ -8,7 +8,7 @@ use crate::error::Error;
 use crate::id::NameId;
 use crate::output::Normalizer;
 use crate::xotdata::{Node, Xot};
-use crate::{NamespaceId, Prefixes, ValueType};
+use crate::NamespaceId;
 
 use super::fullname::FullnameSerializer;
 use super::{Output, OutputToken, Pretty};
@@ -131,11 +131,6 @@ impl Html5Elements {
 
     fn is_html_namespace(&self, xot: &Xot, namespace_id: NamespaceId) -> bool {
         namespace_id == self.xhtml_namespace_id || namespace_id == xot.no_namespace()
-    }
-
-    fn is_xhtml_element(&self, xot: &Xot, name_id: NameId) -> bool {
-        let namespace = xot.namespace_for_name(name_id);
-        namespace == self.xhtml_namespace_id
     }
 }
 

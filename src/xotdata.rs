@@ -56,7 +56,6 @@ pub struct Xot {
     pub(crate) xml_namespace_id: NamespaceId,
     pub(crate) xml_prefix_id: PrefixId,
     pub(crate) xml_space_id: NameId,
-    pub(crate) xml_prefixes: [PrefixId; 1],
     pub(crate) text_consolidation: bool,
 }
 
@@ -81,7 +80,6 @@ impl Xot {
             xml_namespace_id,
             xml_prefix_id,
             xml_space_id,
-            xml_prefixes: [xml_prefix_id],
             text_consolidation: true,
         }
     }
