@@ -183,7 +183,11 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
         outputs: impl Iterator<Item = (Node, Output<'a>)>,
         suppress: &[NameId],
     ) -> Result<(), Error> {
-        let is_suppressed = |name_id| false;
+        let is_suppressed = |name_id| {
+            self.html5_elements
+                .formatted_names
+                .matches(self.xot, name_id)
+        };
         let is_inline = |name_id| {
             self.html5_elements
                 .phrasing_content_names
@@ -813,6 +817,62 @@ mod tests {
         <bar></bar>
       </foo>
     </island>
+  </body>
+</html>
+"#
+        );
+    }
+
+    #[test]
+    fn test_pretty_with_phrasing_element() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse(r#"<html><body><p><span>Foo</span></p></body></html>"#)
+            .unwrap();
+        let s = xot
+            .html5()
+            .serialize_string(
+                Parameters {
+                    indentation: Some(Default::default()),
+                    ..Default::default()
+                },
+                root,
+            )
+            .unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html>
+  <body>
+    <p><span>Foo</span></p>
+  </body>
+</html>
+"#
+        );
+    }
+
+    #[test]
+    fn test_pretty_with_formatted_element() {
+        let mut xot = Xot::new();
+        // the HTML is nonsense, but we can verify p isn't indented as no
+        // formatting may be removed or added inside of a formatted element like pre
+        let root = xot
+            .parse(r#"<html><body><pre><p></p></pre></body></html>"#)
+            .unwrap();
+        let s = xot
+            .html5()
+            .serialize_string(
+                Parameters {
+                    indentation: Some(Default::default()),
+                    ..Default::default()
+                },
+                root,
+            )
+            .unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html>
+  <body>
+    <pre><p></p></pre>
   </body>
 </html>
 "#
