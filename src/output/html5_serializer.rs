@@ -147,6 +147,36 @@ pub(crate) struct Html5Serializer<'a, N: Normalizer> {
     normalizer: N,
 }
 
+fn html_matches_suppress(
+    xot: &Xot,
+    html5_elements: &Html5Elements,
+    names: &[NameId],
+    name_id: NameId,
+) -> bool {
+    for suppress_name in names {
+        if name_id == *suppress_name {
+            return true;
+        }
+        let suppress_name_ns = xot.namespace_for_name(*suppress_name);
+        // if it's not in the xhtml namespace or in no namespace, they
+        // can't possibly compare anymore
+        if !html5_elements.is_html_namespace(xot, suppress_name_ns) {
+            return false;
+        }
+        let name_ns = xot.namespace_for_name(name_id);
+        if !html5_elements.is_html_namespace(xot, name_ns) {
+            return false;
+        }
+        // now we can do a case insensitive compare of the local name
+        let suppress_name = xot.local_name_str(*suppress_name).to_ascii_lowercase();
+        let name = xot.local_name_str(name_id).to_ascii_lowercase();
+        if suppress_name == name {
+            return true;
+        }
+    }
+    false
+}
+
 impl<'a, N: Normalizer> Html5Serializer<'a, N> {
     pub(crate) fn new(
         xot: &'a Xot,
@@ -183,12 +213,14 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
         outputs: impl Iterator<Item = (Node, Output<'a>)>,
         suppress: &[NameId],
     ) -> Result<(), Error> {
+        // we have to do the relatively slow html_matches_suppress call here,
+        // as we cannot make an efficient HtmlNames at this point (as this
+        // needs a mutable Xot)
         let is_suppressed = |name_id| {
-            suppress.contains(&name_id)
-                || self
-                    .html5_elements
-                    .formatted_names
-                    .matches(self.xot, name_id)
+            self.html5_elements
+                .formatted_names
+                .matches(self.xot, name_id)
+                || html_matches_suppress(self.xot, self.html5_elements, suppress, name_id)
         };
         let is_inline = |name_id| {
             self.html5_elements
@@ -905,6 +937,135 @@ mod tests {
             r#"<!DOCTYPE html><html>
   <body>
     <foo><p></p></foo>
+  </body>
+</html>
+"#
+        );
+    }
+
+    #[test]
+    fn test_pretty_with_suppressed_element_case_insensitive_match() {
+        let mut xot = Xot::new();
+        let foo = xot.add_name("foo");
+        let root = xot
+            .parse(r#"<html><body><FOO><p></p></FOO></body></html>"#)
+            .unwrap();
+        let s = xot
+            .html5()
+            .serialize_string(
+                Parameters {
+                    indentation: Some(Indentation {
+                        suppress: vec![foo],
+                    }),
+                    ..Default::default()
+                },
+                root,
+            )
+            .unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html>
+  <body>
+    <FOO><p></p></FOO>
+  </body>
+</html>
+"#
+        );
+    }
+
+    #[test]
+    fn test_pretty_with_suppressed_element_case_no_case_insensitive_match_for_non_xhtml_namespace()
+    {
+        let mut xot = Xot::new();
+        let foo = xot.add_name("foo");
+        let root = xot
+            .parse(
+                r#"<html><body><prefix:FOO xmlns:prefix="ns"><p></p></prefix:FOO></body></html>"#,
+            )
+            .unwrap();
+        let s = xot
+            .html5()
+            .serialize_string(
+                Parameters {
+                    indentation: Some(Indentation {
+                        suppress: vec![foo],
+                    }),
+                    ..Default::default()
+                },
+                root,
+            )
+            .unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html>
+  <body>
+    <prefix:FOO xmlns:prefix="ns">
+      <p></p>
+    </prefix:FOO>
+  </body>
+</html>
+"#
+        );
+    }
+
+    #[test]
+    fn test_pretty_with_suppressed_element_case_insensitive_match_xhtml_no_ns() {
+        let mut xot = Xot::new();
+        let foo = xot.add_name("foo");
+        let root = xot
+            .parse(&format!(
+                r#"<html><body><FOO xmlns:xhtml="{}"><p></p></FOO></body></html>"#,
+                XHTML_NS
+            ))
+            .unwrap();
+        let s = xot
+            .html5()
+            .serialize_string(
+                Parameters {
+                    indentation: Some(Indentation {
+                        suppress: vec![foo],
+                    }),
+                    ..Default::default()
+                },
+                root,
+            )
+            .unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html>
+  <body>
+    <FOO><p></p></FOO>
+  </body>
+</html>
+"#
+        );
+    }
+
+    #[test]
+    fn test_pretty_with_suppressed_element_case_insensitive_match_no_ns_xhtml() {
+        let mut xot = Xot::new();
+        let xhtml_ns = xot.add_namespace(XHTML_NS);
+        let foo = xot.add_name_ns("foo", xhtml_ns);
+        let root = xot
+            .parse(r#"<html><body><FOO><p></p></FOO></body></html>"#)
+            .unwrap();
+        let s = xot
+            .html5()
+            .serialize_string(
+                Parameters {
+                    indentation: Some(Indentation {
+                        suppress: vec![foo],
+                    }),
+                    ..Default::default()
+                },
+                root,
+            )
+            .unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html>
+  <body>
+    <FOO><p></p></FOO>
   </body>
 </html>
 "#
