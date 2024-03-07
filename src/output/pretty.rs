@@ -1,7 +1,7 @@
 use crate::output::Output;
 use crate::xmlvalue::ValueType;
 use crate::xotdata::{Node, Xot};
-use crate::NameId;
+use crate::{NameId, Value};
 
 /// Pretty output token
 ///
@@ -39,25 +39,29 @@ enum StackEntry {
     Mixed,
 }
 
-pub(crate) struct Pretty<'a, F>
+pub(crate) struct Pretty<'a, IsSuppressed, IsInline>
 where
-    F: Fn(NameId) -> bool,
+    IsSuppressed: Fn(NameId) -> bool,
+    IsInline: Fn(NameId) -> bool,
 {
     xot: &'a Xot,
-    is_suppressed: F,
+    is_suppressed: IsSuppressed,
+    is_inline: IsInline,
     // a list of element names where we don't do indentation for the immediate content
     // suppress: &'a [NameId],
     stack: Vec<StackEntry>,
 }
 
-impl<'a, F> Pretty<'a, F>
+impl<'a, IsSuppressed, IsInline> Pretty<'a, IsSuppressed, IsInline>
 where
-    F: Fn(NameId) -> bool,
+    IsSuppressed: Fn(NameId) -> bool,
+    IsInline: Fn(NameId) -> bool,
 {
-    pub(crate) fn new(xot: &'a Xot, is_suppressed: F) -> Self {
+    pub(crate) fn new(xot: &'a Xot, is_suppressed: IsSuppressed, is_inline: IsInline) -> Self {
         Pretty {
             xot,
             is_suppressed,
+            is_inline,
             stack: Vec::new(),
         }
     }
@@ -118,10 +122,16 @@ where
         !self.in_mixed() && !self.in_space_preserve()
     }
 
-    fn has_text_child(&self, node: Node) -> bool {
+    fn has_inline_child(&self, node: Node) -> bool {
+        // a node has an inline child if it has a text node, or an element
+        // defined as inline
         self.xot
             .children(node)
-            .any(|child| self.xot.value_type(child) == ValueType::Text)
+            .any(|child| match self.xot.value(child) {
+                Value::Text(_) => true,
+                Value::Element(element) => (self.is_inline)(element.name()),
+                _ => false,
+            })
     }
 
     fn element_space(&self, node: Node) -> Space {
@@ -143,7 +153,7 @@ where
             Comment(_) | ProcessingInstruction(..) => (self.get_indentation(), self.get_newline()),
             StartTagClose => {
                 let newline = if self.xot.first_child(node).is_some() {
-                    if !self.has_text_child(node) {
+                    if !self.has_inline_child(node) {
                         let suppress = if let Some(element) = self.xot.element(node) {
                             (self.is_suppressed)(element.name())
                         } else {

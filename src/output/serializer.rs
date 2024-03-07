@@ -3,8 +3,8 @@ use genawaiter::yield_;
 
 use crate::access::NodeEdge;
 use crate::id::{NameId, NamespaceId, PrefixId};
-use crate::xmlvalue::{Element, Prefixes};
-use crate::xmlvalue::{Value, ValueType};
+use crate::xmlvalue::Element;
+use crate::xmlvalue::Value;
 use crate::xotdata::{Node, Xot};
 
 /// Output of serialization

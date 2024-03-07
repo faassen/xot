@@ -51,7 +51,7 @@ impl<'a, N: Normalizer> XmlSerializer<'a, N> {
         suppress: &[NameId],
     ) -> Result<(), Error> {
         let is_suppressed = |name_id| suppress.contains(&name_id);
-        let mut pretty = Pretty::new(self.xot, is_suppressed);
+        let mut pretty = Pretty::new(self.xot, is_suppressed, |_| false);
         for (node, output) in outputs {
             let (indentation, newline) = pretty.prettify(node, &output);
             if indentation > 0 {

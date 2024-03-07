@@ -124,9 +124,9 @@ impl Html5Elements {
     }
 
     fn must_be_serialized_unprefixed(&self, namespace: NamespaceId) -> bool {
-        (namespace == self.xhtml_namespace_id
+        namespace == self.xhtml_namespace_id
             || namespace == self.mathml_namespace_id
-            || namespace == self.svg_namespace_id)
+            || namespace == self.svg_namespace_id
     }
 
     fn is_html_namespace(&self, xot: &Xot, namespace_id: NamespaceId) -> bool {
@@ -184,7 +184,12 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
         suppress: &[NameId],
     ) -> Result<(), Error> {
         let is_suppressed = |name_id| false;
-        let mut pretty = Pretty::new(self.xot, is_suppressed);
+        let is_inline = |name_id| {
+            self.html5_elements
+                .phrasing_content_names
+                .matches(self.xot, name_id)
+        };
+        let mut pretty = Pretty::new(self.xot, is_suppressed, is_inline);
         for (node, output) in outputs {
             let (indentation, newline) = pretty.prettify(node, &output);
             if indentation > 0 {
@@ -477,6 +482,8 @@ pub(crate) fn serialize_text_no_escape<'a, N: Normalizer>(
 
 #[cfg(test)]
 mod tests {
+    use crate::output::html5::Parameters;
+
     use super::*;
 
     #[test]
@@ -780,4 +787,35 @@ mod tests {
     //         r#"<!DOCTYPE html><html xmlns="https://www.w3.org/1999/xhtml"><body></body></html>"#
     //     );
     // }
+
+    #[test]
+    fn test_pretty_with_xml_island() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse(r#"<html><body><island xmlns="island"><foo><bar/></foo></island></body></html>"#)
+            .unwrap();
+        let s = xot
+            .html5()
+            .serialize_string(
+                Parameters {
+                    indentation: Some(Default::default()),
+                    ..Default::default()
+                },
+                root,
+            )
+            .unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html>
+  <body>
+    <island xmlns="island">
+      <foo>
+        <bar></bar>
+      </foo>
+    </island>
+  </body>
+</html>
+"#
+        );
+    }
 }
