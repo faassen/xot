@@ -104,6 +104,19 @@ impl<'a> FullnameSerializer<'a> {
         }
     }
 
+    // pub(crate) fn has_ancestor_empty_prefix(&self, namespace_id: NamespaceId) -> bool {
+    //     if self.stack.len() < 2 {
+    //         return false;
+    //     }
+    //     let prefix_id =
+    //         self.stack[self.stack.len() - 2].element_prefix_by_namespace(self.xot, namespace_id);
+    //     if let Some(prefix_id) = prefix_id {
+    //         prefix_id == self.xot.empty_prefix()
+    //     } else {
+    //         false
+    //     }
+    // }
+
     // this is handy for the HTML rendering system, which insists some namespaces
     // should be in the empty prefix (xhtml, mathml, svg)
     pub(crate) fn add_empty_prefix(&mut self, namespace_id: NamespaceId) {
