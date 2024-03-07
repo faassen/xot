@@ -92,7 +92,7 @@ impl<'a, N: Normalizer> XmlSerializer<'a, N> {
                     space: false,
                     text: format!(
                         "<{}",
-                        self.fullname_serializer.fullname_element(element.name_id)?
+                        self.fullname_serializer.element_fullname(element.name_id)?
                     ),
                 }
             }
@@ -115,7 +115,7 @@ impl<'a, N: Normalizer> XmlSerializer<'a, N> {
                         space: false,
                         text: format!(
                             "</{}>",
-                            self.fullname_serializer.fullname_element(element.name_id)?
+                            self.fullname_serializer.element_fullname(element.name_id)?
                         ),
                     }
                 } else {
@@ -151,7 +151,7 @@ impl<'a, N: Normalizer> XmlSerializer<'a, N> {
                 }
             }
             Attribute(name_id, value) => {
-                let fullname = self.fullname_serializer.fullname_attribute(*name_id)?;
+                let fullname = self.fullname_serializer.attribute_fullname(*name_id)?;
                 OutputToken {
                     space: true,
                     text: format!(
