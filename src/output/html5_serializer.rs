@@ -184,9 +184,11 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
         suppress: &[NameId],
     ) -> Result<(), Error> {
         let is_suppressed = |name_id| {
-            self.html5_elements
-                .formatted_names
-                .matches(self.xot, name_id)
+            suppress.contains(&name_id)
+                || self
+                    .html5_elements
+                    .formatted_names
+                    .matches(self.xot, name_id)
         };
         let is_inline = |name_id| {
             self.html5_elements
@@ -486,7 +488,7 @@ pub(crate) fn serialize_text_no_escape<'a, N: Normalizer>(
 
 #[cfg(test)]
 mod tests {
-    use crate::output::html5::Parameters;
+    use crate::output::{html5::Parameters, Indentation};
 
     use super::*;
 
@@ -873,6 +875,36 @@ mod tests {
             r#"<!DOCTYPE html><html>
   <body>
     <pre><p></p></pre>
+  </body>
+</html>
+"#
+        );
+    }
+
+    #[test]
+    fn test_pretty_with_suppressed_element_exact_match() {
+        let mut xot = Xot::new();
+        let foo = xot.add_name("foo");
+        let root = xot
+            .parse(r#"<html><body><foo><p></p></foo></body></html>"#)
+            .unwrap();
+        let s = xot
+            .html5()
+            .serialize_string(
+                Parameters {
+                    indentation: Some(Indentation {
+                        suppress: vec![foo],
+                    }),
+                    ..Default::default()
+                },
+                root,
+            )
+            .unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html>
+  <body>
+    <foo><p></p></foo>
   </body>
 </html>
 "#
