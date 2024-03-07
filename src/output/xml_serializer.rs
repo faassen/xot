@@ -50,7 +50,8 @@ impl<'a, N: Normalizer> XmlSerializer<'a, N> {
         outputs: impl Iterator<Item = (Node, Output<'a>)>,
         suppress: &[NameId],
     ) -> Result<(), Error> {
-        let mut pretty = Pretty::new(self.xot, suppress);
+        let is_suppressed = |name_id| suppress.contains(&name_id);
+        let mut pretty = Pretty::new(self.xot, is_suppressed);
         for (node, output) in outputs {
             let (indentation, newline) = pretty.prettify(node, &output);
             if indentation > 0 {

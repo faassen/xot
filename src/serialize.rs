@@ -388,7 +388,7 @@ assert_eq!(s, "<doc>\u{1E0D}\u{0307}</doc>");
     ) -> impl Iterator<Item = (Node, Output, PrettyOutputToken)> + 'a {
         let outputs = gen_outputs(self, node);
         let mut serializer = XmlSerializer::new(self, node, cdata_section_elements, normalizer);
-        let mut pretty = Pretty::new(self, suppress_elements);
+        let mut pretty = Pretty::new(self, |name| suppress_elements.contains(&name));
         outputs.map(move |(node, output)| {
             let (indentation, newline) = pretty.prettify(node, &output);
             let rendered = serializer.render_output(node, &output).unwrap();

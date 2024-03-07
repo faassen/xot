@@ -39,18 +39,25 @@ enum StackEntry {
     Mixed,
 }
 
-pub(crate) struct Pretty<'a> {
+pub(crate) struct Pretty<'a, F>
+where
+    F: Fn(NameId) -> bool,
+{
     xot: &'a Xot,
+    is_suppressed: F,
     // a list of element names where we don't do indentation for the immediate content
-    suppress: &'a [NameId],
+    // suppress: &'a [NameId],
     stack: Vec<StackEntry>,
 }
 
-impl<'a> Pretty<'a> {
-    pub(crate) fn new(xot: &'a Xot, suppress: &'a [NameId]) -> Pretty<'a> {
+impl<'a, F> Pretty<'a, F>
+where
+    F: Fn(NameId) -> bool,
+{
+    pub(crate) fn new(xot: &'a Xot, is_suppressed: F) -> Self {
         Pretty {
             xot,
-            suppress,
+            is_suppressed,
             stack: Vec::new(),
         }
     }
@@ -138,7 +145,7 @@ impl<'a> Pretty<'a> {
                 let newline = if self.xot.first_child(node).is_some() {
                     if !self.has_text_child(node) {
                         let suppress = if let Some(element) = self.xot.element(node) {
-                            self.suppress.contains(&element.name())
+                            (self.is_suppressed)(element.name())
                         } else {
                             false
                         };

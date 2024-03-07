@@ -183,7 +183,8 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
         outputs: impl Iterator<Item = (Node, Output<'a>)>,
         suppress: &[NameId],
     ) -> Result<(), Error> {
-        let mut pretty = Pretty::new(self.xot, suppress);
+        let is_suppressed = |name_id| false;
+        let mut pretty = Pretty::new(self.xot, is_suppressed);
         for (node, output) in outputs {
             let (indentation, newline) = pretty.prettify(node, &output);
             if indentation > 0 {
