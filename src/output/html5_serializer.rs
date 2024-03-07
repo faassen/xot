@@ -147,59 +147,6 @@ pub(crate) struct Html5Serializer<'a, N: Normalizer> {
     normalizer: N,
 }
 
-fn normalize_outputs<'a>(
-    xot: &'a Xot,
-    html5_elements: &'a Html5Elements,
-    fullname_serializer: &'a mut FullnameSerializer<'a>,
-    outputs: impl Iterator<Item = (Node, Output<'a>)> + 'a,
-) -> impl Iterator<Item = (Node, Output<'a>)> + 'a {
-    outputs
-        .filter(|(node, output)| match output {
-            Output::Prefix(prefix_id, namespace_id) => {
-                // filter any namespace node in the xml namespace
-                (*namespace_id != xot.xml_namespace()) ||
-                // filter any namespace node that must be rendered without a prefix,
-                // not in use by any of the attributes
-                 (*prefix_id != xot.empty_prefix() && 
-                 html5_elements.must_be_serialized_unprefixed(*namespace_id) &&
-                 !xot.attributes(*node).keys().any(|name| {
-                    let attribute_ns = xot.namespace_for_name(name);
-                    attribute_ns == *namespace_id
-                 }))
-
-            }
-            _ => true,
-        })
-        .flat_map(|(node, output)| {
-            // we must prefix any element in xhtml, mathml or svg namespace
-            // with unprefixed element name, and declare the namespace for the
-            // empty prefix
-            match output {
-                Output::StartTagOpen(element) => {
-                    fullname_serializer.push(xot.namespace_declarations(node));
-                    let namespace_id = xot.namespace_for_name(element.name());
-                    if !fullname_serializer.has_empty_prefix(namespace_id)
-                        && html5_elements.must_be_serialized_unprefixed(namespace_id)
-                    {
-                        fullname_serializer.add_empty_prefix(namespace_id);
-                        vec![
-                            (node, output),
-                            (node, Output::Prefix(xot.empty_prefix(), namespace_id)),
-                        ]
-                        .into_iter()
-                    } else {
-                        vec![(node, output)].into_iter()
-                    }
-                }
-                Output::EndTag(_) => {
-                    fullname_serializer.pop(xot.has_namespace_declarations(node));
-                    vec![(node, output)].into_iter()
-                }
-                _ => vec![(node, output)].into_iter(),
-            }
-        })
-}
-
 impl<'a, N: Normalizer> Html5Serializer<'a, N> {
     pub(crate) fn new(
         xot: &'a Xot,
@@ -263,7 +210,6 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
         w.write_all(data.text.as_bytes()).unwrap();
         Ok(())
     }
-
 
     pub(crate) fn render_output(
         &mut self,
@@ -384,39 +330,39 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
                         });
                     }
                 }
+                let value = if namespace != self.xot.no_namespace() {
+                    serialize_attribute((*value).into(), &self.normalizer)
+                } else {
+                    serialize_attribute_html((*value).into(), &self.normalizer)
+                };
                 OutputToken {
                     space: true,
-                    text: format!(
-                        "{}=\"{}\"",
-                        fullname,
-                        serialize_attribute_html((*value).into(), &self.normalizer)
-                    ),
+                    text: format!("{}=\"{}\"", fullname, value),
                 }
             }
             Text(text) => {
                 // a text node is always a child of an element
                 let parent = self.xot.parent(node).unwrap();
                 let element = self.xot.element(parent).unwrap();
-                if self
+                let value = if self
                     .html5_elements
                     .no_escape_names
                     .matches(self.xot, element.name())
                 {
-                    OutputToken {
-                        space: false,
-                        text: serialize_text_no_escape((*text).into(), &self.normalizer)
-                            .to_string(),
-                    }
+                    serialize_text_no_escape((*text).into(), &self.normalizer).to_string()
                 } else if self.cdata_section_names.contains(&element.name()) {
-                    OutputToken {
-                        space: false,
-                        text: serialize_cdata((*text).into(), &self.normalizer).to_string(),
-                    }
+                    serialize_cdata((*text).into(), &self.normalizer).to_string()
+                } else if self
+                    .html5_elements
+                    .is_html_element(self.xot, element.name())
+                {
+                    serialize_text_html((*text).into(), &self.normalizer).to_string()
                 } else {
-                    OutputToken {
-                        space: false,
-                        text: serialize_text_html((*text).into(), &self.normalizer).to_string(),
-                    }
+                    serialize_text((*text).into(), &self.normalizer).to_string()
+                };
+                OutputToken {
+                    space: false,
+                    text: value,
                 }
             }
             Comment(text) => OutputToken {
@@ -629,6 +575,19 @@ mod tests {
     }
 
     #[test]
+    fn test_serialize_text_no_nbsp_for_xml_island() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse("<html><body><island xmlns=\"island\">\u{00a0}</island></body></html>")
+            .unwrap();
+        let s = xot.html5().to_string(root).unwrap();
+        assert_eq!(
+            s,
+            "<!DOCTYPE html><html><body><island xmlns=\"island\">\u{00a0}</island></body></html>"
+        );
+    }
+
+    #[test]
     fn test_serialize_attribute_nbsp() {
         let mut xot = Xot::new();
         let root = xot
@@ -638,6 +597,19 @@ mod tests {
         assert_eq!(
             s,
             r#"<!DOCTYPE html><html><body foo="&nbsp;">bar</body></html>"#
+        );
+    }
+
+    #[test]
+    fn test_serialize_attribute_nbsp_not_in_prefixed_attribute() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse("<html><body xmlns:prefix='ns' prefix:foo='\u{00a0}'>bar</body></html>")
+            .unwrap();
+        let s = xot.html5().to_string(root).unwrap();
+        assert_eq!(
+            s,
+            "<!DOCTYPE html><html><body xmlns:prefix=\"ns\" prefix:foo=\"\u{00a0}\">bar</body></html>".to_string()
         );
     }
 
@@ -661,6 +633,19 @@ mod tests {
         assert_eq!(
             s,
             r#"<!DOCTYPE html><html><body><option selected></option></body></html>"#
+        );
+    }
+
+    #[test]
+    fn test_serialize_attribute_boolean_not_when_prefixed() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse(r#"<html><body><option xmlns:prefix="ns" prefix:selected="prefix:selected"/></body></html>"#)
+            .unwrap();
+        let s = xot.html5().to_string(root).unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html><body><option xmlns:prefix="ns" prefix:selected="prefix:selected"></option></body></html>"#
         );
     }
 
@@ -751,6 +736,32 @@ mod tests {
         assert_eq!(
             s,
             r#"<!DOCTYPE html><html xmlns="https://www.w3.org/1999/xhtml"><body></body></html>"#
+        );
+    }
+
+    #[test]
+    fn test_default_namespace_different_from_element_is_ignored_xhtml() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse(r#"<prefix:html xmlns="different" xmlns:prefix="https://www.w3.org/1999/xhtml"><prefix:body></prefix:body></prefix:html>"#)
+            .unwrap();
+        let s = xot.html5().to_string(root).unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html xmlns="https://www.w3.org/1999/xhtml"><body></body></html>"#
+        );
+    }
+
+    #[test]
+    fn test_default_namespace_different_from_element_is_ignored() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse(r#"<prefix:html xmlns="different" xmlns:prefix="main"><prefix:body></prefix:body></prefix:html>"#)
+            .unwrap();
+        let s = xot.html5().to_string(root).unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><prefix:html xmlns:prefix="main"><prefix:body></prefix:body></prefix:html>"#
         );
     }
 
