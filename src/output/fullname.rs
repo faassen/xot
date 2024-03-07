@@ -29,14 +29,6 @@ impl FullnameInfo {
         Self { all_namespaces }
     }
 
-    fn namespace_by_prefix(&self, prefix: PrefixId) -> Option<NamespaceId> {
-        self.all_namespaces
-            .iter()
-            .rev()
-            .find(|(p, _)| *p == prefix)
-            .map(|(_, ns)| *ns)
-    }
-
     fn prefixes_by_namespace(&self, namespace: NamespaceId) -> impl Iterator<Item = PrefixId> + '_ {
         self.all_namespaces
             .iter()
