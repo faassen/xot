@@ -65,7 +65,6 @@ mod encoding;
 mod entity;
 mod error;
 pub mod fixed;
-mod fullname;
 mod id;
 mod levelorder;
 mod manipulation;

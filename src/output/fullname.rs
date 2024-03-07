@@ -199,6 +199,13 @@ impl<'a> FullnameSerializer<'a> {
             Ok(Cow::Borrowed(self.xot.local_name_str(name_id)))
         }
     }
+
+    pub(crate) fn is_namespace_known(&self, namespace_id: NamespaceId) -> bool {
+        self.top()
+            .all_namespaces
+            .iter()
+            .any(|(_, ns)| *ns == namespace_id)
+    }
 }
 
 #[cfg(test)]

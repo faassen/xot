@@ -4,8 +4,8 @@ use genawaiter::yield_;
 
 use crate::access::NodeEdge;
 use crate::error::Error;
-use crate::fullname::{Fullname, FullnameSerializer};
 use crate::id::{Name, NameId, NamespaceId, PrefixId};
+use crate::output::FullnameSerializer;
 use crate::xmlvalue::Prefixes;
 use crate::xotdata::{Node, Xot};
 use crate::{xmlname, Value};
@@ -551,22 +551,26 @@ impl Xot {
         };
         if !self.is_element(node) {
             return Err(Error::NotElement(node));
-        }
-        let mut fullname_serializer = FullnameSerializer::new(self);
+        };
+        let mut fullname_serializer = FullnameSerializer::new(self, vec![]);
         let mut missing_namespace_ids = HashSet::default();
         for edge in self.traverse(node) {
             match edge {
                 NodeEdge::Start(node) => {
                     let element = self.element(node);
                     if let Some(element) = element {
-                        fullname_serializer.push(&self.prefixes(node));
-                        let element_fullname = fullname_serializer.fullname(element.name_id);
-                        if let Fullname::MissingPrefix(namespace_id) = element_fullname {
+                        fullname_serializer.push(self.namespace_declarations(node));
+                        let element_fullname =
+                            fullname_serializer.element_fullname(element.name_id);
+                        if element_fullname.is_err() {
+                            let namespace_id = self.namespace_for_name(element.name_id);
                             missing_namespace_ids.insert(namespace_id);
                         }
                         for name_id in self.attributes(node).keys() {
-                            let attribute_fullname = fullname_serializer.fullname_attr(name_id);
-                            if let Fullname::MissingPrefix(namespace_id) = attribute_fullname {
+                            let attribute_fullname =
+                                fullname_serializer.attribute_fullname(name_id);
+                            if attribute_fullname.is_err() {
+                                let namespace_id = self.namespace_for_name(name_id);
                                 missing_namespace_ids.insert(namespace_id);
                             }
                         }
@@ -574,7 +578,7 @@ impl Xot {
                 }
                 NodeEdge::End(node) => {
                     if self.is_element(node) {
-                        fullname_serializer.pop();
+                        fullname_serializer.pop(self.has_namespace_declarations(node));
                     }
                 }
             }
@@ -644,7 +648,7 @@ impl Xot {
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn deduplicate_namespaces(&mut self, node: Node) {
-        let mut fullname_serializer = FullnameSerializer::new(self);
+        let mut fullname_serializer = FullnameSerializer::new(self, vec![]);
         let mut fixup_nodes = Vec::new();
         let mut deduplicate_tracker = DeduplicateTracker::new();
         // determine nodes we need to fix up
@@ -663,14 +667,14 @@ impl Xot {
                         // as duplicates they will definitely exist.
                         // In fact if we remove them first the push will fail to create
                         // a new entry in the namespace stack, as prefixes can become empty
-                        fullname_serializer.push(&self.prefixes(node));
+                        fullname_serializer.push(self.namespace_declarations(node));
                     }
                 }
                 NodeEdge::End(node) => {
                     if self.is_element(node) {
                         // to_prefix is only used to determine whether to pop
                         // so should be okay to send here
-                        fullname_serializer.pop();
+                        fullname_serializer.pop(self.has_namespace_declarations(node));
                         deduplicate_tracker.pop();
                         // if we already know a namespace, remove it
                         // we do this at the end so the deduplicate tracker
@@ -727,13 +731,13 @@ impl Xot {
     /// defined for them in the context of the node are reported.
     pub fn unresolved_namespaces(&self, node: Node) -> Vec<NamespaceId> {
         let mut namespaces = Vec::new();
-        let mut fullname_serializer = FullnameSerializer::new(self);
+        let mut fullname_serializer = FullnameSerializer::new(self, vec![]);
         for edge in self.traverse(node) {
             match edge {
                 NodeEdge::Start(node) => {
                     let element = self.element(node);
                     if let Some(element) = element {
-                        fullname_serializer.push(&self.prefixes(node));
+                        fullname_serializer.push(self.namespace_declarations(node));
                         let namespace_id = self.namespace_for_name(element.name());
                         if !fullname_serializer.is_namespace_known(namespace_id) {
                             namespaces.push(namespace_id);
@@ -748,7 +752,7 @@ impl Xot {
                 }
                 NodeEdge::End(node) => {
                     if self.is_element(node) {
-                        fullname_serializer.pop();
+                        fullname_serializer.pop(self.has_namespace_declarations(node));
                     }
                 }
             }
