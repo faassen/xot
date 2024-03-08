@@ -32,7 +32,10 @@ use super::Indentation;
 /// - certain HTML tags are rendered preformatted (`pre`, `script`)
 ///
 /// - Indentation takes inline elements (phrasing content names such as `a`,
-///   `span`, etc) into account.
+///   `span`, etc) into account. U
+///
+/// - Unknown HTML elements (that have no namespace or in the XHTML namespace) are
+///   also treated as inline elements.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Parameters {
     /// Pretty-print HTML, and a list of elements where this is suppressed.
