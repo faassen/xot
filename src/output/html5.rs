@@ -13,17 +13,36 @@ use super::Indentation;
 /// Parameters for HTML generation.
 ///
 /// This only supports HTML 5.
+///
+/// This follows the HTML5 serialization rules described in
+/// https://www.w3.org/TR/xslt-xquery-serialization/
+///
+/// In summary:
+///
+/// - no-namespace and XHTML namespace is serialized as HTML tags
+///
+/// - Always use explicit close tags such as `</p>`, never use self-closing
+///  tags such as `<p/>`.
+///
+/// - certain HTML tags are unclosed (void names such `br`, `meta`), i.e.
+///   `<br>`
+///
+/// - mathml and svg are serialized with default namespace only, no prefix.
+///
+/// - certain HTML tags are rendered preformatted (`pre`, `script`)
+///
+/// - Indentation takes inline elements (phrasing content names such as `a`,
+///   `span`, etc) into account.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Parameters {
     /// Pretty-print HTML, and a list of elements where this is suppressed.
+    ///
+    /// This recognizes inline (phrasing) elements.
     pub indentation: Option<Indentation>,
     /// Elements that should be serialized as CDATA sections.
     ///
-    /// These should only be used in non-XML content, like MathML or SVG.
+    /// These should only be used for elements in non-XML content, like MathML
+    /// or SVG.
     pub cdata_section_elements: Vec<NameId>,
-
-    /// If set, this causes a meta element to be added (or updated) with
-    /// http-equiv="Content-Type" and the given content type.
-    pub media_type: Option<String>,
     // TODO: character maps
 }

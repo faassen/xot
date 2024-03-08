@@ -27,7 +27,7 @@
 
 ## Changes
 
-### New `xml::output::Parameters` API to control serialization
+### New `output::xml::Parameters` API to control XML serialization
 
 - You can cause an XML declaration to be output.
 
@@ -42,7 +42,9 @@
   feature `icu` feature to be enabled. See
   ``Xot::serialize_xml_string_with_normalizer` for more information.
 
- 
+### New API (`Xot::html5`) and `output::html5::Parameters` API to control HTML 5 serialization
+
+- You can output XML as HTML 5 now.
 ## [0.22.0] - 2024-02-20
 
 ### Breaking changes
