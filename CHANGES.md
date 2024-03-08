@@ -45,6 +45,9 @@
 ### New API (`Xot::html5`) and `output::html5::Parameters` API to control HTML 5 serialization
 
 - You can output XML as HTML 5 now.
+
+- Indentation rules know about HTML inline elements.
+
 ## [0.22.0] - 2024-02-20
 
 ### Breaking changes

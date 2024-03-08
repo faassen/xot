@@ -5,6 +5,8 @@
 //!
 //! You can use these parameters to control the HTML5 serialization, which you
 //! can obtain using [`Xot::html5`].
+#[cfg(doc)]
+use crate::Xot;
 
 use crate::NameId;
 
@@ -15,7 +17,7 @@ use super::Indentation;
 /// This only supports HTML 5.
 ///
 /// This follows the HTML5 serialization rules described in
-/// https://www.w3.org/TR/xslt-xquery-serialization/
+/// <https://www.w3.org/TR/xslt-xquery-serialization/>
 ///
 /// In summary:
 ///
