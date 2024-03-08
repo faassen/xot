@@ -94,11 +94,7 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
                 .matches(self.xot, name_id)
                 || html_matches_suppress(self.xot, self.html5_elements, suppress, name_id)
         };
-        let is_inline = |name_id| {
-            self.html5_elements
-                .phrasing_content_names
-                .matches(self.xot, name_id)
-        };
+        let is_inline = |name_id| self.html5_elements.is_inline(self.xot, name_id);
         let mut pretty = Pretty::new(self.xot, is_suppressed, is_inline);
         for (node, output) in outputs {
             let (indentation, newline) = pretty.prettify(node, &output);
@@ -392,7 +388,7 @@ pub(crate) fn serialize_text_no_escape<'a, N: Normalizer>(
 
 #[cfg(test)]
 mod tests {
-    use crate::output::{html5::Parameters, Indentation};
+    use crate::output::{html5::Parameters, html5elements::XHTML_NS, Indentation};
 
     use super::*;
 
@@ -730,6 +726,34 @@ mod tests {
     }
 
     #[test]
+    fn test_pretty_with_non_phrasing_element() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse(r#"<html><body><p>Hello</p><p>World</p></body></html>"#)
+            .unwrap();
+        let s = xot
+            .html5()
+            .serialize_string(
+                Parameters {
+                    indentation: Some(Default::default()),
+                    ..Default::default()
+                },
+                root,
+            )
+            .unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html>
+  <body>
+    <p>Hello</p>
+    <p>World</p>
+  </body>
+</html>
+"#
+        );
+    }
+
+    #[test]
     fn test_pretty_with_phrasing_element() {
         let mut xot = Xot::new();
         let root = xot
@@ -788,16 +812,14 @@ mod tests {
     #[test]
     fn test_pretty_with_suppressed_element_exact_match() {
         let mut xot = Xot::new();
-        let foo = xot.add_name("foo");
-        let root = xot
-            .parse(r#"<html><body><foo><p></p></foo></body></html>"#)
-            .unwrap();
+        let body = xot.add_name("body");
+        let root = xot.parse(r#"<html><body><p></p></body></html>"#).unwrap();
         let s = xot
             .html5()
             .serialize_string(
                 Parameters {
                     indentation: Some(Indentation {
-                        suppress: vec![foo],
+                        suppress: vec![body],
                     }),
                     ..Default::default()
                 },
@@ -807,9 +829,7 @@ mod tests {
         assert_eq!(
             s,
             r#"<!DOCTYPE html><html>
-  <body>
-    <foo><p></p></foo>
-  </body>
+  <body><p></p></body>
 </html>
 "#
         );
@@ -818,16 +838,14 @@ mod tests {
     #[test]
     fn test_pretty_with_suppressed_element_case_insensitive_match() {
         let mut xot = Xot::new();
-        let foo = xot.add_name("foo");
-        let root = xot
-            .parse(r#"<html><body><FOO><p></p></FOO></body></html>"#)
-            .unwrap();
+        let body = xot.add_name("body");
+        let root = xot.parse(r#"<html><BODY><p></p></BODY></html>"#).unwrap();
         let s = xot
             .html5()
             .serialize_string(
                 Parameters {
                     indentation: Some(Indentation {
-                        suppress: vec![foo],
+                        suppress: vec![body],
                     }),
                     ..Default::default()
                 },
@@ -837,9 +855,7 @@ mod tests {
         assert_eq!(
             s,
             r#"<!DOCTYPE html><html>
-  <body>
-    <FOO><p></p></FOO>
-  </body>
+  <BODY><p></p></BODY>
 </html>
 "#
         );
@@ -880,91 +896,83 @@ mod tests {
         );
     }
 
-    //     #[test]
-    //     fn test_pretty_with_unknown_xhtml_element_treated_as_span() {
-    //         let mut xot = Xot::new();
-    //         let root = xot
-    //             .parse(&format!(
-    //                 r#"<html><body><FOO xmlns:xhtml="{}"><p></p></FOO></body></html>"#,
-    //                 XHTML_NS
-    //             ))
-    //             .unwrap();
-    //         let s = xot
-    //             .html5()
-    //             .serialize_string(
-    //                 Parameters {
-    //                     indentation: Some(Default::default()),
-    //                     ..Default::default()
-    //                 },
-    //                 root,
-    //             )
-    //             .unwrap();
-    //         assert_eq!(
-    //             s,
-    //             r#"<!DOCTYPE html><html>
-    //   <body>
-    //     <FOO><p></p></FOO>
-    //   </body>
-    // </html>
-    // "#
-    //         );
-    //     }
+    #[test]
+    fn test_pretty_with_unknown_xhtml_element_treated_as_span() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse(&format!(
+                r#"<html><body><FOO xmlns:xhtml="{}"><p></p></FOO></body></html>"#,
+                XHTML_NS
+            ))
+            .unwrap();
+        let s = xot
+            .html5()
+            .serialize_string(
+                Parameters {
+                    indentation: Some(Default::default()),
+                    ..Default::default()
+                },
+                root,
+            )
+            .unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html>
+  <body><FOO><p></p></FOO></body>
+</html>
+"#
+        );
+    }
 
-    //     #[test]
-    //     fn test_pretty_with_suppressed_element_case_insensitive_match_no_ns_xhtml() {
-    //         let mut xot = Xot::new();
-    //         let xhtml_ns = xot.add_namespace(XHTML_NS);
-    //         let foo = xot.add_name_ns("foo", xhtml_ns);
-    //         let root = xot
-    //             .parse(r#"<html><body><FOO><p></p></FOO></body></html>"#)
-    //             .unwrap();
-    //         let s = xot
-    //             .html5()
-    //             .serialize_string(
-    //                 Parameters {
-    //                     indentation: Some(Indentation {
-    //                         suppress: vec![foo],
-    //                     }),
-    //                     ..Default::default()
-    //                 },
-    //                 root,
-    //             )
-    //             .unwrap();
-    //         assert_eq!(
-    //             s,
-    //             r#"<!DOCTYPE html><html>
-    //   <body>
-    //     <FOO><p></p></FOO>
-    //   </body>
-    // </html>
-    // "#
-    //         );
-    //     }
+    #[test]
+    fn test_pretty_with_suppressed_element_case_insensitive_match_no_ns_xhtml() {
+        let mut xot = Xot::new();
+        let xhtml_ns = xot.add_namespace(XHTML_NS);
+        let body = xot.add_name_ns("body", xhtml_ns);
+        let root = xot.parse(r#"<html><body><p></p></body></html>"#).unwrap();
+        let s = xot
+            .html5()
+            .serialize_string(
+                Parameters {
+                    indentation: Some(Indentation {
+                        suppress: vec![body],
+                    }),
+                    ..Default::default()
+                },
+                root,
+            )
+            .unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html>
+  <body><p></p></body>
+</html>
+"#
+        );
+    }
 
-    //     #[test]
-    //     fn test_unrecognized_html_element_is_inline() {
-    //         let mut xot = Xot::new();
-    //         let root = xot
-    //             .parse(r#"<html><body><FOO><p></p></FOO></body></html>"#)
-    //             .unwrap();
-    //         let s = xot
-    //             .html5()
-    //             .serialize_string(
-    //                 Parameters {
-    //                     indentation: Some(Indentation { suppress: vec![] }),
-    //                     ..Default::default()
-    //                 },
-    //                 root,
-    //             )
-    //             .unwrap();
-    //         assert_eq!(
-    //             s,
-    //             r#"<!DOCTYPE html><html>
-    //   <body>
-    //     <FOO><p></p></FOO>
-    //   </body>
-    // </html>
-    // "#
-    //         );
-    //     }
+    #[test]
+    fn test_unrecognized_html_element_is_inline() {
+        let mut xot = Xot::new();
+        let root = xot
+            .parse(r#"<html><body><FOO><p></p></FOO></body></html>"#)
+            .unwrap();
+        let s = xot
+            .html5()
+            .serialize_string(
+                Parameters {
+                    indentation: Some(Indentation { suppress: vec![] }),
+                    ..Default::default()
+                },
+                root,
+            )
+            .unwrap();
+        assert_eq!(
+            s,
+            r#"<!DOCTYPE html><html>
+  <body><FOO><p></p></FOO></body>
+</html>
+"#
+        );
+    }
 }

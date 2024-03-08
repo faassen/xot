@@ -5,7 +5,7 @@ use crate::xotdata::Xot;
 use crate::NamespaceId;
 
 // used to determine whether something is a HTML 5 element
-const XHTML_NS: &str = "https://www.w3.org/1999/xhtml";
+pub(crate) const XHTML_NS: &str = "https://www.w3.org/1999/xhtml";
 const MATHML_NS: &str = "http://www.w3.org/1998/Math/MathML";
 const SVG_NS: &str = "http://www.w3.org/2000/svg";
 
@@ -223,6 +223,14 @@ impl Html5Elements {
             formatted_names,
             no_escape_names,
         }
+    }
+
+    pub(crate) fn is_inline(&self, xot: &Xot, name_id: NameId) -> bool {
+        // when serializing a html element, it should be rendered inline if
+        // it's in phrasing content, or if it's not a recognized HTML element
+        self.is_html_element(xot, name_id)
+            && ((self.phrasing_content_names.matches(xot, name_id))
+                || !self.html5_names.matches(xot, name_id))
     }
 
     pub(crate) fn is_html_element(&self, xot: &Xot, name_id: NameId) -> bool {
