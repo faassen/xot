@@ -13,6 +13,16 @@ and serialize back out to XML.
 
 - Extensive XML tree access and manipulation API.
 
+- You can access the parent of a node! A lot of Rust XML tree libraries do not
+  support this features: [xmltree-rs](https://crates.io/crates/xmltree),
+ [RustyXML](https://crates.io/crates/RustyXML),
+ [minidom](https://crates.io/crates/minidom) and
+ [elementtree](https://crates.io/crates/elementtree) all lack this ability for
+ instance.
+
+ [roxmltree](https://github.com/RazrFalcon/roxmltree) does allow parent access,
+ but is read-only.
+
 - Move nodes out of trees, into trees, into other trees with ease.
 
 - Access to the entire XML structure, including comments and processing
@@ -43,7 +53,7 @@ There are the following limitations:
 Use Xot if you need to be able to access XML as a tree, mutate it where
 necessary, and serialize it back out again. Various Rust XML tree libraries
 exist but none seem particularly interested in a complete tree manipulation
-API, so Xot aims to fill that gap.
+API, including parent access, so Xot aims to fill that gap.
 
 If you need to access XML as a tree, very high performance, and do not need
 tree manipulation or serialization at all, I recommend
