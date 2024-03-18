@@ -10,7 +10,7 @@
 //!   from strings programmatically. You can use it to create new elements and
 //!   attributes just like you'd use a [`crate::NameId`] directly. If you want
 //!   name without a namespace, use [`CreateName::name`]. If you want a
-//!   namespaced name, use [`CreateNamespace`] and [`CreateName::namespaced``],
+//!   namespaced name, use [`CreateNamespace`] and [`CreateName::namespaced`],
 //!   and [`Xot::append_namespace`] to add it to the tree as a prefix.
 //!
 //! - [`RefName`] is a reference to a name that is stored by Xot. You can
@@ -28,6 +28,9 @@
 mod create;
 mod owned;
 mod reference;
+
+#[cfg(doc)]
+use crate::Xot;
 
 pub use create::{CreateName, CreateNamespace};
 pub use owned::OwnedName;
