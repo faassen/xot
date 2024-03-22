@@ -37,7 +37,7 @@ where
 impl<'a, K, V, A: ValueAdapter<K, V>> NodeMap<'a, K, V, A>
 where
     K: PartialEq + Eq + Clone + Copy,
-    V: Clone,
+    V: Clone + 'a,
 {
     pub(crate) fn new(xot: &'a Xot, parent: Node) -> Self {
         Self {
