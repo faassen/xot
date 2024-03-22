@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.23.0] - 2024-03-22
+
 ### Breaking changes
 
 - Created a new API with much more control of serialization:
@@ -704,7 +706,8 @@ following XPath.
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.22.0...HEAD
+[Unreleased]: https://github.com/faassen/xot/compare/v0.23.0...HEAD
+[0.23.0]: https://github.com/faassen/xot/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/faassen/xot/compare/v0.21.0...v0.22.0
 [0.21.0]: https://github.com/faassen/xot/compare/v0.20.0...v0.21.0
 
