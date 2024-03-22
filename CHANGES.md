@@ -27,6 +27,10 @@
 
 ## Changes
 
+### Rust 1.77 compatibility
+
+There was a problem compiling this with Rust 1.77 which has since been fixed.
+
 ### New `output::xml::Parameters` API to control XML serialization
 
 - You can cause an XML declaration to be output.

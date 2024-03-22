@@ -11,6 +11,7 @@ use crate::{output, NameId, Value};
 
 use crate::xotdata::{Node, Xot};
 
+/// Serialize a Xot node to HTML5
 pub struct Html5<'a> {
     xot: &'a Xot,
     html5_elements: Html5Elements,

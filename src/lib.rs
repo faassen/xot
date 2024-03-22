@@ -90,6 +90,7 @@ pub use nodemap::{
     Attributes, Entry, MutableAttributes, MutableNamespaces, MutableNodeMap, Namespaces, NodeMap,
 };
 pub use parse::{Span, SpanInfo, SpanInfoKey};
+pub use serialize::Html5;
 pub use xmlvalue::{
     Attribute, Comment, Element, Namespace, Prefixes, ProcessingInstruction, Text, Value, ValueType,
 };
