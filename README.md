@@ -18,10 +18,8 @@ and serialize back out to XML.
  [RustyXML](https://crates.io/crates/RustyXML),
  [minidom](https://crates.io/crates/minidom) and
  [elementtree](https://crates.io/crates/elementtree) all lack this ability for
- instance.
-
- [roxmltree](https://github.com/RazrFalcon/roxmltree) does allow parent access,
- but is read-only.
+ instance. [roxmltree](https://github.com/RazrFalcon/roxmltree) does allow
+ parent access, but is read-only.
 
 - Move nodes out of trees, into trees, into other trees with ease.
 
