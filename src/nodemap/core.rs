@@ -71,7 +71,7 @@ where
 
     /// Returns `true` if the map contains no entries.
     pub fn is_empty(&self) -> bool {
-        self.children().next().is_some()
+        self.children().next().is_none()
     }
 
     // TODO: retain, drain, sort_keys, sort_unstable_keys, sort_by, sort_unstable_by,
