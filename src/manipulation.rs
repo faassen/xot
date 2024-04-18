@@ -771,16 +771,13 @@ impl Xot {
             if first_child == last_child {
                 // if there was only a single child, try to consolidate prev_node with
                 // next sibling of last child
-                println!("Only single child");
                 self.remove_consolidate_text_nodes(prev_node, next_node);
             } else {
                 // otherwise consolidate last child with next sibling
-                println!("Consolidate last child with next sibling");
                 self.remove_consolidate_text_nodes(Some(last_child), self.next_sibling(last_child));
             }
         } else {
             // first child did not get consolidated
-            println!("Consolidate first and last");
             self.remove_consolidate_text_nodes(Some(last_child), self.next_sibling(last_child));
         }
         Ok(())
