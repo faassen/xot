@@ -19,6 +19,8 @@
 
 - `xot.clone_with_prefixes` crashed if you tried to clone a non-element node.
 
+- `is_empty` for `xot.attributes()` and `xot.namespaces()` gave the wrong output.
+
 ## [0.23.0] - 2024-03-22
 
 ### Breaking changes
