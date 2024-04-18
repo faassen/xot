@@ -21,6 +21,9 @@
 
 - `is_empty` for `xot.attributes()` and `xot.namespaces()` gave the wrong output.
 
+- `unwrap_element` had a bug where the element contained namespaces or
+  attributes.
+
 ## [0.23.0] - 2024-03-22
 
 ### Breaking changes

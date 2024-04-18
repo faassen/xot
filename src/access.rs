@@ -170,7 +170,14 @@ impl Xot {
         node.get().children(&self.arena).map(Node::new)
     }
 
-    fn normal_children(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+    pub(crate) fn abnormal_children(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+        node.get()
+            .children(&self.arena)
+            .take_while(|n| !self.arena[*n].get().is_normal())
+            .map(Node::new)
+    }
+
+    pub(crate) fn normal_children(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
         node.get()
             .children(&self.arena)
             .skip_while(|n| !self.arena[*n].get().is_normal())

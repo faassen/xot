@@ -591,6 +591,20 @@ fn test_element_unwrap() {
 }
 
 #[test]
+fn test_element_unwrap_with_attribute() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<doc><a b="B">Hello</a></doc>"#).unwrap();
+    let document_el = xot.document_element(doc).unwrap();
+    let a_el = xot.first_child(document_el).unwrap();
+    // now we unwrap it
+    xot.element_unwrap(a_el).unwrap();
+
+    assert_eq!(xot.descendants(doc).count(), 3);
+
+    assert_eq!(xot.to_string(doc).unwrap(), r#"<doc>Hello</doc>"#);
+}
+
+#[test]
 fn test_element_unwrap_consolidation_single_element() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<doc>Alpha<a/>Beta</doc>"#).unwrap();

@@ -636,7 +636,8 @@ impl Xot {
         } else {
             // remove the temporary element unless we cloned the document node
             let cloned_node = self.first_child(top).unwrap();
-            top.get().remove(self.arena_mut());
+            // we can remove it as it won't have any attributes or prefixes
+            self.remove_dangerously(top);
             cloned_node
         }
     }
@@ -682,6 +683,26 @@ impl Xot {
             }
         }
         clone
+    }
+
+    // removes a node and puts normal content into containing node.
+    // any non-normal content (i.e. attributes and namespaces) are really
+    // destroyed
+    fn remove_element(&mut self, node: Node) {
+        // first remove any abnormal children, if any
+        for abnormal_child in self.abnormal_children(node).collect::<Vec<_>>() {
+            self.remove_dangerously(abnormal_child);
+        }
+        // now remove the node itself. this is now safe and won't result in
+        // stray nodes
+        self.remove_dangerously(node);
+    }
+
+    // remove a non-element node or an element guaranteed to be without
+    // prefixes or attributes with this.
+    fn remove_dangerously(&mut self, node: Node) {
+        // remove the node itself
+        node.get().remove(self.arena_mut());
     }
 
     /// Unwrap an element; its children are moved to its parent.
@@ -733,7 +754,6 @@ impl Xot {
         // remove_structure_check is not needed; we already know we don't
         // unwrap the document node or non-element child, and document element is
         // taken care of.
-
         let first_child = self.first_child(node);
         // without children this is like a remove
         if first_child.is_none() {
@@ -742,7 +762,7 @@ impl Xot {
         let first_child = first_child.unwrap();
         // there is guaranteed to be a last child if there's a first child
         let last_child = self.last_child(node).unwrap();
-        node.get().remove(self.arena_mut());
+        self.remove_element(node);
 
         let prev_node = self.previous_sibling(first_child);
         let next_node = self.next_sibling(last_child);
@@ -751,13 +771,16 @@ impl Xot {
             if first_child == last_child {
                 // if there was only a single child, try to consolidate prev_node with
                 // next sibling of last child
+                println!("Only single child");
                 self.remove_consolidate_text_nodes(prev_node, next_node);
             } else {
                 // otherwise consolidate last child with next sibling
+                println!("Consolidate last child with next sibling");
                 self.remove_consolidate_text_nodes(Some(last_child), self.next_sibling(last_child));
             }
         } else {
             // first child did not get consolidated
+            println!("Consolidate first and last");
             self.remove_consolidate_text_nodes(Some(last_child), self.next_sibling(last_child));
         }
         Ok(())
@@ -991,7 +1014,8 @@ impl Xot {
                 s.push_str(&added_text);
                 prev.set(s);
                 // remove the text node we wanted to insert as it's now consolidated
-                node.get().remove(self.arena_mut());
+                // we can always remove text nodes safely.
+                self.remove_dangerously(node);
                 true
             } else {
                 false
@@ -1010,7 +1034,8 @@ impl Xot {
                 s.push_str(next.get());
                 next.set(s);
                 // remove the text node we wanted to insert as it's now consolidated
-                node.get().remove(self.arena_mut());
+                // we can always remove text nodes safely.
+                self.remove_dangerously(node);
                 true
             } else {
                 false
@@ -1047,7 +1072,8 @@ impl Xot {
         let mut s = prev_text_mut.get().to_string();
         s.push_str(&to_add);
         prev_text_mut.set(s);
-        next_node.get().remove(self.arena_mut());
+        // this is guaranteed to be a text node
+        self.remove_dangerously(next_node);
         true
     }
 }
