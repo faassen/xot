@@ -13,8 +13,7 @@ use crate::{xmlname, Value};
 /// ## Names, namespaces and prefixes.
 ///
 /// Xot does not let you use names, prefixes and URIs directly. Instead you use
-/// the types [`NameId`], [`NamespaceId`] and [`PrefixId`] to
-/// refer to these.
+/// the types [`NameId`], [`NamespaceId`] and [`PrefixId`] to refer to these.
 ///
 /// This has some advantages:
 ///
@@ -35,6 +34,12 @@ use crate::{xmlname, Value};
 /// prefix or namepace. This drawback may be an advantage at times, as typical
 /// code needs to use a single name, namespace or prefix multiple times, so
 /// assigning to a variable is more convenient than repeating strings.
+///
+/// There are also APIs that help with namespace access and manipulation in
+/// other sections: [`Xot::namespaces`], [`Xot::namespaces_mut`], and
+/// [`Xot::get_namespace`], [`Xot::set_namespace`] and
+/// [`Xot::remove_namespace`], and [`Xot::append_namespace_node`].
+
 impl Xot {
     /// Look up name without a namespace.
     ///

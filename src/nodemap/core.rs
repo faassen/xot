@@ -1,5 +1,7 @@
 // implements some of the HashMap API, based on nodes in the indextree
 
+use ahash::AHashMap;
+
 use crate::{xmlvalue::ValueCategory, Node, Value, Xot};
 
 use super::entry::{Entry, OccupiedEntry, VacantEntry};
@@ -36,7 +38,7 @@ where
 
 impl<'a, K, V, A: ValueAdapter<K, V>> NodeMap<'a, K, V, A>
 where
-    K: PartialEq + Eq + Clone + Copy,
+    K: PartialEq + Eq + Clone + Copy + std::hash::Hash,
     V: Clone + 'a,
 {
     pub(crate) fn new(xot: &'a Xot, parent: Node) -> Self {
@@ -120,6 +122,15 @@ where
     pub fn nodes(&self) -> impl Iterator<Item = Node> + '_ {
         self.children()
     }
+
+    /// Convert into a hashmap
+    pub fn to_hashmap(&self) -> AHashMap<K, V> {
+        let mut m = AHashMap::new();
+        for (key, value) in self.iter() {
+            m.insert(key, value.clone());
+        }
+        m
+    }
 }
 
 /// A `MutableNodeMap` is a struct with a hash-map like API and is used to
@@ -143,7 +154,7 @@ where
 
 impl<'a, K, V, A: ValueAdapter<K, V>> MutableNodeMap<'a, K, V, A>
 where
-    K: PartialEq + Eq + Clone + Copy,
+    K: PartialEq + Eq + Clone + Copy + std::hash::Hash,
     V: Clone,
 {
     pub(crate) fn new(xot: &'a mut Xot, parent: Node) -> Self {
@@ -227,6 +238,15 @@ where
     /// An iterator visiting all the nodes in insertion order.
     pub fn nodes(&self) -> impl Iterator<Item = Node> + '_ {
         self.children()
+    }
+
+    /// Convert into a hashmap.
+    pub fn to_hashmap(&self) -> AHashMap<K, V> {
+        let mut m = AHashMap::new();
+        for (key, value) in self.iter() {
+            m.insert(key, value.clone());
+        }
+        m
     }
 
     // TODO: end of duplication

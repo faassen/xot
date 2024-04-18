@@ -4,7 +4,7 @@ use super::core::{MutableNodeMap, ValueAdapter};
 #[derive(Debug)]
 pub enum Entry<'a, K, V, A: ValueAdapter<K, V>>
 where
-    K: PartialEq + Eq + Clone + Copy,
+    K: PartialEq + Eq + Clone + Copy + std::hash::Hash,
     V: Clone,
 {
     /// Occupied entry.
@@ -15,7 +15,7 @@ where
 
 impl<'a, K, V, A: ValueAdapter<K, V>> Entry<'a, K, V, A>
 where
-    K: PartialEq + Eq + Clone + Copy,
+    K: PartialEq + Eq + Clone + Copy + std::hash::Hash,
     V: Clone,
 {
     /// Ensures a value is in the entry by inserting the default if empty, and returns a mutable
@@ -76,7 +76,7 @@ where
 #[derive(Debug)]
 pub struct OccupiedEntry<'a, K, V, A: ValueAdapter<K, V>>
 where
-    K: PartialEq + Eq + Clone + Copy,
+    K: PartialEq + Eq + Clone + Copy + std::hash::Hash,
     V: Clone,
 {
     map: &'a mut MutableNodeMap<'a, K, V, A>,
@@ -85,7 +85,7 @@ where
 
 impl<'a, K, V, A> OccupiedEntry<'a, K, V, A>
 where
-    K: PartialEq + Eq + Clone + Copy,
+    K: PartialEq + Eq + Clone + Copy + std::hash::Hash,
     V: Clone,
     A: ValueAdapter<K, V>,
 {
@@ -138,7 +138,7 @@ where
 
 impl<'a, K, V, A> VacantEntry<'a, K, V, A>
 where
-    K: PartialEq + Eq + Clone + Copy,
+    K: PartialEq + Eq + Clone + Copy + std::hash::Hash,
     V: Clone,
     A: ValueAdapter<K, V>,
 {

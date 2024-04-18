@@ -8,6 +8,8 @@
   `xot.delete_attribute`, and `xot.get_namespace`, `xot.set_namespace`,
   `xot.delete_namespace` convenience APIs.
 
+- Added convenience `to_hashmap` on attributes and namespaces accessors.
+
 ## [0.23.0] - 2024-03-22
 
 ### Breaking changes
