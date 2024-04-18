@@ -2,6 +2,12 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Features added
+
+- Added convenience `xot.get_attribute`,`xot.set_attribute`,
+  `xot.delete_attribute`, and `xot.get_namespace`, `xot.set_namespace`,
+  `xot.delete_namespace` convenience APIs.
+
 ## [0.23.0] - 2024-03-22
 
 ### Breaking changes

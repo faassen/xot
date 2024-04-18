@@ -1,6 +1,6 @@
 use crate::unpretty::remove_insignificant_whitespace;
-use crate::xmlname;
 use crate::xotdata::{Node, Xot};
+use crate::{xmlname, MutableAttributes, MutableNamespaces, NamespaceId, PrefixId};
 
 use crate::access::NodeEdge;
 use crate::error::Error;
@@ -461,6 +461,84 @@ impl Xot {
         node.get().remove_subtree(self.arena_mut());
         self.remove_consolidate_text_nodes(prev_node, next_node);
         Ok(())
+    }
+
+    /// Mutable namespaces accessor.
+    ///
+    /// Panics if called on a non-element.
+    ///
+    /// Use this to set namespace prefix declarations on an element. You use a
+    /// hashmap-like API:
+    ///
+    /// ```rust
+    /// let mut xot = xot::Xot::new();
+    /// let foo_prefix = xot.add_prefix("foo");
+    /// let foo_ns = xot.add_namespace("FOO");
+    /// let root = xot.parse(r#"<p>Example</p>"#).unwrap();
+    /// let p = xot.document_element(root).unwrap();
+    /// let mut namespaces = xot.namespaces_mut(p);
+    /// namespaces.insert(foo_prefix, foo_ns);
+    ///
+    /// assert_eq!(xot.to_string(root).unwrap(), r#"<p xmlns:foo="FOO">Example</p>"#);
+    /// ```
+    pub fn namespaces_mut(&mut self, node: Node) -> MutableNamespaces {
+        if !self.is_element(node) {
+            panic!("Node is not an element, so cannot set namespaces");
+        }
+
+        MutableNamespaces::new(self, node)
+    }
+
+    /// Set namespace for a prefix on an element.
+    ///
+    /// Note that if this is invoked on a non-element it's going to panic.
+    pub fn set_namespace(&mut self, node: Node, prefix: PrefixId, ns: NamespaceId) {
+        self.namespaces_mut(node).insert(prefix, ns);
+    }
+
+    /// Remove namespace for an element, if it exists
+    ///
+    /// Note that if this is invoked on a non-element it's going to panic.
+    pub fn remove_namespace(&mut self, node: Node, prefix: PrefixId) {
+        self.namespaces_mut(node).remove(prefix);
+    }
+
+    /// Mutable attributes accessor
+    ///
+    /// Panics if called on a non-element.
+    ///
+    /// Use this if you want to set an attribute on an element. You use a
+    /// hashmap-like API:
+    ///
+    /// ```rust
+    /// let mut xot = xot::Xot::new();
+    /// let a = xot.add_name("a");
+    /// let root = xot.parse(r#"<p>Example</p>"#).unwrap();
+    /// let p = xot.document_element(root).unwrap();
+    /// let mut attributes = xot.attributes_mut(p);
+    /// attributes.insert(a, "A".to_string());
+    ///
+    /// assert_eq!(xot.to_string(root).unwrap(), r#"<p a="A">Example</p>"#);
+    /// ```
+    pub fn attributes_mut(&mut self, node: Node) -> MutableAttributes {
+        if !self.is_element(node) {
+            panic!("Node is not an element, so cannot set attributes");
+        }
+        MutableAttributes::new(self, node)
+    }
+
+    /// Set attribute on an element.
+    ///
+    /// Note that if this is invoked on a non-element it's going to panic.
+    pub fn set_attribute(&mut self, node: Node, name: NameId, value: String) {
+        self.attributes_mut(node).insert(name, value);
+    }
+
+    /// Remove attribute from an element, if it exists
+    ///
+    /// Note that if this is invoked on a non-element it's going to panic.
+    pub fn remove_attribute(&mut self, node: Node, name: NameId) {
+        self.attributes_mut(node).remove(name);
     }
 
     /// Clone a node and its descendants into a new fragment

@@ -6,7 +6,7 @@ use crate::nodemap::{category_predicate, Attributes, Namespaces};
 use crate::output::NamespaceDeclarations;
 use crate::xmlvalue::{Value, ValueCategory, ValueType};
 use crate::xotdata::{Node, Xot};
-use crate::{MutableAttributes, MutableNamespaces, Prefixes};
+use crate::{NameId, NamespaceId, PrefixId, Prefixes};
 
 /// Traversal axis.
 ///
@@ -198,6 +198,14 @@ impl Xot {
         Attributes::new(self, node)
     }
 
+    /// Get the attribute value for a name.
+    ///
+    /// Note that if this is invoked non a non-element it's always going to
+    /// return None
+    pub fn get_attribute(&self, node: Node, name: NameId) -> Option<&str> {
+        self.attributes(node).get(name).map(String::as_str)
+    }
+
     /// Namespaces accessor.
     ///
     /// Returns a map of [`crate::PrefixId`] to [`crate::NamespaceId`] representing
@@ -218,6 +226,14 @@ impl Xot {
     /// ```
     pub fn namespaces(&self, node: Node) -> Namespaces {
         Namespaces::new(self, node)
+    }
+
+    /// Get the namespace for a prefix.
+    ///
+    /// Note that if this is invoked non a non-element it's always going to
+    /// return None
+    pub fn get_namespace(&self, node: Node, prefix: PrefixId) -> Option<NamespaceId> {
+        self.namespaces(node).get(prefix).copied()
     }
 
     /// Copy the namespace declarations as a prefixes hash table.
@@ -242,56 +258,6 @@ impl Xot {
 
     pub(crate) fn has_namespace_declarations(&self, node: Node) -> bool {
         self.namespaces(node).iter().next().is_some()
-    }
-
-    /// Mutable namespaces accessor.
-    ///
-    /// Panics if called on a non-element.
-    ///
-    /// Use this to set namespace prefix declarations on an element. You use a
-    /// hashmap-like API:
-    ///
-    /// ```rust
-    /// let mut xot = xot::Xot::new();
-    /// let foo_prefix = xot.add_prefix("foo");
-    /// let foo_ns = xot.add_namespace("FOO");
-    /// let root = xot.parse(r#"<p>Example</p>"#).unwrap();
-    /// let p = xot.document_element(root).unwrap();
-    /// let mut namespaces = xot.namespaces_mut(p);
-    /// namespaces.insert(foo_prefix, foo_ns);
-    ///
-    /// assert_eq!(xot.to_string(root).unwrap(), r#"<p xmlns:foo="FOO">Example</p>"#);
-    /// ```
-    pub fn namespaces_mut(&mut self, node: Node) -> MutableNamespaces {
-        if !self.is_element(node) {
-            panic!("Node is not an element, so cannot set namespaces");
-        }
-
-        MutableNamespaces::new(self, node)
-    }
-
-    /// Mutable attributes accessor
-    ///
-    /// Panics if called on a non-element.
-    ///
-    /// Use this if you want to set an attribute on an element. You use a
-    /// hashmap-like API:
-    ///
-    /// ```rust
-    /// let mut xot = xot::Xot::new();
-    /// let a = xot.add_name("a");
-    /// let root = xot.parse(r#"<p>Example</p>"#).unwrap();
-    /// let p = xot.document_element(root).unwrap();
-    /// let mut attributes = xot.attributes_mut(p);
-    /// attributes.insert(a, "A".to_string());
-    ///
-    /// assert_eq!(xot.to_string(root).unwrap(), r#"<p a="A">Example</p>"#);
-    /// ```
-    pub fn attributes_mut(&mut self, node: Node) -> MutableAttributes {
-        if !self.is_element(node) {
-            panic!("Node is not an element, so cannot set attributes");
-        }
-        MutableAttributes::new(self, node)
     }
 
     /// Access the attribute nodes directly.
