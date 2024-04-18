@@ -14,8 +14,10 @@
 
 ## Bugs fixed
 
-- Fixed a bug with `prepend`; it didn't work correctly in the presence of
+- Fixed a bug with `xot.prepend`; it didn't work correctly in the presence of
   namespace and attribute nodes.
+
+- `xot.clone_with_prefixes` crashed if you tried to clone a non-element node.
 
 ## [0.23.0] - 2024-03-22
 
