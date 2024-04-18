@@ -546,6 +546,29 @@ fn test_clone_with_prefixes_only_necessary_ones() {
 }
 
 #[test]
+fn test_clone_with_prefixes_non_element() {
+    let mut xot = Xot::new();
+    let root = xot
+        .parse(r#"<doc xmlns="http://example.com"><a>Hello!</a></doc>"#)
+        .unwrap();
+    let doc_id = xot.document_element(root).unwrap();
+    let a_id = xot.first_child(doc_id).unwrap();
+    let text_id = xot.first_child(a_id).unwrap();
+    let text_id_clone = xot.clone_with_prefixes(text_id);
+
+    // change original won't affect the clone
+    xot.text_mut(xot.first_child(a_id).unwrap())
+        .unwrap()
+        .set("Goodbye!");
+    assert_eq!(
+        xot.to_string(root).unwrap(),
+        r#"<doc xmlns="http://example.com"><a>Goodbye!</a></doc>"#
+    );
+
+    assert_eq!(xot.text(text_id_clone).unwrap().get(), "Hello!");
+}
+
+#[test]
 fn test_element_unwrap() {
     let mut xot = Xot::new();
     let doc = xot
