@@ -1,4 +1,7 @@
-use xot::{output::Output, Error, Xot};
+use xot::{
+    output::{Output, TokenSerializeParameters},
+    Error, Xot,
+};
 
 #[test]
 fn test_style() -> Result<(), Error> {
@@ -16,8 +19,12 @@ fn test_style() -> Result<(), Error> {
     xot.element_unwrap(style).unwrap();
 
     let suppress = vec![];
-    let cdata = vec![];
-    let pretty_tokens = xot.pretty_tokens(root, &suppress, &cdata, xot::output::NoopNormalizer);
+    let pretty_tokens = xot.pretty_tokens(
+        root,
+        TokenSerializeParameters::default(),
+        &suppress,
+        xot::output::NoopNormalizer,
+    );
 
     #[derive(Debug, PartialEq, Eq)]
     enum Style {
@@ -71,8 +78,13 @@ fn test_style_element() -> Result<(), Error> {
     let b = xot.first_child(a).unwrap();
 
     let suppress = vec![];
-    let cdata = vec![];
-    let pretty_tokens = xot.pretty_tokens(root, &suppress, &cdata, xot::output::NoopNormalizer);
+
+    let pretty_tokens = xot.pretty_tokens(
+        root,
+        TokenSerializeParameters::default(),
+        &suppress,
+        xot::output::NoopNormalizer,
+    );
 
     #[derive(Debug, PartialEq, Eq)]
     enum Style {
@@ -130,8 +142,12 @@ fn test_style_attribute() -> Result<(), Error> {
     let name_a = xot.add_name("a");
 
     let suppress = vec![];
-    let cdata = vec![];
-    let pretty_tokens = xot.pretty_tokens(root, &suppress, &cdata, xot::output::NoopNormalizer);
+    let pretty_tokens = xot.pretty_tokens(
+        root,
+        TokenSerializeParameters::default(),
+        &suppress,
+        xot::output::NoopNormalizer,
+    );
 
     #[derive(Debug, PartialEq, Eq)]
     enum Style {

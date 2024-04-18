@@ -270,7 +270,7 @@ impl<'a, N: Normalizer> Html5Serializer<'a, N> {
                 {
                     serialize_text_html((*text).into(), &self.normalizer).to_string()
                 } else {
-                    serialize_text((*text).into(), &self.normalizer).to_string()
+                    serialize_text((*text).into(), &self.normalizer, false).to_string()
                 };
                 OutputToken {
                     space: false,

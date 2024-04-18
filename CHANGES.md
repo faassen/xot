@@ -2,6 +2,17 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Breaking changes
+
+- Previously a `>` character in text was serialized as itself not as `&gt;`, as
+  this is allowed by the spec (except `]]>`, see the bug fix below). Since this
+  can be rather surprising, the default is now to always serialize `>` as
+  `&gt;`.
+
+- `xot.tokens` and `xot.pretty_tokens` now take a
+  `xot::output::TokenSerializeParameters` object that can be used to control
+  token generation, as opposed to manually passing in `cdata_section_elements`.
+
 ### Features added
 
 - Added `xot.get_element_name`, `xot.set_element_name` convenience APIs.
@@ -12,7 +23,7 @@
 
 - Added convenience `to_hashmap` on attributes and namespaces accessors.
 
-## Bugs fixed
+### Bugs fixed
 
 - Fixed a bug with `xot.prepend`; it didn't work correctly in the presence of
   namespace and attribute nodes.

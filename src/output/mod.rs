@@ -14,7 +14,7 @@ mod serializer;
 pub mod xml;
 mod xml_serializer;
 
-pub use common::Indentation;
+pub use common::{Indentation, TokenSerializeParameters};
 pub(crate) use fullname::FullnameSerializer;
 pub(crate) use fullname::NamespaceDeclarations;
 pub(crate) use html5_serializer::Html5Serializer;

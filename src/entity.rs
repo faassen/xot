@@ -88,6 +88,7 @@ fn parse_content(content: Cow<str>, attribute: bool) -> Result<Cow<str>, Error> 
 pub(crate) fn serialize_text<'a, N: Normalizer>(
     content: Cow<'a, str>,
     normalizer: &N,
+    unescaped_gt: bool,
 ) -> Cow<'a, str> {
     let mut result = String::new();
     let mut change = false;
@@ -99,10 +100,13 @@ pub(crate) fn serialize_text<'a, N: Normalizer>(
                 change = true;
                 result.push_str("&amp;")
             }
-
             '<' => {
                 change = true;
                 result.push_str("&lt;")
+            }
+            '>' if !unescaped_gt => {
+                change = true;
+                result.push_str("&gt;")
             }
             _ => result.push(c),
         }
@@ -303,22 +307,37 @@ mod tests {
     #[test]
     fn test_serialize_text() {
         let text = "A & B";
-        assert_eq!(serialize_text(text.into(), &NoopNormalizer), "A &amp; B");
+        assert_eq!(
+            serialize_text(text.into(), &NoopNormalizer, false),
+            "A &amp; B"
+        );
     }
 
     #[test]
     fn test_serialize_text_multiple() {
         let text = "&<'\">";
         assert_eq!(
-            serialize_text(text.into(), &NoopNormalizer),
-            "&amp;&lt;'\">"
+            serialize_text(text.into(), &NoopNormalizer, false),
+            "&amp;&lt;'\"&gt;"
         );
+    }
+
+    #[test]
+    fn test_serialize_text_gt_escaped() {
+        let text = ">";
+        assert_eq!(serialize_text(text.into(), &NoopNormalizer, false), "&gt;");
+    }
+
+    #[test]
+    fn test_serialize_text_gt_unescaped() {
+        let text = ">";
+        assert_eq!(serialize_text(text.into(), &NoopNormalizer, true), ">");
     }
 
     #[test]
     fn test_serialize_text_no_entities() {
         let text = "hello";
-        let result = serialize_text(text.into(), &NoopNormalizer);
+        let result = serialize_text(text.into(), &NoopNormalizer, false);
         // this is the same slice
         assert!(std::ptr::eq(text, result.as_ref()));
     }

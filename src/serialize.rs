@@ -2,7 +2,8 @@ use std::io::Write;
 
 use crate::error::Error;
 use crate::output::{
-    gen_outputs, Html5Elements, Html5Serializer, Output, OutputToken, XmlSerializer,
+    gen_outputs, Html5Elements, Html5Serializer, Output, OutputToken, TokenSerializeParameters,
+    XmlSerializer,
 };
 use crate::output::{NoopNormalizer, Normalizer};
 use crate::output::{Pretty, PrettyOutputToken};
@@ -304,8 +305,15 @@ assert_eq!(s, "<doc>\u{1E0D}\u{0307}</doc>");
             doctype.serialize(name.as_ref(), w)?;
         }
         let outputs = gen_outputs(self, node);
-        let mut serializer =
-            XmlSerializer::new(self, node, &parameters.cdata_section_elements, normalizer);
+        let mut serializer = XmlSerializer::new(
+            self,
+            node,
+            TokenSerializeParameters {
+                cdata_section_elements: parameters.cdata_section_elements,
+                unescaped_gt: parameters.unescaped_gt,
+            },
+            normalizer,
+        );
         if let Some(indentation) = parameters.indentation {
             serializer.serialize_pretty(w, outputs, &indentation.suppress)?;
         } else {
@@ -350,18 +358,20 @@ assert_eq!(s, "<doc>\u{1E0D}\u{0307}</doc>");
     /// can use this to write custom renderers that serialize the XML in
     /// a different way, for instance with inline styling.
     ///
-    /// You can include a list of element names that should be serialized as a
-    /// CDATA section.
+    /// In `parameters` you can control the behavior of the serializer, for
+    /// instance by specifying elements that should be serialized as a CDATA
+    /// section.
+    ///
     /// You can also pass in a normalizer; if you don't care about normalization, use
     // [`output::xml::NoopNormalizer`].
     pub fn tokens<'a, N: Normalizer + 'a>(
         &'a self,
         node: Node,
-        cdata_section_elements: &'a [NameId],
+        parameters: TokenSerializeParameters,
         normalizer: N,
     ) -> impl Iterator<Item = (Node, Output, OutputToken)> + 'a {
         let outputs = gen_outputs(self, node);
-        let mut serializer = XmlSerializer::new(self, node, cdata_section_elements, normalizer);
+        let mut serializer = XmlSerializer::new(self, node, parameters, normalizer);
         outputs.map(move |(node, output)| {
             let rendered = serializer.render_output(node, &output).unwrap();
             (node, output, rendered)
@@ -374,21 +384,25 @@ assert_eq!(s, "<doc>\u{1E0D}\u{0307}</doc>");
     /// use this to write custom renderers that serialize the XML in a
     /// different way, for instance with inline styling.
     ///
-    /// You can include a list of elements names that are excluded from
-    /// indentation, and a list of elements that should be serialized as a
-    /// CDATA section.
+    /// In `parameters` you can control the behavior of the serializer, for
+    /// instance by specifying elements that should be serialized as a CDATA
+    /// section.
     ///
-    /// You can also pass in a normalizer; if you don't care about normalization, use
+    /// You can also include a list of elements names that are excluded from
+    /// indentation.
+    ///
+    /// You can also pass in a normalizer; if you don't care about
+    /// normalization, use
     // [`output::xml::NoopNormalizer`].
     pub fn pretty_tokens<'a, N: Normalizer + 'a>(
         &'a self,
         node: Node,
+        parameters: TokenSerializeParameters,
         suppress_elements: &'a [NameId],
-        cdata_section_elements: &'a [NameId],
         normalizer: N,
     ) -> impl Iterator<Item = (Node, Output, PrettyOutputToken)> + 'a {
         let outputs = gen_outputs(self, node);
-        let mut serializer = XmlSerializer::new(self, node, cdata_section_elements, normalizer);
+        let mut serializer = XmlSerializer::new(self, node, parameters, normalizer);
         let mut pretty = Pretty::new(
             self,
             |name| suppress_elements.contains(&name),

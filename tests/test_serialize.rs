@@ -138,3 +138,35 @@ fn test_prefix_ambiguous_default_ns2() {
         r#"<a xmlns:n0="http://example.com/y"><a><a xmlns="http://example.com/y" n0:r="R"/></a></a>"#
     );
 }
+
+#[test]
+fn test_serialize_lt() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<a>&lt;</a>"#).unwrap();
+    let serialized = xot.to_string(doc).unwrap();
+    assert_eq!(serialized, r#"<a>&lt;</a>"#);
+}
+
+#[test]
+fn test_serialize_gt_by_default() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<a>&gt;</a>"#).unwrap();
+    let serialized = xot.to_string(doc).unwrap();
+    assert_eq!(serialized, r#"<a>&gt;</a>"#);
+}
+
+#[test]
+fn test_do_not_serialize_gt() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<a>&gt;</a>"#).unwrap();
+    let serialized = xot
+        .serialize_xml_string(
+            xot::output::xml::Parameters {
+                unescaped_gt: true,
+                ..Default::default()
+            },
+            doc,
+        )
+        .unwrap();
+    assert_eq!(serialized, r#"<a>></a>"#);
+}

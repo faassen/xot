@@ -26,7 +26,7 @@ mod tests {
     fn test_icu_normalizer_text() {
         let normalizer = ComposingNormalizer::new_nfc();
         // example taken from https://www.unicode.org/reports/tr15/ figure 5, second example
-        let s = serialize_text("\u{1E0B}\u{0323}".into(), &normalizer);
+        let s = serialize_text("\u{1E0B}\u{0323}".into(), &normalizer, false);
         assert_eq!(s, "\u{1E0D}\u{0307}");
     }
 

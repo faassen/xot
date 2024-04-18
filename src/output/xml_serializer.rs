@@ -7,29 +7,29 @@ use crate::output::Normalizer;
 use crate::xotdata::{Node, Xot};
 
 use super::fullname::FullnameSerializer;
-use super::{Output, OutputToken, Pretty};
+use super::{Output, OutputToken, Pretty, TokenSerializeParameters};
 
 pub(crate) struct XmlSerializer<'a, N: Normalizer> {
     xot: &'a Xot,
-    cdata_section_names: &'a [NameId],
     fullname_serializer: FullnameSerializer<'a>,
     normalizer: N,
+    parameters: TokenSerializeParameters,
 }
 
 impl<'a, N: Normalizer> XmlSerializer<'a, N> {
     pub(crate) fn new(
         xot: &'a Xot,
         node: Node,
-        cdata_section_names: &'a [NameId],
+        parameters: TokenSerializeParameters,
         normalizer: N,
     ) -> Self {
         let extra_declarations = xot.namespaces_in_scope(node).collect();
         let fullname_serializer = FullnameSerializer::new(xot, extra_declarations);
         Self {
             xot,
-            cdata_section_names,
             fullname_serializer,
             normalizer,
+            parameters,
         }
     }
 
@@ -166,7 +166,11 @@ impl<'a, N: Normalizer> XmlSerializer<'a, N> {
                 // a text node is always a child of an element
                 let parent = self.xot.parent(node).unwrap();
                 let element = self.xot.element(parent).unwrap();
-                if self.cdata_section_names.contains(&element.name()) {
+                if self
+                    .parameters
+                    .cdata_section_elements
+                    .contains(&element.name())
+                {
                     OutputToken {
                         space: false,
                         text: serialize_cdata((*text).into(), &self.normalizer).to_string(),
@@ -174,7 +178,12 @@ impl<'a, N: Normalizer> XmlSerializer<'a, N> {
                 } else {
                     OutputToken {
                         space: false,
-                        text: serialize_text((*text).into(), &self.normalizer).to_string(),
+                        text: serialize_text(
+                            (*text).into(),
+                            &self.normalizer,
+                            self.parameters.unescaped_gt,
+                        )
+                        .to_string(),
                     }
                 }
             }

@@ -53,6 +53,11 @@ pub struct Parameters {
     pub declaration: Option<Declaration>,
     /// The doctype declaration, if any.
     pub doctype: Option<DocType>,
+    /// Whether to escape the `>` character in text content. By default this is
+    /// true, which means that `>` is escaped as `&gt;`. If you set this to true,
+    /// `>` is not escaped, except for the special case of `]]>` outside of CDATA,
+    /// which is mandated by the XML specification to always be escaped.
+    pub unescaped_gt: bool,
     // TODO: character maps
 }
 
