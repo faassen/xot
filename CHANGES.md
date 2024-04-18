@@ -25,6 +25,10 @@
 
 ### Bugs fixed
 
+- `]]>` if seen outside of a CDATA section delimiter should always be rendered
+  as `]]&gt;`, and it wasn't before. Now it is even if unescaped gts are
+  configured.
+
 - Fixed a bug with `xot.prepend`; it didn't work correctly in the presence of
   namespace and attribute nodes.
 

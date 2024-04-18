@@ -94,6 +94,7 @@ pub(crate) fn serialize_text<'a, N: Normalizer>(
     let mut change = false;
     // if we had normalized_iter on the trait we avoid this string allocation
     let normalized_content = normalizer.normalize(content);
+
     for c in normalized_content.chars() {
         match c {
             '&' => {
@@ -107,6 +108,21 @@ pub(crate) fn serialize_text<'a, N: Normalizer>(
             '>' if !unescaped_gt => {
                 change = true;
                 result.push_str("&gt;")
+            }
+            '>' if unescaped_gt => {
+                change = true;
+                // take last two characters added to result
+                let mut last_two = result.chars().rev().take(2);
+                let last = last_two.next();
+                if let Some(']') = last {
+                    let last = last_two.next();
+                    if let Some(']') = last {
+                        // we are in the special ]]> sequence, so escape it
+                        result.push_str("&gt;");
+                        continue;
+                    }
+                }
+                result.push('>');
             }
             _ => result.push(c),
         }
@@ -332,6 +348,48 @@ mod tests {
     fn test_serialize_text_gt_unescaped() {
         let text = ">";
         assert_eq!(serialize_text(text.into(), &NoopNormalizer, true), ">");
+    }
+
+    #[test]
+    fn test_serialize_text_like_cdata_section_close_delimiter() {
+        let text = "]]>";
+        assert_eq!(
+            serialize_text(text.into(), &NoopNormalizer, false),
+            "]]&gt;"
+        );
+    }
+
+    #[test]
+    fn test_serialize_text_like_cdata_section_close_delimiter_gt_unescaped() {
+        let text = "]]>";
+        // this needs to happen even if the gt is asked to be unescaped
+        assert_eq!(serialize_text(text.into(), &NoopNormalizer, true), "]]&gt;");
+    }
+
+    #[test]
+    fn test_serialize_text_like_cdata_section_close_delimiter_split() {
+        let text = "]]extra>";
+        assert_eq!(
+            serialize_text(text.into(), &NoopNormalizer, true),
+            "]]extra>"
+        );
+    }
+    #[test]
+    fn test_serialize_text_like_cdata_section_close_delimiter_prefix() {
+        let text = "extra]]>";
+        assert_eq!(
+            serialize_text(text.into(), &NoopNormalizer, true),
+            "extra]]&gt;"
+        );
+    }
+
+    #[test]
+    fn test_serialize_text_like_cdata_section_close_delimiter_postfix() {
+        let text = "]]>extra";
+        assert_eq!(
+            serialize_text(text.into(), &NoopNormalizer, true),
+            "]]&gt;extra"
+        );
     }
 
     #[test]

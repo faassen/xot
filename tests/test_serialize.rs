@@ -170,3 +170,27 @@ fn test_do_not_serialize_gt() {
         .unwrap();
     assert_eq!(serialized, r#"<a>></a>"#);
 }
+
+#[test]
+fn test_weird_delimiter() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<a>]]&gt;</a>"#).unwrap();
+    let serialized = xot.to_string(doc).unwrap();
+    assert_eq!(serialized, r#"<a>]]&gt;</a>"#);
+}
+
+#[test]
+fn test_weird_delimiter_unescaped() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<a>]]&gt;</a>"#).unwrap();
+    let serialized = xot
+        .serialize_xml_string(
+            xot::output::xml::Parameters {
+                unescaped_gt: true,
+                ..Default::default()
+            },
+            doc,
+        )
+        .unwrap();
+    assert_eq!(serialized, r#"<a>]]&gt;</a>"#);
+}
