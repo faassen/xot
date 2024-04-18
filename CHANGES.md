@@ -12,6 +12,11 @@
 
 - Added convenience `to_hashmap` on attributes and namespaces accessors.
 
+## Bugs fixed
+
+- Fixed a bug with `prepend`; it didn't work correctly in the presence of
+  namespace and attribute nodes.
+
 ## [0.23.0] - 2024-03-22
 
 ### Breaking changes

@@ -5,7 +5,7 @@ use crate::{xmlname, MutableAttributes, MutableNamespaces, NamespaceId, PrefixId
 use crate::access::NodeEdge;
 use crate::error::Error;
 use crate::id::NameId;
-use crate::xmlvalue::{Value, ValueType};
+use crate::xmlvalue::{Value, ValueCategory, ValueType};
 
 /// ## Manipulation
 ///
@@ -330,9 +330,21 @@ impl Xot {
         if self.add_consolidate_text_nodes(child, None, self.first_child(parent)) {
             return Ok(());
         }
-        parent
-            .get()
-            .checked_prepend(child.get(), self.arena_mut())?;
+        // find the child to insert at; this is after the last namespace and attribute node
+        let insertion_point = self
+            .all_children(parent)
+            .take_while(|node| self.value(*node).value_category() != ValueCategory::Normal)
+            .last();
+        if let Some(insertion_point) = insertion_point {
+            insertion_point
+                .get()
+                .checked_insert_after(child.get(), self.arena_mut())?;
+        } else {
+            parent
+                .get()
+                .checked_prepend(child.get(), self.arena_mut())?;
+        }
+
         Ok(())
     }
 
