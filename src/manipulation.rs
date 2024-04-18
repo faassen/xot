@@ -542,8 +542,8 @@ impl Xot {
     /// Set attribute on an element.
     ///
     /// Note that if this is invoked on a non-element it's going to panic.
-    pub fn set_attribute(&mut self, node: Node, name: NameId, value: String) {
-        self.attributes_mut(node).insert(name, value);
+    pub fn set_attribute(&mut self, node: Node, name: NameId, value: impl Into<String>) {
+        self.attributes_mut(node).insert(name, value.into());
     }
 
     /// Remove attribute from an element, if it exists
