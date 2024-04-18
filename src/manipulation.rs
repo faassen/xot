@@ -463,6 +463,18 @@ impl Xot {
         Ok(())
     }
 
+    /// Set the element name of a node.
+    ///
+    /// If this node is not an element, panic.
+    pub fn set_element_name(&mut self, node: Node, name_id: NameId) {
+        match self.value_mut(node) {
+            Value::Element(element) => {
+                element.set_name(name_id);
+            }
+            _ => panic!("Node is not an element, so cannot set element name"),
+        }
+    }
+
     /// Mutable namespaces accessor.
     ///
     /// Panics if called on a non-element.

@@ -4,7 +4,9 @@
 
 ### Features added
 
-- Added convenience `xot.get_attribute`,`xot.set_attribute`,
+- Added `xot.get_element_name`, `xot.set_element_name` convenience APIs.
+
+- Added `xot.get_attribute`,`xot.set_attribute`,
   `xot.delete_attribute`, and `xot.get_namespace`, `xot.set_namespace`,
   `xot.delete_namespace` convenience APIs.
 

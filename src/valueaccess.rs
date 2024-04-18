@@ -272,6 +272,16 @@ impl Xot {
         }
     }
 
+    /// Get the name of a node that's an element.
+    ///
+    /// If the node does not exist, then panic.
+    pub fn get_element_name(&self, node: Node) -> NameId {
+        match self.value(node) {
+            Value::Element(element) => element.name(),
+            _ => panic!("Node is not an element"),
+        }
+    }
+
     /// If this node's value is an element, return a reference to it.
     ///
     /// ```rust
