@@ -34,7 +34,7 @@ use super::Indentation;
 /// - certain HTML tags are rendered preformatted (`pre`, `script`)
 ///
 /// - Indentation takes inline elements (phrasing content names such as `a`,
-///   `span`, etc) into account. U
+///   `span`, etc) into account.
 ///
 /// - Unknown HTML elements (that have no namespace or in the XHTML namespace) are
 ///   also treated as inline elements.
