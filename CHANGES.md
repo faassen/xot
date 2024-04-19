@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.24.0] - 2024-04-19
+
 ### Breaking changes
 
 - Previously a `>` character in text was serialized as itself not as `&gt;`, as
@@ -751,7 +753,8 @@ following XPath.
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.23.0...HEAD
+[Unreleased]: https://github.com/faassen/xot/compare/v0.24.0...HEAD
+[0.24.0]: https://github.com/faassen/xot/compare/v0.23.0...v0.24.0
 [0.23.0]: https://github.com/faassen/xot/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/faassen/xot/compare/v0.21.0...v0.22.0
 [0.21.0]: https://github.com/faassen/xot/compare/v0.20.0...v0.21.0
