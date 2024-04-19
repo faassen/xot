@@ -10,11 +10,12 @@ use crate::xmlvalue::{Value, ValueCategory, ValueType};
 /// ## Manipulation
 ///
 /// These methods maintain a well-formed XML structure:
-/// - There is only one document element under the document node which cannot be
-///   removed.
+/// - There is only one document element under the document node which cannot
+///   be removed.
 /// - The only other nodes that can exist directly under the document node are
 ///   comments and processing instructions.
-/// - You cannot add a node to a node that is not an element or the document node.
+/// - You cannot add a node to a node that is not an element or the document
+///   node.
 ///
 /// Note that you can use these manipulation methods to move nodes between
 /// trees -- if you append a node that's in another tree, that node is first
@@ -27,7 +28,11 @@ use crate::xmlvalue::{Value, ValueCategory, ValueType};
 /// happens if you remove a node causing two text nodes to be adjacent; the
 /// second text node is removed.
 ///
-/// You can disable and enable text consolidation using [`Xot::set_text_consolidation`].
+/// During parsing it's also guaranteed that text and CDATA content that is
+/// adjacent is consolidated into a single node.
+///
+/// You can disable and enable text consolidation using
+/// [`Xot::set_text_consolidation`].
 ///
 /// Text node consolidation example:
 /// ```rust

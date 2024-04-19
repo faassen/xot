@@ -170,6 +170,11 @@ impl Text {
         &self.text
     }
 
+    /// Get the text value, as a mutable reference.
+    pub fn get_mut(&mut self) -> &mut String {
+        &mut self.text
+    }
+
     /// Set the text value.
     ///
     /// ```rust

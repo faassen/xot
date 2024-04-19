@@ -39,6 +39,14 @@
 - `unwrap_element` had a bug where the element contained namespaces or
   attributes.
 
+- Parsing a CDATA did not produce span info.
+
+- Parsing a CDATA mixed with non-CDATA text in an element content would produce
+  multiple text nodes in a row. Now we produce a single consolidated text node.
+
+- Parsing a CDATA node mixed with non-CDATA text results in a span that covers
+  the non-CDATA text and the CDATA text both.
+
 ## [0.23.0] - 2024-03-22
 
 ### Breaking changes

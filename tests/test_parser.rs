@@ -287,3 +287,89 @@ fn test_parse_with_span_info_pi_content() {
         &Span::new(8, 15)
     );
 }
+
+#[test]
+fn test_parse_consolidated_cdata_text() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<a><![CDATA[foo]]>bar</a>"#).unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    assert_eq!(xot.children(doc_el).count(), 1);
+    let txt = xot.text_content_str(doc_el).unwrap();
+    assert_eq!(txt, "foobar");
+}
+
+#[test]
+fn test_parse_consolidated_text_cdata() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<a>foo<![CDATA[bar]]></a>"#).unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    assert_eq!(xot.children(doc_el).count(), 1);
+    let txt = xot.text_content_str(doc_el).unwrap();
+    assert_eq!(txt, "foobar");
+}
+
+#[test]
+fn test_parse_consolidated_text_cdata_text() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<a>foo<![CDATA[bar]]>baz</a>"#).unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    assert_eq!(xot.children(doc_el).count(), 1);
+    let txt = xot.text_content_str(doc_el).unwrap();
+    assert_eq!(txt, "foobarbaz");
+}
+
+#[test]
+fn test_span_for_cdata() {
+    let mut xot = Xot::new();
+    let (doc, span_info) = xot
+        .parse_with_span_info(r#"<a><![CDATA[foo]]></a>"#)
+        .unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    let txt = xot.first_child(doc_el).unwrap();
+    assert_eq!(
+        span_info.get(SpanInfoKey::Text(txt)).unwrap(),
+        &Span::new(12, 15)
+    );
+}
+
+#[test]
+fn test_span_for_cdata_text() {
+    let mut xot = Xot::new();
+    let (doc, span_info) = xot
+        .parse_with_span_info(r#"<a><![CDATA[foo]]>bar</a>"#)
+        .unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    let txt = xot.first_child(doc_el).unwrap();
+    assert_eq!(
+        span_info.get(SpanInfoKey::Text(txt)).unwrap(),
+        &Span::new(12, 21)
+    );
+}
+
+#[test]
+fn test_span_for_text_cdata() {
+    let mut xot = Xot::new();
+    let (doc, span_info) = xot
+        .parse_with_span_info(r#"<a>foo<![CDATA[bar]]></a>"#)
+        .unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    let txt = xot.first_child(doc_el).unwrap();
+    assert_eq!(
+        span_info.get(SpanInfoKey::Text(txt)).unwrap(),
+        &Span::new(3, 18)
+    );
+}
+
+#[test]
+fn test_span_for_cdata_cdata() {
+    let mut xot = Xot::new();
+    let (doc, span_info) = xot
+        .parse_with_span_info(r#"<a><![CDATA[foo]]><![CDATA[bar]]></a>"#)
+        .unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    let txt = xot.first_child(doc_el).unwrap();
+    assert_eq!(
+        span_info.get(SpanInfoKey::Text(txt)).unwrap(),
+        &Span::new(12, 30)
+    );
+}

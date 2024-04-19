@@ -156,14 +156,34 @@ impl DocumentBuilder {
         Ok((node_id, span, attribute_spans))
     }
 
+    // consolidates a text node with previous node if possible. If consolidation
+    // took place returns the node id , otherwise none.
+    fn consolidate_text(&mut self, content: &str, xot: &mut Xot) -> Option<NodeId> {
+        // let's look at the last node we added
+        let last = xot.arena[self.current_node_id].last_child();
+        if let Some(last) = last {
+            let value = xot.arena.get_mut(last).unwrap().get_mut();
+            if let Value::Text(last_text) = value {
+                last_text.get_mut().push_str(content);
+                return Some(last);
+            }
+        }
+        None
+    }
+
     fn text(&mut self, content: &str, xot: &mut Xot) -> Result<NodeId, Error> {
         let content = parse_text(content.into())?;
+        if let Some(last) = self.consolidate_text(&content, xot) {
+            return Ok(last);
+        }
         Ok(self.add(Value::Text(Text::new(content.to_string())), xot))
     }
 
-    fn cdata_text(&mut self, content: &str, xot: &mut Xot) -> Result<(), Error> {
-        self.add(Value::Text(Text::new(content.to_string())), xot);
-        Ok(())
+    fn cdata_text(&mut self, content: &str, xot: &mut Xot) -> Result<NodeId, Error> {
+        if let Some(last) = self.consolidate_text(content, xot) {
+            return Ok(last);
+        }
+        Ok(self.add(Value::Text(Text::new(content.to_string())), xot))
     }
 
     fn close_element_immediate(&mut self, xot: &mut Xot) -> NodeId {
@@ -381,6 +401,36 @@ pub enum SpanInfoKey {
 ///
 /// You use a [`SpanInfoKey`](crate::SpanInfoKey) to look up the span
 /// information.
+///
+/// The span of a CDATA section is only its text content:
+///
+/// ```text
+/// <p><![CDATA[content]]></p>
+///             ^^^^^^^
+/// ```
+///
+/// There is an exception to this. During parsing, adjacent CDATA sections and
+/// text nodes are consolidated into a single text node. This text node has the
+/// span starting with the first adjacent CDATA section or text node and ending
+/// with the last adjacent CDATA section or text node.
+///
+/// Example:
+///
+/// ```text
+/// <p>text<![CDATA[content]]>text</p>
+///    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/// ```
+///
+/// This can lead to the slightly odd situation where only part of the CDATA
+/// marker is included in the span:
+///
+/// ```text
+/// <p>text<![CDATA[content]]>foo</p>
+///                 ^^^^^^^^^^^^^
+///```
+///
+/// In every case all text content in the adjacent CDATA and text is included
+/// in the span.
 pub struct SpanInfo {
     map: HashMap<SpanInfoKey, Span>,
 }
@@ -399,6 +449,19 @@ impl SpanInfo {
 
     fn add(&mut self, key: SpanInfoKey, span: Span) {
         self.map.insert(key, span);
+    }
+
+    fn extend_text_span(&mut self, node: Node, span: Span) {
+        // if we already have span for this (text) node it, we need to store the span with that
+        // start and the given ending
+        let key = SpanInfoKey::Text(node);
+        if let Some(existing_span) = self.map.get(&key) {
+            let start = existing_span.start;
+            let end = span.end;
+            self.map.insert(key, Span::new(start, end));
+        } else {
+            self.map.insert(key, span);
+        }
     }
 
     fn add_attribute_spans(&mut self, node_id: NodeId, attribute_spans: AttributeSpans) {
@@ -445,7 +508,11 @@ impl Xot {
                 }
                 Text { text } => {
                     let node_id = builder.text(text.as_str(), self)?;
-                    span_info.add(SpanInfoKey::Text(node_id.into()), text.into());
+                    span_info.extend_text_span(node_id.into(), text.into());
+                }
+                Cdata { text, span: _ } => {
+                    let node_id = builder.cdata_text(text.as_str(), self)?;
+                    span_info.extend_text_span(node_id.into(), text.into());
                 }
                 ElementStart {
                     prefix,
@@ -514,9 +581,6 @@ impl Xot {
                             return Err(Error::UnsupportedNotStandalone);
                         }
                     }
-                }
-                Cdata { text, span: _ } => {
-                    builder.cdata_text(text.as_str(), self)?;
                 }
                 DtdStart { .. } => {
                     return Err(Error::DtdUnsupported);
