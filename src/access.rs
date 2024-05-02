@@ -66,6 +66,16 @@ pub enum NodeEdge {
     End(Node),
 }
 
+impl NodeEdge {
+    /// Returns the starting or ending node.
+    #[must_use]
+    pub fn node(self) -> Node {
+        match self {
+            Self::Start(node) | Self::End(node) => node,
+        }
+    }
+}
+
 /// ## Read-only access
 ///
 /// These are functions that provide read-only access to the tree.
