@@ -62,7 +62,7 @@ pub enum NodeEdge {
     /// this is the end tag. In case of document this is the end
     /// of the document. For any other values, the
     /// end edge occurs immediately after the start
-    /// edge.  
+    /// edge.
     End(Node),
 }
 
