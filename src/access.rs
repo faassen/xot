@@ -74,6 +74,36 @@ impl NodeEdge {
             Self::Start(node) | Self::End(node) => node,
         }
     }
+
+    /// Returns the next edge in depth-first traversal order.
+    #[must_use]
+    pub fn next(self, xot: &Xot) -> Option<Self> {
+        match self {
+            Self::Start(current) => xot
+                .first_child(current)
+                .map(Self::Start)
+                .or(Some(Self::End(current))),
+            Self::End(current) => xot
+                .next_sibling(current)
+                .map(Self::Start)
+                .or_else(|| xot.parent(current).map(Self::End)),
+        }
+    }
+
+    /// Returns the previous edge in depth-first traversal order.
+    #[must_use]
+    pub fn previous(self, xot: &Xot) -> Option<Self> {
+        match self {
+            Self::End(current) => xot
+                .last_child(current)
+                .map(Self::End)
+                .or(Some(Self::Start(current))),
+            Self::Start(current) => xot
+                .previous_sibling(current)
+                .map(Self::End)
+                .or_else(|| xot.parent(current).map(Self::Start)),
+        }
+    }
 }
 
 /// ## Read-only access
