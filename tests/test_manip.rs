@@ -350,7 +350,7 @@ fn test_clone() {
     let root = xot.parse(r#"<doc><a>Hello!</a></doc>"#).unwrap();
     let doc_id = xot.document_element(root).unwrap();
     let a_id = xot.first_child(doc_id).unwrap();
-    let a_id_clone = xot.clone(a_id);
+    let a_id_clone = xot.clone_node(a_id);
     // change original won't affect the clone
     xot.text_mut(xot.first_child(a_id).unwrap())
         .unwrap()
@@ -367,7 +367,7 @@ fn test_clone() {
 fn test_clone_root() {
     let mut xot = Xot::new();
     let root = xot.parse(r#"<doc><a>Hello!</a></doc>"#).unwrap();
-    let root_clone = xot.clone(root);
+    let root_clone = xot.clone_node(root);
     assert_eq!(
         xot.to_string(root_clone).unwrap(),
         r#"<doc><a>Hello!</a></doc>"#
@@ -383,7 +383,7 @@ fn test_clone_root_after_insert() {
     let i = xot.next_sibling(txt).unwrap();
     let new_node = xot.new_text("?");
     xot.insert_after(i, new_node).unwrap();
-    let root_clone = xot.clone(root);
+    let root_clone = xot.clone_node(root);
     assert_eq!(
         xot.to_string(root_clone).unwrap(),
         "<doc>hello <i>world</i>?!</doc>"
@@ -400,7 +400,7 @@ fn test_clone_root_after_insert_no_consolidation() {
     let i = xot.next_sibling(txt).unwrap();
     let new_node = xot.new_text("?");
     xot.insert_after(i, new_node).unwrap();
-    let root_clone = xot.clone(root);
+    let root_clone = xot.clone_node(root);
     xot.set_text_consolidation(true);
     assert_eq!(
         xot.to_string(root_clone).unwrap(),
@@ -419,7 +419,7 @@ fn test_clone_root_after_insert_no_consolidation_for_insert_consolidation_for_cl
     let new_node = xot.new_text("?");
     xot.insert_after(i, new_node).unwrap();
     xot.set_text_consolidation(true);
-    let root_clone = xot.clone(root);
+    let root_clone = xot.clone_node(root);
     assert_eq!(
         xot.to_string(root_clone).unwrap(),
         "<doc>hello <i>world</i>?!</doc>"
@@ -432,7 +432,7 @@ fn test_clone_attributes() {
     let root = xot.parse(r#"<doc><a f="F">Hello!</a></doc>"#).unwrap();
     let doc_id = xot.document_element(root).unwrap();
     let a_id = xot.first_child(doc_id).unwrap();
-    let a_id_clone = xot.clone(a_id);
+    let a_id_clone = xot.clone_node(a_id);
     // change original won't affect the clone
     xot.text_mut(xot.first_child(a_id).unwrap())
         .unwrap()
@@ -453,7 +453,7 @@ fn test_clone_namespaces() {
         .unwrap();
     let doc_id = xot.document_element(root).unwrap();
     let a_id = xot.first_child(doc_id).unwrap();
-    let a_id_clone = xot.clone(a_id);
+    let a_id_clone = xot.clone_node(a_id);
     // change original won't affect the clone
     xot.text_mut(xot.first_child(a_id).unwrap())
         .unwrap()
@@ -489,7 +489,7 @@ fn test_clone_with_namespaces() {
         .unwrap();
     let doc_id = xot.document_element(root).unwrap();
     let a_id = xot.first_child(doc_id).unwrap();
-    let a_id_clone = xot.clone(a_id);
+    let a_id_clone = xot.clone_node(a_id);
     // change original won't affect the clone
     xot.text_mut(xot.first_child(a_id).unwrap())
         .unwrap()

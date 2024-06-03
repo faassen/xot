@@ -587,7 +587,7 @@ impl Xot {
     /// let doc_el = xot.document_element(root)?;
     /// let a_el = xot.first_child(doc_el).unwrap();
     ///
-    /// let cloned = xot.clone(a_el);
+    /// let cloned = xot.clone_node(a_el);
     ///
     /// assert_eq!(xot.to_string(root)?, r#"<doc><a f="F"><b><c/></b></a></doc>"#);
     ///
@@ -599,7 +599,7 @@ impl Xot {
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn clone(&mut self, node: Node) -> Node {
+    pub fn clone_node(&mut self, node: Node) -> Node {
         let edges = self.all_traverse(node).collect::<Vec<_>>();
 
         // we need to create a top node
@@ -666,7 +666,7 @@ impl Xot {
     ///
     /// // if you do a normal clone, prefixes aren't preserved and need to be generated instead
     ///
-    /// let cloned = xot.clone(a_el);
+    /// let cloned = xot.clone_node(a_el);
     /// xot.create_missing_prefixes(cloned)?;
     /// assert_eq!(xot.to_string(cloned)?, r#"<n0:a xmlns:n0="http://example.com"><n0:b><n0:c/></n0:b></n0:a>"#);
     ///
@@ -676,7 +676,7 @@ impl Xot {
         // get all prefixes defined in scope
         let prefixes = self.inherited_prefixes(node);
 
-        let clone = self.clone(node);
+        let clone = self.clone_node(node);
         // add any prefixes from outer scope we may need
         if self.is_element(clone) {
             let mut namespaces = self.namespaces_mut(clone);
