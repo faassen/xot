@@ -45,7 +45,7 @@ impl From<NodeId> for Node {
 /// * [Parsing](#parsing)
 /// * [Serialization](#serialization)
 /// * [Value and type access](#value-and-type-access)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Xot {
     pub(crate) arena: XmlArena,
     pub(crate) namespace_lookup: NamespaceLookup,
