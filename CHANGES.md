@@ -2,6 +2,17 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Features added
+
+- Previously the `Xot` struct was not cloneable, and now we support `Clone` on
+  it. Note that the previous `.clone` method now changes -- see below.
+
+### Breaking changes
+
+- Previously Xot exposed a `clone` method to clone a node (and its children).
+  This has now been broken as it conflicts with the `Clone` trait. Modify your
+  code to use `clone_node` to get the clone node behavior.
+
 ## [0.24.0] - 2024-04-19
 
 ### Breaking changes
@@ -58,7 +69,7 @@
   `Xot::to_string` and `Xot::write`, but allow fine-grained control of
   serialization options, including pretty printing.
 
-- Removed `Xot::with_serialize_options`, `SerializeOptions`, `WithSerializeOptions` in    
+- Removed `Xot::with_serialize_options`, `SerializeOptions`, `WithSerializeOptions` in  
   favor of the new APIs.
 
 - The low-level `Xot::tokens` API has additional parameters, a list of element
@@ -144,38 +155,38 @@ parent the element node.
 
 This means some significant breaking API changes:
 
-* The `Element` value does not maintain attributes and namespace prefixes
+- The `Element` value does not maintain attributes and namespace prefixes
   anymore. The only thing it has is a `name()` accessor, and a way to
   set the name with `set_name()`.
 
-* The `Value` enum gains two new entries, `Attribute` and `Namespace`.
+- The `Value` enum gains two new entries, `Attribute` and `Namespace`.
   Similarly, `ValueType` gains these as well.
 
-* To access attributes, use `xot.attributes(node)`. This returns a hashmap-like
+- To access attributes, use `xot.attributes(node)`. This returns a hashmap-like
   struct (`NodeMap`). with as key the name id of the attribute, and as value as
   string, that lets you access attributes using `get`, iterate over them, etc.
   `NodeMap`, like `VecMap`, maintains order information and access time is
   linear, not constant time like a real hashmap.
 
-* To access namespaces, use `xot.namespaces(node)`. This returns a hashmap-like
+- To access namespaces, use `xot.namespaces(node)`. This returns a hashmap-like
   struct with as key the prefix id, and as value the namespace id. The old
-  `xot.namespaces` has been renamed to `xot.inherited_prefixes`. You can 
+  `xot.namespaces` has been renamed to `xot.inherited_prefixes`. You can
   also access this information as a `Prefixes` map, using `xot.prefixes(node)`.
 
-* `xot::Prefixes` is now a real std hashmap, not a vecmap or the new nodemap,
-   and thus does not retain order information. It is returned from specific
-   APIs such as `xot.prefixes(node)` and `xot.inherited_prefixes()`.
+- `xot::Prefixes` is now a real std hashmap, not a vecmap or the new nodemap,
+  and thus does not retain order information. It is returned from specific
+  APIs such as `xot.prefixes(node)` and `xot.inherited_prefixes()`.
 
-* You can also update and add attributes and namespaces using `xot.
-  attributes_mut()` and `xot.namespaces_mut()`, respectively. Since these hold
+- You can also update and add attributes and namespaces using `xot.
+attributes_mut()` and `xot.namespaces_mut()`, respectively. Since these hold
   a mutable reference to the tree, lifetime issues makes them not so convenient
   for accessing the information.
 
-* While `namespaces` and `attributes` return hashmap-like APIs, this API is at
+- While `namespaces` and `attributes` return hashmap-like APIs, this API is at
   present not as complete as attribute and prefixes information previously
   returned as provided by `vecmap-rs`.
 
-* Comparing two elements used to be possible through
+- Comparing two elements used to be possible through
   `element.compare_ignore_attributes`. This has now been replaced by
   `xot.shallow_equal_ignore_attributes`, which can also compare non-element
   nodes.
@@ -189,44 +200,44 @@ But in some advanced use cases you want to be able to directly access and manipu
 This is done with a new set of APIs. These all have the postfix `_node` in them
 to remind you that you are doing explicit node manipulation:
 
-* To create a new namespace node: `xot.new_namespace_node()`.
+- To create a new namespace node: `xot.new_namespace_node()`.
 
-* To create a new attribute node: `xot.new_attribute_node()`.
+- To create a new attribute node: `xot.new_attribute_node()`.
 
-* To append a namespace node: `xot.append_namespace_node()`.
+- To append a namespace node: `xot.append_namespace_node()`.
 
-* To append an attribute node: `xot.append_attribute_node()`.
+- To append an attribute node: `xot.append_attribute_node()`.
 
-* To append any node, including namespace and attribute nodes, use
-  `xot.any_append()` 
+- To append any node, including namespace and attribute nodes, use
+  `xot.any_append()`
 
-* To check whether something is a namespace node: `xot.is_namespace_node()`.
+- To check whether something is a namespace node: `xot.is_namespace_node()`.
 
-* To check whether something is an attribute node: `xot.is_attribute_node()`.
+- To check whether something is an attribute node: `xot.is_attribute_node()`.
 
-* To access or manipulate namespace information on a node:
+- To access or manipulate namespace information on a node:
   `xot.namespace_node` and `xot.namespace_node_mut`.
 
-* To access or manipulate attribute information on a node:
+- To access or manipulate attribute information on a node:
   `xot.attribute_node` and `xot.attribute_node_mut`.
 
-* To access an individual namespace node you can also use `get_node` on
+- To access an individual namespace node you can also use `get_node` on
   `Attributes` and `Namespaces`, so for instance
   `xot.namespaces(node).get_node(name)`.
 
-* To access all attributes nodes as an iterator, use `xot.attribute_nodes`.
+- To access all attributes nodes as an iterator, use `xot.attribute_nodes`.
 
 #### Serializer `Output` enum
 
 The serializer `Output` enum has been simplified:
 
-* Any reference to `Element` has become a copy of `Element`, as element is
+- Any reference to `Element` has become a copy of `Element`, as element is
   basically just a name and now copy.
 
-* The `Output::Prefix`, `Output::Attribute` `Output::StartTagClose` entries
+- The `Output::Prefix`, `Output::Attribute` `Output::StartTagClose` entries
   don't include the element anymore.
 
-* The enum entries `Output::PrefixesFinished` and `Output::AttributesFinished`
+- The enum entries `Output::PrefixesFinished` and `Output::AttributesFinished`
   have been removed.
 
 #### Rename compare APIs to equal
@@ -243,23 +254,23 @@ Introduced `xot.shallow_compare` and
 To be more in line with XML naming conventions, renamed the `Root` value to the
 `Document` value. So:
 
-* `Value::Root` -> `Value::Document`
+- `Value::Root` -> `Value::Document`
 
-* `ValueType:Root` -> `ValueType::Document`
+- `ValueType:Root` -> `ValueType::Document`
 
-* `Error::NotRoot` -> `Error::NotDocument`
+- `Error::NotRoot` -> `Error::NotDocument`
 
-* `xot.new_root_unconnected` -> `xot.new_document`
+- `xot.new_root_unconnected` -> `xot.new_document`
 
-* `xot.new_root` -> `xot.new_document_with_element`
+- `xot.new_root` -> `xot.new_document_with_element`
 
-* `xot.is_root` -> `xot.is_document`
+- `xot.is_root` -> `xot.is_document`
 
-* `Fixed::Root` -> `Fixed::Document`
+- `Fixed::Root` -> `Fixed::Document`
 
-* `Fixed::RootContent` -> `Fixed::DocumentContent`
+- `Fixed::RootContent` -> `Fixed::DocumentContent`
 
-* `xot.is_under_root` -> `xot.has_document_parent`
+- `xot.is_under_root` -> `xot.has_document_parent`
 
 #### Processing instruction target
 
@@ -270,16 +281,16 @@ Processing instruction `target` is now a `xot::NameId`, not a string.
 #### New APIs
 
 - Introduced `xot.full_name`, `xot.local_name_str` and `xot.uri_str` to get
-various aspects of a node name. 
+  various aspects of a node name.
 
 - Also added `xot.node_name` function to retrieve name id of element, attribute
-or processing instruction target, according to XPath rules.
+  or processing instruction target, according to XPath rules.
 
-- Added `xot.string_value` accessor, which gives the string value of a node 
+- Added `xot.string_value` accessor, which gives the string value of a node
   according to XPath rules.
 
 - New `xot.axis` method which lets you do traversal according to axis,
-following XPath.
+  following XPath.
 
 - Added `xot.deep_equal_xpath` which compares nodes as defined by XPath.
 
@@ -753,12 +764,12 @@ following XPath.
 Initial public release.
 
 <!-- next-url -->
+
 [Unreleased]: https://github.com/faassen/xot/compare/v0.24.0...HEAD
 [0.24.0]: https://github.com/faassen/xot/compare/v0.23.0...v0.24.0
 [0.23.0]: https://github.com/faassen/xot/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/faassen/xot/compare/v0.21.0...v0.22.0
 [0.21.0]: https://github.com/faassen/xot/compare/v0.20.0...v0.21.0
-
 [0.20.0]: https://github.com/faassen/xot/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/faassen/xot/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/faassen/xot/compare/v0.17.0...v0.18.0
