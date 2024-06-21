@@ -7,7 +7,7 @@ pub(crate) trait IdIndex<T> {
     fn from_id(id: T) -> usize;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct IdMap<K: Copy + IdIndex<K>, V: Eq + std::hash::Hash + Clone> {
     by_id: Vec<V>,
     by_value: HashMap<V, K>,
