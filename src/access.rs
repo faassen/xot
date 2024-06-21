@@ -68,6 +68,21 @@ pub enum NodeEdge {
 
 impl NodeEdge {
     /// Returns the starting or ending node.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// let mut xot = xot::Xot::new();
+    /// let root = xot.parse("<p><a/><b><c/></b></p>").unwrap();
+    /// let p = xot.document_element(root).unwrap();
+    /// let a = xot.first_child(p).unwrap();
+    /// let b = xot.next_sibling(a).unwrap();
+    /// let c = xot.first_child(b).unwrap();
+    /// let traversed: Vec<xot::Node> = xot
+    ///     .traverse(p)
+    ///     .map(|edge| edge.node())
+    ///     .collect();
+    /// assert_eq!(traversed, &[p, a, a, b, c, c, b, p]);
     #[must_use]
     pub fn node(self) -> Node {
         match self {
@@ -76,6 +91,27 @@ impl NodeEdge {
     }
 
     /// Returns the next edge in depth-first traversal order.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// let mut xot = xot::Xot::new();
+    /// let root = xot.parse("<p><a/><b><c/><d/><e/></b><f><g/><h/></f></p>").unwrap();
+    /// let traversed: Vec<xot::NodeEdge> = xot.traverse(root).collect();
+    ///
+    /// let mut current = xot::NodeEdge::Start(root);
+    /// let mut traversed2 = vec![current];
+    /// while let Some(next) = current.next(&xot) {
+    ///     if let xot::NodeEdge::End(node) = current {
+    ///         // You can use `&mut Xot` inside the loop.
+    ///         xot.remove(node);
+    ///     }
+    ///
+    ///     traversed2.push(next);
+    ///     current = next;
+    /// }
+    /// assert_eq!(traversed, traversed2);
+    /// ```
     #[must_use]
     pub fn next(self, xot: &Xot) -> Option<Self> {
         match self {
@@ -91,6 +127,27 @@ impl NodeEdge {
     }
 
     /// Returns the previous edge in depth-first traversal order.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// let mut xot = xot::Xot::new();
+    /// let root = xot.parse("<p><a/><b><c/><d/><e/></b><f><g/><h/></f></p>").unwrap();
+    /// let rev_traversed: Vec<xot::NodeEdge> = xot.reverse_traverse(root).collect();
+    ///
+    /// let mut current = xot::NodeEdge::End(root);
+    /// let mut rev_traversed2 = vec![current];
+    /// while let Some(next) = current.previous(&xot) {
+    ///     if let xot::NodeEdge::Start(node) = current {
+    ///         // You can use `&mut Xot` inside the loop.
+    ///         xot.remove(node);
+    ///     }
+    ///
+    ///     rev_traversed2.push(next);
+    ///     current = next;
+    /// }
+    /// assert_eq!(rev_traversed, rev_traversed2);
+    /// ```
     #[must_use]
     pub fn previous(self, xot: &Xot) -> Option<Self> {
         match self {
