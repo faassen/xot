@@ -7,6 +7,8 @@
 - Previously the `Xot` struct was not cloneable, and now we support `Clone` on
   it. Note that the previous `.clone` method now changes -- see below.
 
+- `NodeEdge` has convenience methods `node()`, `previous()` and `next()` now.
+
 ### Breaking changes
 
 - Previously Xot exposed a `clone` method to clone a node (and its children).
