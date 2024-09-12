@@ -9,8 +9,6 @@
 
 - `NodeEdge` has convenience methods `node()`, `previous()` and `next()` now.
 
-- `xot::Error` is has `PartialEq` and `Eq`.
-
 - Update various dependencies to newer versions.
 
 ### Breaking changes
@@ -18,14 +16,6 @@
 - Previously Xot exposed a `clone` method to clone a node (and its children).
   This has now been broken as it conflicts with the `Clone` trait. Modify your
   code to use `clone_node` to get the clone node behavior.
-
-- We made `xot::Error` support `PartialEq` and `Eq`. To this end we had to make
-  these changes:
-
-  - We don't directly store IO errors (which can occur during serialization)
-    but their message string instead, as they don't support `PartialEq`.
-
-  - We wrap `indextree::NodeError` with a comparable `NodeError`.
 
 ## [0.24.0] - 2024-04-19
 

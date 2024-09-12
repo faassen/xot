@@ -1,7 +1,7 @@
 use crate::xotdata::Node;
 
 /// Xot errors
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum Error {
     // access errors
     /// The node is not a Document node.
@@ -22,7 +22,7 @@ pub enum Error {
     /// The node you tried to act on is not an element.
     NotElement(Node),
     /// Indextree error that can happen during manipulation.
-    NodeError(NodeError),
+    NodeError(indextree::NodeError),
 
     // serializer
     /// Missing prefix for namespace.
@@ -66,63 +66,20 @@ pub enum Error {
     ///
     /// We take the string version of the IO error so as to keep errors comparable,
     /// which is more important than the exact error object in this case (serialization)
-    Io(String),
-}
-
-// TODO: this should really be fixed in the underlying indextree library
-/// A wrapper around indextree::NodeError so we can make it comparable
-#[derive(Debug)]
-pub struct NodeError(indextree::NodeError);
-
-impl PartialEq for NodeError {
-    fn eq(&self, other: &Self) -> bool {
-        matches!(
-            (self.0, other.0),
-            (
-                indextree::NodeError::AppendSelf,
-                indextree::NodeError::AppendSelf
-            ) | (
-                indextree::NodeError::PrependSelf,
-                indextree::NodeError::PrependSelf
-            ) | (
-                indextree::NodeError::InsertBeforeSelf,
-                indextree::NodeError::InsertBeforeSelf
-            ) | (
-                indextree::NodeError::InsertAfterSelf,
-                indextree::NodeError::InsertAfterSelf
-            ) | (indextree::NodeError::Removed, indextree::NodeError::Removed)
-                | (
-                    indextree::NodeError::AppendAncestor,
-                    indextree::NodeError::AppendAncestor
-                )
-                | (
-                    indextree::NodeError::PrependAncestor,
-                    indextree::NodeError::PrependAncestor
-                )
-        )
-    }
-}
-
-impl Eq for NodeError {}
-
-impl NodeError {
-    /// Get the underlying indextree::NodeError
-    pub fn get(&self) -> indextree::NodeError {
-        self.0
-    }
+    Io(std::io::Error),
 }
 
 impl From<indextree::NodeError> for Error {
     #[inline]
     fn from(e: indextree::NodeError) -> Self {
-        Error::NodeError(NodeError(e))
+        Error::NodeError(e)
     }
 }
 
 impl From<std::io::Error> for Error {
     #[inline]
     fn from(e: std::io::Error) -> Self {
-        Error::Io(e.to_string())
+        Error::Io(e)
     }
 }
 
@@ -141,7 +98,7 @@ impl std::fmt::Display for Error {
             Error::InvalidComment(s) => write!(f, "Invalid comment: {}", s),
             Error::InvalidTarget(s) => write!(f, "Invalid target: {}", s),
             Error::NotElement(_) => write!(f, "Not an element"),
-            Error::NodeError(e) => write!(f, "Node error: {}", e.get()),
+            Error::NodeError(e) => write!(f, "Node error: {}", e),
             Error::MissingPrefix(_) => write!(f, "Missing prefix"),
             Error::ProcessingInstructionGtInHtml(s) => {
                 write!(f, "Processing instruction with > in HTML: {}", s)
