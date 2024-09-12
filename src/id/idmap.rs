@@ -21,10 +21,10 @@ impl<K: Copy + IdIndex<K>, V: Eq + std::hash::Hash + Clone> IdMap<K, V> {
         }
     }
 
-    pub(crate) fn get_id_mut<Q: ?Sized>(&mut self, value: &Q) -> K
+    pub(crate) fn get_id_mut<Q>(&mut self, value: &Q) -> K
     where
         V: Borrow<Q>,
-        Q: Hash + Eq + ToOwned<Owned = V>,
+        Q: Hash + Eq + ToOwned<Owned = V> + ?Sized,
     {
         let id = self.by_value.get(value);
         if let Some(id) = id {
@@ -38,10 +38,10 @@ impl<K: Copy + IdIndex<K>, V: Eq + std::hash::Hash + Clone> IdMap<K, V> {
         }
     }
 
-    pub(crate) fn get_id<Q: ?Sized>(&self, value: &Q) -> Option<K>
+    pub(crate) fn get_id<Q>(&self, value: &Q) -> Option<K>
     where
         V: Borrow<Q>,
-        Q: Hash + Eq,
+        Q: Hash + Eq + ?Sized,
     {
         self.by_value.get(value).copied()
     }

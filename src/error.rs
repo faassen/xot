@@ -76,18 +76,30 @@ pub struct NodeError(indextree::NodeError);
 
 impl PartialEq for NodeError {
     fn eq(&self, other: &Self) -> bool {
-        match (self.0, other.0) {
-            (indextree::NodeError::AppendSelf, indextree::NodeError::AppendSelf) => true,
-            (indextree::NodeError::PrependSelf, indextree::NodeError::PrependSelf) => true,
-            (indextree::NodeError::InsertBeforeSelf, indextree::NodeError::InsertBeforeSelf) => {
-                true
-            }
-            (indextree::NodeError::InsertAfterSelf, indextree::NodeError::InsertAfterSelf) => true,
-            (indextree::NodeError::Removed, indextree::NodeError::Removed) => true,
-            (indextree::NodeError::AppendAncestor, indextree::NodeError::AppendAncestor) => true,
-            (indextree::NodeError::PrependAncestor, indextree::NodeError::PrependAncestor) => true,
-            _ => false,
-        }
+        matches!(
+            (self.0, other.0),
+            (
+                indextree::NodeError::AppendSelf,
+                indextree::NodeError::AppendSelf
+            ) | (
+                indextree::NodeError::PrependSelf,
+                indextree::NodeError::PrependSelf
+            ) | (
+                indextree::NodeError::InsertBeforeSelf,
+                indextree::NodeError::InsertBeforeSelf
+            ) | (
+                indextree::NodeError::InsertAfterSelf,
+                indextree::NodeError::InsertAfterSelf
+            ) | (indextree::NodeError::Removed, indextree::NodeError::Removed)
+                | (
+                    indextree::NodeError::AppendAncestor,
+                    indextree::NodeError::AppendAncestor
+                )
+                | (
+                    indextree::NodeError::PrependAncestor,
+                    indextree::NodeError::PrependAncestor
+                )
+        )
     }
 }
 

@@ -504,7 +504,8 @@ impl Xot {
     /// Iterator over the child nodes of this node, in reverse order.
     pub fn reverse_children(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
         node.get()
-            .reverse_children(self.arena())
+            .children(self.arena())
+            .rev()
             .take_while(|n| self.arena[*n].get().is_normal())
             .map(Node::new)
     }
