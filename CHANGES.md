@@ -11,6 +11,8 @@
 
 - `xot::Error` is has `PartialEq` and `Eq`.
 
+- Update various dependencies to newer versions.
+
 ### Breaking changes
 
 - Previously Xot exposed a `clone` method to clone a node (and its children).
