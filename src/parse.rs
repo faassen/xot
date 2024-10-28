@@ -93,12 +93,21 @@ impl DocumentBuilder {
             };
             return Err(Error::DuplicateAttribute(attr_name));
         }
+        let value_span = value.into();
+        let value = parse_attribute(value.as_str().into())?.to_string();
+        // if this is an xml:id we want to apply xml:id normalization as described here
+        // https://www.w3.org/TR/xml-id/#id-avn
+        let value = if name == "id" && prefix == "xml" {
+            normalize_xml_id(&value)
+        } else {
+            value
+        };
         attributes.push(AttributeBuilder {
             prefix: prefix.to_string(),
             name: name.to_string(),
-            value: parse_attribute(value.as_str().into())?.to_string(),
+            value,
             name_span: Span::from_prefix_name(prefix, name),
-            value_span: value.into(),
+            value_span,
         });
         Ok(())
     }
@@ -659,4 +668,27 @@ impl Xot {
         let xml = decode(bytes, None);
         self.parse(&xml)
     }
+}
+
+fn normalize_xml_id(value: &str) -> String {
+    // strip both leading and trailing space characters
+    let value = value.strip_prefix(' ').unwrap_or(value);
+    let value = value.strip_suffix(' ').unwrap_or(value);
+    // now take any repeated sequences of the space character ' ' and normalize
+    // it to a single space character
+    let mut result = String::with_capacity(value.len());
+    let mut last_char_space = false;
+
+    for c in value.chars() {
+        if c == ' ' {
+            if !last_char_space {
+                result.push(c);
+                last_char_space = true;
+            }
+        } else {
+            result.push(c);
+            last_char_space = false;
+        }
+    }
+    result
 }
