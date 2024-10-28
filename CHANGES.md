@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.26.0] - 2024-10-28
+
 ### Features added
 
 - `xml:id` processing according to [xml:id
@@ -788,7 +790,8 @@ Processing instruction `target` is now a `xot::NameId`, not a string.
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.25.0...HEAD
+[Unreleased]: https://github.com/faassen/xot/compare/v0.26.0...HEAD
+[0.26.0]: https://github.com/faassen/xot/compare/v0.25.0...v0.26.0
 
 [0.25.0]: https://github.com/faassen/xot/compare/v0.24.0...v0.25.0
 [0.24.0]: https://github.com/faassen/xot/compare/v0.23.0...v0.24.0
