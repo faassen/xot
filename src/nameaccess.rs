@@ -222,6 +222,14 @@ impl Xot {
         self.xml_space_id
     }
 
+    /// xml:id
+    //
+    /// Returns the name id used for the `xml:id` attribute.
+    #[inline]
+    pub fn xml_id_name(&self) -> NameId {
+        self.xml_id_id
+    }
+
     /// Given a name id, and a context node (to provide namespace prefix
     /// lookup), return a [`xmlname::RefName`]. If you import the trait
     /// [`xmlname::NameStrInfo`] you can look up more information about the
@@ -505,14 +513,24 @@ impl Xot {
     ///
     /// Returns `None` if no prefix is defined for the namespace.
     pub fn prefix_for_namespace(&self, node: Node, namespace: NamespaceId) -> Option<PrefixId> {
+        let mut seen = HashSet::default();
+
         for ancestor in self.ancestors(node) {
             for (key, value) in self.namespaces(ancestor).iter() {
+                if seen.contains(&key) {
+                    return None;
+                }
+                seen.insert(key);
                 if *value == namespace {
                     return Some(key);
                 }
             }
         }
         for (key, value) in self.base_prefixes() {
+            if seen.contains(&key) {
+                return None;
+            }
+            seen.insert(key);
             if value == namespace {
                 return Some(key);
             }
@@ -526,6 +544,9 @@ impl Xot {
     pub fn namespace_for_prefix(&self, node: Node, prefix: PrefixId) -> Option<NamespaceId> {
         for ancestor in self.ancestors(node) {
             if let Some(namespace) = self.namespaces(ancestor).get(prefix) {
+                if *namespace == self.no_namespace() {
+                    return None;
+                }
                 return Some(*namespace);
             }
         }
@@ -839,14 +860,19 @@ pub(crate) fn namespace_traverse(
 ) -> impl Iterator<Item = (PrefixId, NamespaceId)> + '_ {
     gen!({
         let mut seen: Vec<PrefixId> = Vec::new();
+
         for ancestor in xot.ancestors(node) {
             let namespaces = xot.namespaces(ancestor);
             for (prefix_id, namespace_id) in namespaces.iter() {
                 if seen.contains(&prefix_id) {
                     continue;
                 }
+                let undeclaration =
+                    xot.empty_prefix() == prefix_id && *namespace_id == xot.no_namespace();
                 seen.push(prefix_id);
-                yield_!((prefix_id, *namespace_id));
+                if !undeclaration {
+                    yield_!((prefix_id, *namespace_id));
+                }
             }
         }
         for (prefix_id, namespace_id) in xot.base_prefixes() {

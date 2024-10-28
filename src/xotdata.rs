@@ -56,6 +56,7 @@ pub struct Xot {
     pub(crate) xml_namespace_id: NamespaceId,
     pub(crate) xml_prefix_id: PrefixId,
     pub(crate) xml_space_id: NameId,
+    pub(crate) xml_id_id: NameId,
     pub(crate) text_consolidation: bool,
 }
 
@@ -70,6 +71,7 @@ impl Xot {
         let xml_prefix_id = prefix_lookup.get_id_mut("xml");
         let mut name_lookup = NameLookup::new();
         let xml_space_id = name_lookup.get_id_mut(&Name::new("space", xml_namespace_id));
+        let xml_id_id = name_lookup.get_id_mut(&Name::new("id", xml_namespace_id));
         Xot {
             arena: XmlArena::new(),
             namespace_lookup,
@@ -80,6 +82,7 @@ impl Xot {
             xml_namespace_id,
             xml_prefix_id,
             xml_space_id,
+            xml_id_id,
             text_consolidation: true,
         }
     }

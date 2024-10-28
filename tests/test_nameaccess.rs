@@ -233,6 +233,49 @@ fn test_prefix_for_namespace() {
 }
 
 #[test]
+fn test_prefix_for_namespace_overridden() {
+    let mut xot = Xot::new();
+    let doc = xot
+        .parse(r#"<doc xmlns:a="http://example.com/a"><a:p xmlns:a="http://example.com/b"/></doc>"#)
+        .unwrap();
+    let root_id = xot.document_element(doc).unwrap();
+    let a_prefix = xot.add_prefix("a");
+    let a_ns = xot.add_namespace("http://example.com/a");
+    let b_ns = xot.add_namespace("http://example.com/b");
+    let p = xot.first_child(root_id).unwrap();
+
+    assert_eq!(xot.prefix_for_namespace(root_id, a_ns), Some(a_prefix));
+    assert_eq!(xot.prefix_for_namespace(root_id, b_ns), None);
+    assert_eq!(xot.prefix_for_namespace(p, b_ns), Some(a_prefix));
+    assert_eq!(xot.prefix_for_namespace(p, a_ns), None);
+}
+
+#[test]
+fn test_prefix_for_namespace_default_and_undeclared() {
+    let mut xot = Xot::new();
+    let doc = xot
+        .parse(
+            r#"<doc xmlns="http://example.com/a"><p><inner xmlns=""><inside/></inner></p></doc>"#,
+        )
+        .unwrap();
+    let root_id = xot.document_element(doc).unwrap();
+
+    let a_ns = xot.add_namespace("http://example.com/a");
+
+    let p = xot.first_child(root_id).unwrap();
+    let inner = xot.first_child(p).unwrap();
+    let inside = xot.first_child(inner).unwrap();
+
+    assert_eq!(
+        xot.prefix_for_namespace(root_id, a_ns),
+        Some(xot.empty_prefix())
+    );
+    assert_eq!(xot.prefix_for_namespace(p, a_ns), Some(xot.empty_prefix()));
+    assert_eq!(xot.prefix_for_namespace(inner, a_ns), None);
+    assert_eq!(xot.prefix_for_namespace(inside, a_ns), None);
+}
+
+#[test]
 fn test_namespace_for_prefix() {
     let mut xot = Xot::new();
     let doc = xot
@@ -256,6 +299,31 @@ fn test_namespace_for_prefix() {
     assert_eq!(xot.namespace_for_prefix(p0, b_prefix), None);
     assert_eq!(xot.namespace_for_prefix(p1, b_prefix), None);
     assert_eq!(xot.namespace_for_prefix(p0, xml_prefix), Some(xml_ns));
+}
+
+#[test]
+fn test_namespace_for_prefix_default_and_undeclared() {
+    let mut xot = Xot::new();
+    let doc = xot
+        .parse(
+            r#"<doc xmlns="http://example.com/a"><p><inner xmlns=""><inside/></inner></p></doc>"#,
+        )
+        .unwrap();
+    let root_id = xot.document_element(doc).unwrap();
+
+    let a_ns = xot.add_namespace("http://example.com/a");
+
+    let p = xot.first_child(root_id).unwrap();
+    let inner = xot.first_child(p).unwrap();
+    let inside = xot.first_child(inner).unwrap();
+
+    assert_eq!(
+        xot.namespace_for_prefix(root_id, xot.empty_prefix()),
+        Some(a_ns)
+    );
+    assert_eq!(xot.namespace_for_prefix(p, xot.empty_prefix()), Some(a_ns));
+    assert_eq!(xot.namespace_for_prefix(inner, xot.empty_prefix()), None);
+    assert_eq!(xot.namespace_for_prefix(inside, xot.empty_prefix()), None);
 }
 
 #[test]
@@ -374,6 +442,29 @@ fn test_namespaces_overrides_xml_prefix() {
     );
     assert_eq!(
         xot.namespaces_in_scope(root_id).collect::<Vec<_>>(),
+        [(xml_prefix, xml_ns)]
+    );
+}
+
+#[test]
+fn test_default_namespace_undeclared() {
+    let mut xot = Xot::new();
+    let doc = xot
+        .parse(r#"<doc><p xmlns="http://example.com/a"><inner xmlns=""><a/></inner></p></doc>"#)
+        .unwrap();
+    let xml_prefix = xot.add_prefix("xml");
+    let xml_ns = xot.add_namespace("http://www.w3.org/XML/1998/namespace");
+    let root_id = xot.document_element(doc).unwrap();
+    let p = xot.first_child(root_id).unwrap();
+    let inner = xot.first_child(p).unwrap();
+    let a = xot.first_child(inner).unwrap();
+
+    assert_eq!(
+        xot.namespaces_in_scope(a).collect::<Vec<_>>(),
+        [(xml_prefix, xml_ns)]
+    );
+    assert_eq!(
+        xot.namespaces_in_scope(inner).collect::<Vec<_>>(),
         [(xml_prefix, xml_ns)]
     );
 }

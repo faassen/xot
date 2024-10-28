@@ -2,6 +2,24 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Features added
+
+- `xml:id` processing according to [xml:id
+   spec](https://www.w3.org/TR/xml-id/#id-avn). Any `xml:id` attribute is
+   normalized, removing both leading and traigling spaces and collapsing
+   multiple space characters into one.
+
+- New `xml:xml_id_name()` method to access the name of an ID.
+
+### Bugs fixed
+
+- `xmlns=""` can be used to undeclare the default namespace, meaning it's not
+  really there, but this wasn't properly handled by `xot.namespaces_in_scope()`
+  and `xot.prefixes_in_scope()`, and `xot.prefix_for_namespace()`.
+
+` `xot.prefix_for_namespace()` and `xot.namespace_for_prefix()` weren't
+  properly handling namespace overrides or the default namespace.
+
 ## [0.25.0] - 2024-09-12
 
 ### Features added
