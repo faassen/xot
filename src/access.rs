@@ -249,8 +249,9 @@ impl Xot {
     /// Obtain top element, given node anywhere in a tree.
     ///
     /// In an XML document this is the document element.
-    /// In an XML fragment it's the top node of the
-    /// fragment.
+    /// In a XML document fragment this is the top element, but it may
+    /// have siblings.
+    /// If it's an unattached tree, it's the top node of that tree
     pub fn top_element(&self, node: Node) -> Node {
         if self.value_type(node) == ValueType::Document {
             return self.document_element(node).unwrap();
@@ -261,14 +262,14 @@ impl Xot {
                 top = ancestor;
             }
         }
-        // XXX in a fragment this may not be an element.
+        // XXX in an unattached tree this may not be an element.
         top
     }
 
     /// Obtain root of the tree.
     ///
-    /// This is the document node if possible, but if this is a fragment,
-    /// it is the root of the fragment.
+    /// This is the document node if possible (in a document or fragment), but
+    /// in an unattached tree this is the root of that tree.
     pub fn root(&self, node: Node) -> Node {
         self.ancestors(node).last().unwrap()
     }

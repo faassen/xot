@@ -489,7 +489,7 @@ impl SpanInfo {
 
 /// ## Parsing
 impl Xot {
-    /// Parse a string containing XML into a node. Retain span information.
+    /// Parse a string containing XML into a document node. Retain span information.
     ///
     /// This parses the XML source into a Xot tree, and also returns
     /// [`SpanInfo`](`crate::SpanInfo`) which describes where nodes in the
@@ -615,7 +615,7 @@ impl Xot {
         }
     }
 
-    /// Parse a string containing XML into a node.
+    /// Parse a string containing XML into a document node.
     ///
     /// Even though the encoding in the XML declaration may indicate otherwise,
     /// the string is interpreted as a Rust string, i.e. UTF-8. If you need to
@@ -634,6 +634,30 @@ impl Xot {
     /// ```
     pub fn parse(&mut self, xml: &str) -> Result<Node, Error> {
         self.parse_with_span_info(xml).map(|(node, _)| node)
+    }
+
+    /// Parse a string containing an XML fragment into a document node.
+    ///
+    /// This is similar to [`Xot::parse_with_span_info`], but it relaxes the
+    /// well-formeness requirements. Specifically, it allows text nodes at the
+    /// top level, and does not require a document element, and allows multiple
+    /// document elements.
+    ///
+    /// This is to support https://www.w3.org/TR/xpath-datamodel/#DocumentNode
+    /// which is more permissive than standard XML.
+    ///
+    /// For now we don't supply a span info equivalent, as the implementation
+    /// strategy used to support this (with a dummy top-level element we remove
+    /// again) makes the span info incorrect.
+    pub fn parse_fragment(&mut self, xml: &str) -> Result<Node, Error> {
+        // first we wrap the fragment with a dummy root element we are
+        // going to unwrap later
+        let xml = format!("<fragment>{}</fragment>", xml);
+        let document = self.parse(&xml)?;
+        let doc_el = self.document_element(document)?;
+        // now unwrap the dummy root element
+        self.element_unwrap(doc_el)?;
+        Ok(document)
     }
 
     /// Parse bytes containing XML into a node.

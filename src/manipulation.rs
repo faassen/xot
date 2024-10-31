@@ -413,7 +413,7 @@ impl Xot {
 
     /// Detach a node (and its descendants) from the tree.
     ///
-    /// It now becomes a new xml fragment.
+    /// It now becomes an unattached tree (without top-level document node).
     ///
     /// ```rust
     /// use xot::Xot;
@@ -434,7 +434,6 @@ impl Xot {
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn detach(&mut self, node: Node) -> Result<(), Error> {
-        self.remove_structure_check(node)?;
         let prev_node = self.previous_sibling(node);
         let next_node = self.next_sibling(node);
         node.get().detach(self.arena_mut());
@@ -570,10 +569,10 @@ impl Xot {
         self.attributes_mut(node).remove(name);
     }
 
-    /// Clone a node and its descendants into a new fragment
+    /// Clone a node and its descendants into a new unattached tree.
     ///
     /// The cloned nodes are not attached to anything. If you clone a document
-    /// node, you clone the whole document.
+    /// node, you clone the whole document (or fragment).
     ///
     /// This does not include any namespace prefix information defined in any
     /// ancestors of the cloned node. If you want to preserve such prefix
@@ -594,7 +593,7 @@ impl Xot {
     /// // cloned is not attached to anything
     /// assert!(xot.parent(cloned).is_none());
     ///
-    /// // cloned is a new fragment
+    /// // cloned is a new unattached tree which you can serialize
     /// assert_eq!(xot.to_string(cloned)?, r#"<a f="F"><b><c/></b></a>"#);
     ///
     /// # Ok::<(), xot::Error>(())
@@ -647,7 +646,7 @@ impl Xot {
         }
     }
 
-    /// Clone a node and its descendants into a new fragment
+    /// Clone a node and its descendants into a new unattached tree.
     ///
     /// If the cloned node is an element, required namespace prefixes that are
     /// in scope are added to the cloned node. Only those namespaces that
@@ -739,26 +738,6 @@ impl Xot {
             ));
         }
 
-        if self.is_document_element(node) {
-            // unwrapping is possible if the document element contains exactly one child
-            // that is an element
-            if self.children(node).count() != 1 {
-                return Err(Error::InvalidOperation(
-                    "Can only unwrap document element if it has exactly 1 element child node"
-                        .to_string(),
-                ));
-            }
-            // we now know there is 1 child
-            if !self.is_element(self.first_child(node).unwrap()) {
-                return Err(Error::InvalidOperation(
-                    "Can only unwrap document element if it has exactly 1 element child node"
-                        .to_string(),
-                ));
-            }
-        }
-        // remove_structure_check is not needed; we already know we don't
-        // unwrap the document node or non-element child, and document element is
-        // taken care of.
         let first_child = self.first_child(node);
         // without children this is like a remove
         if first_child.is_none() {
@@ -920,27 +899,12 @@ impl Xot {
                 return Err(Error::InvalidOperation("Cannot move document node".into()));
             }
             ValueType::Element => {
-                if self.has_document_parent(child) {
-                    return Err(Error::InvalidOperation(
-                        "Cannot move document element".into(),
-                    ));
-                }
-                if self.is_document(parent) {
-                    for child in self.children(parent) {
-                        if self.is_element(child) {
-                            return Err(Error::InvalidOperation(
-                                "Cannot move extra element under document node".into(),
-                            ));
-                        }
-                    }
-                }
+                // we are allowed to move an element under the document node,
+                // though only in a fragment
             }
             ValueType::Text => {
-                if self.is_document(parent) {
-                    return Err(Error::InvalidOperation(
-                        "Cannot move text under document node".into(),
-                    ));
-                }
+                // we are allowed to move text under the document node,
+                // though only in a fragment
             }
             ValueType::ProcessingInstruction | ValueType::Comment => {
                 // these can exist everywhere
@@ -949,31 +913,6 @@ impl Xot {
                 return Err(Error::InvalidOperation(
                     "Cannot move attribute or namespace under element as normal child".into(),
                 ));
-            }
-        }
-        Ok(())
-    }
-
-    fn remove_structure_check(&self, node: Node) -> Result<(), Error> {
-        match self.value_type(node) {
-            ValueType::Document => {
-                return Err(Error::InvalidOperation(
-                    "Cannot remove document node".into(),
-                ));
-            }
-            ValueType::Element => {
-                if self.has_document_parent(node) {
-                    return Err(Error::InvalidOperation(
-                        "Cannot remove document element".into(),
-                    ));
-                }
-            }
-            ValueType::Attribute
-            | ValueType::Namespace
-            | ValueType::Text
-            | ValueType::ProcessingInstruction
-            | ValueType::Comment => {
-                // these have no removal constraints
             }
         }
         Ok(())

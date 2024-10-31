@@ -66,7 +66,7 @@ fn gen_edge_start(xot: &Xot, top_node: Node, node: Node) -> impl Iterator<Item =
                 yield_!(Output::StartTagOpen(*element));
 
                 // serialize any extra prefixes if this is the top element of
-                // a fragment and they aren't declared already
+                // an unattached tree and they aren't declared already
                 let namespaces = xot.namespaces(node);
                 if node == top_node {
                     for (prefix_id, namespace_id) in xot.namespaces_in_scope(node) {

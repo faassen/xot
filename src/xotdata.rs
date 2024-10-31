@@ -31,7 +31,7 @@ impl From<NodeId> for Node {
 
 /// The `Xot` struct manages all XML tree data in your program. It lets you
 /// access and manipulate one or more XML documents and
-/// fragments.
+/// fragments, as well as unattached trees of nodes.
 ///
 /// Xot is implemented in several sections focusing on different aspects
 /// of accessing and manipulating XML data.

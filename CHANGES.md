@@ -11,6 +11,26 @@
 - The `xot.parse` function now rejects documents that do not have a document
   element, which it didn't do before.
 
+### Breaking changes
+
+- Xot now supports the document node representing a document fragment rather
+  than a well-formed document. A document node in a well formed document
+  can only have a single top-level elements, and no text nodes, but fragments
+  relax those restrictions.
+
+  We have modified various checks so that fragments can be created. If you want
+  to know whether you still have a well-formed document, you can use
+  `xot.validate_well_formed_document` against a document node.
+
+  We already used the word "fragment" previously in some of the documentation
+  to refer to an unattached tree of nodes - i.e. a node that is *not* rooted
+  in a document node. We have retired that usage and now talk about 
+  unattached nodes and unattached trees instead.
+
+- `element_unwrap` previously would error out if you unwrapped the document
+  element and it caused the document not to be well-formed as a result. This
+  is now permitted.
+
 ## [0.26.0] - 2024-10-28
 
 ### Features added

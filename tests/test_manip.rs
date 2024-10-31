@@ -234,21 +234,25 @@ fn test_prepend_consolidate_text() {
 }
 
 #[test]
-fn test_root_node_can_have_only_single_element_append() {
+fn test_root_node_append_extra_element() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<doc/>"#).unwrap();
     let name = xot.add_name("a");
-    assert!(xot.append_element(doc, name).is_err());
+    xot.append_element(doc, name).unwrap();
+    assert!(xot.validate_well_formed_document(doc).is_err());
+    assert_eq!(xot.children(doc).count(), 2);
 }
 
 #[test]
-fn test_root_node_can_have_only_single_element_insert_before() {
+fn test_root_node_element_insert_before() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<doc/>"#).unwrap();
     let el_id = xot.document_element(doc).unwrap();
     let name = xot.add_name("a");
     let new_el_id = xot.new_element(name);
-    assert!(xot.insert_before(el_id, new_el_id).is_err());
+    xot.insert_before(el_id, new_el_id).unwrap();
+    assert!(xot.validate_well_formed_document(doc).is_err());
+    assert_eq!(xot.children(doc).count(), 2);
 }
 
 #[test]
@@ -332,7 +336,7 @@ fn test_move_text_consolidation() {
 }
 
 #[test]
-fn test_move_not_allowed_as_takes_document_element() {
+fn test_move_as_document_element() {
     let mut xot = Xot::new();
     let doc_a = xot.parse(r#"<doc></doc>"#).unwrap();
     let doc_b = xot.parse(r#"<doc></doc>"#).unwrap();
@@ -340,8 +344,15 @@ fn test_move_not_allowed_as_takes_document_element() {
     let el_a = xot.document_element(doc_a).unwrap();
     let el_b = xot.document_element(doc_b).unwrap();
 
-    // not allowed as el_b is document element
-    assert!(xot.append(el_a, el_b).is_err());
+    xot.append(el_a, el_b).unwrap();
+
+    // this hasn't changed
+    assert_eq!(xot.children(doc_a).count(), 1);
+    // here the node was added
+    assert_eq!(xot.children(el_a).count(), 1);
+    // but this element is gone, turning this into a fragment
+    assert_eq!(xot.children(doc_b).count(), 0);
+    assert!(xot.validate_well_formed_document(doc_b).is_err());
 }
 
 #[test]
@@ -712,21 +723,22 @@ fn test_element_unwrap_document_element() {
 }
 
 #[test]
-fn test_element_unwrap_document_element_not_allowed_multiple_children() {
+fn test_element_unwrap_document_element_multiple_children() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<doc><a/><b/></doc>"#).unwrap();
     let document_element = xot.document_element(doc).unwrap();
-
-    assert!(xot.element_unwrap(document_element).is_err());
+    xot.element_unwrap(document_element).unwrap();
+    assert!(xot.children(doc).count() == 2);
 }
 
 #[test]
-fn test_element_unwrap_document_element_not_allowed_non_element_child() {
+fn test_element_unwrap_document_element_text_child() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<doc>Text</doc>"#).unwrap();
     let document_element = xot.document_element(doc).unwrap();
-
-    assert!(xot.element_unwrap(document_element).is_err());
+    xot.element_unwrap(document_element).unwrap();
+    let first_child = xot.first_child(doc).unwrap();
+    assert!(xot.text_str(first_child).unwrap() == "Text");
 }
 
 #[test]
@@ -813,16 +825,18 @@ fn test_replace_document_element() {
 }
 
 #[test]
-fn test_replace_document_element_illegal() {
+fn test_replace_document_element_with_text() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<doc>Alpha</doc>"#).unwrap();
     let doc_el = xot.document_element(doc).unwrap();
 
     let replacing = xot.new_text("Sneaky");
 
-    // you shouldn't be allowed to replace the document element with a text node, only
-    // with an element node
-    assert!(xot.replace(doc_el, replacing).is_err());
+    // we replace the document element with a text node
+    xot.replace(doc_el, replacing).unwrap();
+
+    // this is allowed, but it won't be well-formed anymore
+    assert!(xot.validate_well_formed_document(doc).is_err());
 }
 
 #[test]

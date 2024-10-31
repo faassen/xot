@@ -407,3 +407,10 @@ fn test_parse_should_reject_no_elements_in_document_with_comment() {
     let err = xot.parse(r#"<!-- comment -->"#).unwrap_err();
     assert!(matches!(err, Error::NoElementAtTopLevel))
 }
+
+#[test]
+fn test_parse_fragment() {
+    let mut xot = Xot::new();
+    let doc = xot.parse_fragment(r#"<a/><b/>"#).unwrap();
+    assert_eq!(xot.children(doc).count(), 2);
+}
