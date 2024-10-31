@@ -20,22 +20,18 @@
   relax those restrictions.
 
   We have modified various checks so that fragments can be created. This means
-  you won't get errors anymore if you manipulate XML to create a fragment. If
-  you were previously relying on this, and you want to know whether you still
-  have a well-formed document, you can use `xot.validate_well_formed_document`
-  against a document node.
+  you won't get errors anymore if you manipulate XML to create a fragment. This
+  means you can now remove the document element, add multiple elements to a
+  document node, and add text, without errors. 
+  
+  If you were previously relying on this, and you want to know whether you
+  still have a well-formed document, you can use
+  `xot.validate_well_formed_document` against a document node.
 
   Previously we had a usage of the word "fragment" in some of the documentation
   to refer to an unattached node (or tree of nodes) that is *not* rooted in a
   document node. We have retired that usage and now refer to these as
   unattached nodes or unattached trees instead.
-
-- `element_unwrap` previously would error out if you unwrapped the document
-  element and it caused the document not to be well-formed as a result. This
-  is now permitted.
-
-- Unattaching a jnode would previously be forbidden.
-
 
 ## [0.26.0] - 2024-10-28
 
