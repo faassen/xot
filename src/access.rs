@@ -169,8 +169,12 @@ impl NodeEdge {
 impl Xot {
     /// Obtain the document element from the document node.
     ///
-    /// Returns [`Error::NotDocument`](`crate::error::Error::NotDocument`) error if
-    /// this is not the document node.
+    /// Returns [`Error::NotDocument`](`crate::error::Error::NotDocument`)
+    /// error if this is not the document node.
+    ///
+    /// This accepts document nodes representing fragments. If the fragment has
+    /// multiple elements, it returns the first element. If the fragment has no
+    /// elements, it errors with [`Error::NoElementAtTopLevel`].
     ///
     /// ```rust
     /// let mut xot = xot::Xot::new();
@@ -192,7 +196,7 @@ impl Xot {
                 return Ok(child);
             }
         }
-        unreachable!("Document should always have a single document node")
+        Err(Error::NoElementAtTopLevel)
     }
 
     /// Given a node indicating a document, check if it is a well-formed

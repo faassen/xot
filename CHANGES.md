@@ -4,7 +4,13 @@
 
 ### Features added
 
-- Add a `xot.validate_well_formed_document` function
+- Add `xot.parse_fragment` function to parse XML fragments. XML fragments are
+  document nodes which can contain zero to many elements, and can contain text
+  nodes. In order words they have the same regular content as elements do, but
+  cannot have attributes or namespace nodes.
+
+- Add a `xot.validate_well_formed_document` function to verify whether a
+  document node is a well formed document.
 
 ### Bugs fixed
 
@@ -19,19 +25,20 @@
   can only have a single top-level elements, and no text nodes, but fragments
   relax those restrictions.
 
-  We have modified various checks so that fragments can be created. This means
-  you won't get errors anymore if you manipulate XML to create a fragment. This
-  means you can now remove the document element, add multiple elements to a
-  document node, and add text, without errors. 
+  Previously Xot attempted to prevent non-well-formed documents to be created
+  by manipulation. These checks have now been lifted. This means you won't get
+  errors anymore if you manipulate XML to create a fragment. You can now remove
+  the document element, add multiple elements to a document node, and add text,
+  without errors. 
   
-  If you were previously relying on this, and you want to know whether you
-  still have a well-formed document, you can use
-  `xot.validate_well_formed_document` against a document node.
+  If you were previously relying on this behavior, and you want to know whether
+  a document node represents a  well-formed document, you can use
+  new `xot.validate_well_formed_document` function against a document node.
 
-  Previously we had a usage of the word "fragment" in some of the documentation
-  to refer to an unattached node (or tree of nodes) that is *not* rooted in a
-  document node. We have retired that usage and now refer to these as
-  unattached nodes or unattached trees instead.
+  Previously used the word "fragment" in some of the documentation to refer to
+  an unattached node (or tree of nodes) that is *not* rooted in a document
+  node. We have retired that usage and now refer to these as unattached nodes
+  or unattached trees instead.
 
 ## [0.26.0] - 2024-10-28
 

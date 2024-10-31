@@ -250,3 +250,29 @@ fn test_children() {
     let children = xot.children(doc).collect::<Vec<_>>();
     assert_eq!(children.len(), 1);
 }
+
+#[test]
+fn test_document_element_for_fragment_with_single_element() {
+    let mut xot = Xot::new();
+    let doc = xot.parse_fragment(r#"<a>text</a>"#).unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    assert_eq!(xot.text_content_str(doc_el), Some("text"));
+}
+
+#[test]
+fn test_document_element_for_fragment_with_multiple_elements() {
+    let mut xot = Xot::new();
+    let doc = xot.parse_fragment(r#"<a>text</a><b/>"#).unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    assert_eq!(xot.text_content_str(doc_el), Some("text"));
+}
+
+#[test]
+fn test_document_element_for_fragment_without_elements() {
+    let mut xot = Xot::new();
+    let doc = xot.parse_fragment(r#""#).unwrap();
+    assert!(matches!(
+        xot.document_element(doc),
+        Err(xot::Error::NoElementAtTopLevel)
+    ));
+}

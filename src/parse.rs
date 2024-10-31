@@ -638,13 +638,15 @@ impl Xot {
 
     /// Parse a string containing an XML fragment into a document node.
     ///
-    /// This is similar to [`Xot::parse_with_span_info`], but it relaxes the
-    /// well-formeness requirements. Specifically, it allows text nodes at the
-    /// top level, and does not require a document element, and allows multiple
-    /// document elements.
+    /// This is similar to [`Xot::parse``], but it relaxes the well-formedness
+    /// requirements. Specifically, it allows text nodes at the top level, and
+    /// does not require a document element, and allows multiple elements. In
+    /// short, a fragment behaves like an element (without name, attributes or
+    /// namespace definitions).
     ///
-    /// This is to support https://www.w3.org/TR/xpath-datamodel/#DocumentNode
-    /// which is more permissive than standard XML.
+    /// This is to support
+    /// <https://www.w3.org/TR/xpath-datamodel/#DocumentNode> which is more
+    /// permissive than standard XML.
     ///
     /// For now we don't supply a span info equivalent, as the implementation
     /// strategy used to support this (with a dummy top-level element we remove
