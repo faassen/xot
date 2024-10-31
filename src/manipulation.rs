@@ -465,13 +465,6 @@ impl Xot {
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn remove(&mut self, node: Node) -> Result<(), Error> {
-        // we don't do a remove structure check, as we should be able to
-        // remove an entire root if we do it explicitly.
-        if self.value_type(node) == ValueType::Element && self.has_document_parent(node) {
-            return Err(Error::InvalidOperation(
-                "Cannot remove document element".into(),
-            ));
-        }
         let prev_node = self.previous_sibling(node);
         let next_node = self.next_sibling(node);
         node.get().remove_subtree(self.arena_mut());

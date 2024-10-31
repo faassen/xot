@@ -409,8 +409,36 @@ fn test_parse_should_reject_no_elements_in_document_with_comment() {
 }
 
 #[test]
-fn test_parse_fragment() {
+fn test_parse_fragment_multiple_elements() {
     let mut xot = Xot::new();
     let doc = xot.parse_fragment(r#"<a/><b/>"#).unwrap();
+    assert_eq!(xot.children(doc).count(), 2);
+}
+
+#[test]
+fn test_parse_fragment_no_elements() {
+    let mut xot = Xot::new();
+    let doc = xot.parse_fragment(r#""#).unwrap();
+    assert_eq!(xot.children(doc).count(), 0);
+}
+
+#[test]
+fn test_parse_fragment_no_elements_just_comment() {
+    let mut xot = Xot::new();
+    let doc = xot.parse_fragment(r#"<!-- comment -->"#).unwrap();
+    assert_eq!(xot.children(doc).count(), 1);
+}
+
+#[test]
+fn test_parse_fragment_no_elements_just_text() {
+    let mut xot = Xot::new();
+    let doc = xot.parse_fragment(r#"text"#).unwrap();
+    assert_eq!(xot.children(doc).count(), 1);
+}
+
+#[test]
+fn test_parse_fragment_element_with_text_after() {
+    let mut xot = Xot::new();
+    let doc = xot.parse_fragment(r#"<a/>text"#).unwrap();
     assert_eq!(xot.children(doc).count(), 2);
 }
