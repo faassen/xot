@@ -2,6 +2,15 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Features added
+
+- Add a `xot.validate_well_formed_document` function
+
+### Bugs fixed
+
+- The `xot.parse` function now rejects documents that do not have a document
+  element, which it didn't do before.
+
 ## [0.26.0] - 2024-10-28
 
 ### Features added

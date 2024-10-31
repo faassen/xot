@@ -607,7 +607,9 @@ impl Xot {
         }
 
         if builder.is_current_node_document(self) {
-            Ok((Node::new(builder.tree), span_info))
+            let document_node = Node::new(builder.tree);
+            self.validate_well_formed_document(document_node)?;
+            Ok((document_node, span_info))
         } else {
             Err(Error::UnclosedTag)
         }

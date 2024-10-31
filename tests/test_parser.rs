@@ -383,3 +383,27 @@ fn test_parse_should_reject_multiple_elements_in_document() {
         Error::Parser(xmlparser::Error::UnknownToken(_))
     ));
 }
+
+#[test]
+fn test_parse_should_reject_no_elements_in_document() {
+    let mut xot = Xot::new();
+    let err = xot.parse(r#""#).unwrap_err();
+    assert!(matches!(err, Error::NoElementAtTopLevel))
+}
+
+#[test]
+fn test_parse_should_reject_text_in_document() {
+    let mut xot = Xot::new();
+    let err = xot.parse(r#"text"#).unwrap_err();
+    assert!(matches!(
+        err,
+        Error::Parser(xmlparser::Error::UnknownToken(_))
+    ));
+}
+
+#[test]
+fn test_parse_should_reject_no_elements_in_document_with_comment() {
+    let mut xot = Xot::new();
+    let err = xot.parse(r#"<!-- comment -->"#).unwrap_err();
+    assert!(matches!(err, Error::NoElementAtTopLevel))
+}

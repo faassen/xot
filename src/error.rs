@@ -60,6 +60,16 @@ pub enum Error {
     UnsupportedNotStandalone,
     /// XML DTD is not supported.
     DtdUnsupported,
+    /// Illegal content that can never appear under a document node, such as an
+    /// attribute or a namespace node
+    IllegalAtTopLevel(Node),
+    /// A text node at top level is not allowed in a well formed document,
+    /// but it is accepted as a fragment.
+    TextAtTopLevel(Node),
+    /// Missing document element at top level
+    NoElementAtTopLevel,
+    /// Multiple document elements at top level
+    MultipleElementsAtTopLevel,
     /// xmlparser error
     Parser(xmlparser::Error),
     /// IO error
@@ -116,6 +126,10 @@ impl std::fmt::Display for Error {
             Error::UnsupportedEncoding(s) => write!(f, "Unsupported encoding: {}", s),
             Error::UnsupportedNotStandalone => write!(f, "Unsupported standalone"),
             Error::DtdUnsupported => write!(f, "DTD is not supported"),
+            Error::IllegalAtTopLevel(_) => write!(f, "Illegal content under document node (attribute, namespace or document node"),
+            Error::TextAtTopLevel(_) => write!(f, "Text node under document not. Not allowed in a well-formed document, but allowed in a fragment"),
+            Error::NoElementAtTopLevel => write!(f, "No element under document root. Not allowed in a well-formed document, but allowed in a fragment"),
+            Error::MultipleElementsAtTopLevel => write!(f, "Multiple elements under document root. Not allowed in a well-formed document, but allowed in a fragment"),
             Error::Parser(e) => write!(f, "Parser error: {}", e),
             Error::Io(s) => write!(f, "IO error: {}", s),
         }

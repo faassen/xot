@@ -195,6 +195,57 @@ impl Xot {
         unreachable!("Document should always have a single document node")
     }
 
+    /// Given a node indicating a document, check if it is a well-formed
+    /// document.
+    ///
+    /// This checks that the document has a single document element, and that
+    /// there are no text nodes as the top level. If it is a a well-formed
+    /// document, this produces no errors.
+    ///
+    /// If this is not supplied with a document node,
+    /// this produces a [`Error::NotDocument`] error.
+    ///
+    /// If there are no elements at the top level, this produces a
+    /// [`Error::NoElementAtTopLevel`] error.
+    ///
+    /// If there are multiple elements at the top level, this produces a
+    /// [`Error::MultipleElementsAtTopLevel`] error.
+    ///
+    /// If there is a text node at the top level, this produces a
+    /// [`Error::TextAtTopLevel`] error.
+    ///
+    /// If there is a illegal content (a namespace node, an attribute node
+    /// or a document node) at the top level under a document node,
+    /// this produces a [`Error::IllegalAtTopLevel`] error.
+    pub fn validate_well_formed_document(&self, node: Node) -> Result<(), Error> {
+        if self.value_type(node) != ValueType::Document {
+            return Err(Error::NotDocument(node));
+        }
+
+        let mut element_count = 0;
+        for child in self.children(node) {
+            match self.value(child) {
+                Value::Element(_) => element_count += 1,
+                // no text nodes at the top level
+                Value::Text(_) => return Err(Error::TextAtTopLevel(child)),
+                Value::Comment(_) | Value::ProcessingInstruction(_) => {
+                    // these we can have as many as we like
+                }
+                Value::Document | Value::Attribute(_) | Value::Namespace(_) => {
+                    // these are completely unexpected under any document node
+                    return Err(Error::IllegalAtTopLevel(child));
+                }
+            }
+        }
+        if element_count == 0 {
+            return Err(Error::NoElementAtTopLevel);
+        }
+        if element_count > 1 {
+            return Err(Error::MultipleElementsAtTopLevel);
+        }
+        Ok(())
+    }
+
     /// Obtain top element, given node anywhere in a tree.
     ///
     /// In an XML document this is the document element.
