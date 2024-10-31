@@ -373,3 +373,13 @@ fn test_span_for_cdata_cdata() {
         &Span::new(12, 30)
     );
 }
+
+#[test]
+fn test_parse_should_reject_multiple_elements_in_document() {
+    let mut xot = Xot::new();
+    let err = xot.parse(r#"<a/><b/>"#).unwrap_err();
+    assert!(matches!(
+        err,
+        Error::Parser(xmlparser::Error::UnknownToken(_))
+    ));
+}
