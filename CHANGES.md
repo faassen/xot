@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.27.0] - 2024-10-31
+
 ### Features added
 
 - Add `xot.parse_fragment` function to parse XML fragments. XML fragments are
@@ -828,7 +830,8 @@ Processing instruction `target` is now a `xot::NameId`, not a string.
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.26.0...HEAD
+[Unreleased]: https://github.com/faassen/xot/compare/v0.27.0...HEAD
+[0.27.0]: https://github.com/faassen/xot/compare/v0.26.0...v0.27.0
 [0.26.0]: https://github.com/faassen/xot/compare/v0.25.0...v0.26.0
 
 [0.25.0]: https://github.com/faassen/xot/compare/v0.24.0...v0.25.0
