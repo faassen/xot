@@ -194,3 +194,27 @@ fn test_weird_delimiter_unescaped() {
         .unwrap();
     assert_eq!(serialized, r#"<a>]]&gt;</a>"#);
 }
+
+#[test]
+fn test_serialize_fragment() {
+    let mut xot = Xot::new();
+    let fragment = xot.parse_fragment(r#"<a/><b/>text"#).unwrap();
+    let serialized = xot.to_string(fragment).unwrap();
+    assert_eq!(serialized, r#"<a/><b/>text"#);
+}
+
+#[test]
+fn test_serialize_empty_fragment() {
+    let mut xot = Xot::new();
+    let fragment = xot.parse_fragment(r#""#).unwrap();
+    let serialized = xot.to_string(fragment).unwrap();
+    assert_eq!(serialized, r#""#);
+}
+
+#[test]
+fn test_serialize_text_fragment() {
+    let mut xot = Xot::new();
+    let fragment = xot.parse_fragment(r#"text"#).unwrap();
+    let serialized = xot.to_string(fragment).unwrap();
+    assert_eq!(serialized, r#"text"#);
+}

@@ -580,6 +580,14 @@ fn test_clone_with_prefixes_non_element() {
 }
 
 #[test]
+fn test_clone_fragment() {
+    let mut xot = Xot::new();
+    let root = xot.parse_fragment(r#"<a/><b/>text"#).unwrap();
+    let root_clone = xot.clone_node(root);
+    assert_eq!(xot.to_string(root_clone).unwrap(), r#"<a/><b/>text"#);
+}
+
+#[test]
 fn test_element_unwrap() {
     let mut xot = Xot::new();
     let doc = xot

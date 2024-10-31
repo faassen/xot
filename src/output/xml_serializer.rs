@@ -163,14 +163,18 @@ impl<'a, N: Normalizer> XmlSerializer<'a, N> {
                 }
             }
             Text(text) => {
-                // a text node is always a child of an element
+                // a text node can be a child of an element or document
                 let parent = self.xot.parent(node).unwrap();
-                let element = self.xot.element(parent).unwrap();
-                if self
-                    .parameters
-                    .cdata_section_elements
-                    .contains(&element.name())
-                {
+
+                let is_cdata_element = if let Some(element) = self.xot.element(parent) {
+                    self.parameters
+                        .cdata_section_elements
+                        .contains(&element.name())
+                } else {
+                    false
+                };
+
+                if is_cdata_element {
                     OutputToken {
                         space: false,
                         text: serialize_cdata((*text).into(), &self.normalizer).to_string(),
