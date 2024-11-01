@@ -457,6 +457,27 @@ fn test_clone_attributes() {
 }
 
 #[test]
+fn test_clone_attribute_node() {
+    let mut xot = Xot::new();
+    let f = xot.add_name("f");
+    let root = xot.parse(r#"<doc><a f="F">Hello!</a></doc>"#).unwrap();
+    let doc_id = xot.document_element(root).unwrap();
+    let a_id = xot.first_child(doc_id).unwrap();
+    let attribute_node = xot.attributes(a_id).get_node(f).unwrap();
+
+    let attribute_node = xot.clone_node(attribute_node);
+
+    // change original won't affect the clone
+    xot.attributes_mut(a_id).insert(f, "Changed".to_string());
+
+    if let Value::Attribute(attribute) = xot.value(attribute_node) {
+        assert_eq!(attribute.value(), "F");
+    } else {
+        panic!("Expected attribute node");
+    }
+}
+
+#[test]
 fn test_clone_namespaces() {
     let mut xot = Xot::new();
     let root = xot
@@ -478,6 +499,31 @@ fn test_clone_namespaces() {
         xot.to_string(a_id_clone).unwrap(),
         r#"<a xmlns:f="F">Hello!</a>"#
     );
+}
+
+#[test]
+fn test_clone_namespace_node() {
+    let mut xot = Xot::new();
+    let f = xot.add_prefix("f");
+    let f_namespace = xot.add_namespace("F");
+    let dummy = xot.add_namespace("http://example.com");
+    let root = xot
+        .parse(r#"<doc><a xmlns:f="F">Hello!</a></doc>"#)
+        .unwrap();
+    let doc_id = xot.document_element(root).unwrap();
+    let a_id = xot.first_child(doc_id).unwrap();
+    let namespace_node = xot.namespaces(a_id).get_node(f).unwrap();
+
+    let namespace_node = xot.clone_node(namespace_node);
+
+    // change original won't affect the clone
+    xot.namespaces_mut(a_id).insert(f, dummy);
+
+    if let Value::Namespace(namespace) = xot.value(namespace_node) {
+        assert_eq!(namespace.namespace(), f_namespace);
+    } else {
+        panic!("Expected namespace node");
+    }
 }
 
 #[test]

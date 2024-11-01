@@ -592,18 +592,20 @@ impl Xot {
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn clone_node(&mut self, node: Node) -> Node {
-        let edges = self.all_traverse(node).collect::<Vec<_>>();
+        let value = self.value(node);
 
-        // we need to create a top node
-        let top = if self.is_document(node) {
-            // if we clone a document, we need to create a new document
-            let value = Value::Document;
-            self.new_node(value)
-        } else {
-            // for anything but the document node we create a temporary new element
-            let top_name = self.add_name("temporary_root");
-            self.new_element(top_name)
+        let top = match value {
+            // if it's nested content, we create a new top element
+            Value::Document => self.new_document(),
+            // this is really an outer dummy element, reusing the name
+            Value::Element(element) => self.new_element(element.name()),
+            // if it's not a nested value, simply clone the contents
+            _ => {
+                return self.new_node(value.clone());
+            }
         };
+
+        let edges = self.all_traverse(node).collect::<Vec<_>>();
 
         let mut current = top;
         for open_close in edges {
@@ -628,14 +630,16 @@ impl Xot {
                 }
             }
         }
-        if self.is_document(node) {
-            top
-        } else {
-            // remove the temporary element unless we cloned the document node
+
+        if self.is_element(top) {
+            // remove the temporary element
             let cloned_node = self.first_child(top).unwrap();
             // we can remove it as it won't have any attributes or prefixes
             self.remove_dangerously(top);
             cloned_node
+        } else {
+            // it's a document
+            top
         }
     }
 

@@ -2,6 +2,11 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Bugs fixed
+
+- Fixed a bug where `clone_node` didn't work with attribute and namespace
+  nodes.
+  
 ## [0.27.0] - 2024-10-31
 
 ### Features added
