@@ -83,7 +83,7 @@ mod xmlvalue;
 mod xotdata;
 
 pub use access::{Axis, NodeEdge};
-pub use error::Error;
+pub use error::{Error, ParseError};
 pub use id::{NameId, NamespaceId, PrefixId};
 pub use levelorder::LevelOrder;
 pub use nodemap::{

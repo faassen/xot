@@ -1,4 +1,34 @@
-use crate::xotdata::Node;
+use crate::{xotdata::Node, Span};
+
+/// An error that occurred during parsing.
+#[derive(Debug)]
+pub enum ParseError {
+    /// The XML is not well-formed - a tag is opened and never closed.
+    UnclosedTag,
+    /// The XML is not well-formed - a tag is closed that was never opened.
+    InvalidCloseTag(String, String, Span),
+    /// The XML is not well-formed - you use `&` to open an entity without
+    /// closing it with `;`.
+    UnclosedEntity(String),
+    /// The entity is not known. Only the basic entities are supported
+    /// right now, not any user defined ones.
+    InvalidEntity(String),
+    /// You used a namespace prefix that is not declared during parsing.
+    UnknownPrefix(String, Span),
+    /// You declared an attribute of the same name twice.
+    DuplicateAttribute(String, Span),
+    /// Unsupported XML version. Only 1.0 is supported.
+    UnsupportedVersion(String, Span),
+    /// Unsupported XML encoding. Only UTF-8 is supported.
+    UnsupportedEncoding(String),
+    /// Unsupported standalone declaration. Only `yes` is supported.
+    UnsupportedNotStandalone(Span),
+    /// XML DTD is not supported.
+    DtdUnsupported(Span),
+
+    /// xmlparser error
+    Parser(xmlparser::Error, usize),
+}
 
 /// Xot errors
 #[derive(Debug)]
@@ -37,29 +67,15 @@ pub enum Error {
     /// target name.
     NamespaceInProcessingInstruction,
 
-    // parser errors
-    /// The XML is not well-formed - a tag is opened and never closed.
-    UnclosedTag,
-    /// The XML is not well-formed - a tag is closed that was never opened.
-    InvalidCloseTag(String, String),
-    /// The XML is not well-formed - you use `&` to open an entity without
-    /// closing it with `;`.
-    UnclosedEntity(String),
-    /// The entity is not known. Only the basic entities are supported
-    /// right now, not any user defined ones.
-    InvalidEntity(String),
+    /// An error during parsing
+    Parse(ParseError),
+
     /// You used a namespace prefix that is not declared.
+    ///
+    /// Note that this error does not occur during parsing but during
+    /// name creation.
     UnknownPrefix(String),
-    /// You declared an attribute of the same name twice.
-    DuplicateAttribute(String),
-    /// Unsupported XML version. Only 1.0 is supported.
-    UnsupportedVersion(String),
-    /// Unsupported XML encoding. Only UTF-8 is supported.
-    UnsupportedEncoding(String),
-    /// Unsupported standalone declaration. Only `yes` is supported.
-    UnsupportedNotStandalone,
-    /// XML DTD is not supported.
-    DtdUnsupported,
+
     /// Illegal content that can never appear under a document node, such as an
     /// attribute or a namespace node
     IllegalAtTopLevel(Node),
@@ -70,8 +86,7 @@ pub enum Error {
     NoElementAtTopLevel,
     /// Multiple document elements at top level
     MultipleElementsAtTopLevel,
-    /// xmlparser error
-    Parser(xmlparser::Error),
+
     /// IO error
     ///
     /// We take the string version of the IO error so as to keep errors comparable,
@@ -93,10 +108,10 @@ impl From<std::io::Error> for Error {
     }
 }
 
-impl From<xmlparser::Error> for Error {
+impl From<ParseError> for Error {
     #[inline]
-    fn from(e: xmlparser::Error) -> Self {
-        Error::Parser(e)
+    fn from(e: ParseError) -> Self {
+        Error::Parse(e)
     }
 }
 
@@ -116,22 +131,31 @@ impl std::fmt::Display for Error {
             Error::NamespaceInProcessingInstruction => {
                 write!(f, "Namespace in processing instruction target")
             }
-            Error::UnclosedTag => write!(f, "Unclosed tag"),
-            Error::InvalidCloseTag(s, s2) => write!(f, "Invalid close tag: {} {}", s, s2),
-            Error::UnclosedEntity(s) => write!(f, "Unclosed entity: {}", s),
-            Error::InvalidEntity(s) => write!(f, "Invalid entity: {}", s),
+            Error::Parse(e) => write!(f, "Parse error: {:?}", e),
             Error::UnknownPrefix(s) => write!(f, "Unknown prefix: {}", s),
-            Error::DuplicateAttribute(s) => write!(f, "Duplicate attribute: {}", s),
-            Error::UnsupportedVersion(s) => write!(f, "Unsupported version: {}", s),
-            Error::UnsupportedEncoding(s) => write!(f, "Unsupported encoding: {}", s),
-            Error::UnsupportedNotStandalone => write!(f, "Unsupported standalone"),
-            Error::DtdUnsupported => write!(f, "DTD is not supported"),
             Error::IllegalAtTopLevel(_) => write!(f, "Illegal content under document node (attribute, namespace or document node"),
             Error::TextAtTopLevel(_) => write!(f, "Text node under document not. Not allowed in a well-formed document, but allowed in a fragment"),
             Error::NoElementAtTopLevel => write!(f, "No element under document root. Not allowed in a well-formed document, but allowed in a fragment"),
             Error::MultipleElementsAtTopLevel => write!(f, "Multiple elements under document root. Not allowed in a well-formed document, but allowed in a fragment"),
-            Error::Parser(e) => write!(f, "Parser error: {}", e),
             Error::Io(s) => write!(f, "IO error: {}", s),
+        }
+    }
+}
+
+impl std::fmt::Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            ParseError::UnclosedTag => write!(f, "Unclosed tag"),
+            ParseError::InvalidCloseTag(s, s2, _) => write!(f, "Invalid close tag: {} {}", s, s2),
+            ParseError::UnclosedEntity(s) => write!(f, "Unclosed entity: {}", s),
+            ParseError::InvalidEntity(s) => write!(f, "Invalid entity: {}", s),
+            ParseError::UnknownPrefix(s, _) => write!(f, "Unknown prefix: {}", s),
+            ParseError::DuplicateAttribute(s, _) => write!(f, "Duplicate attribute: {}", s),
+            ParseError::UnsupportedVersion(s, _) => write!(f, "Unsupported version: {}", s),
+            ParseError::UnsupportedEncoding(s) => write!(f, "Unsupported encoding: {}", s),
+            ParseError::UnsupportedNotStandalone(_) => write!(f, "Unsupported standalone"),
+            ParseError::DtdUnsupported(_) => write!(f, "DTD is not supported"),
+            ParseError::Parser(e, _position) => write!(f, "Parser error: {}", e),
         }
     }
 }

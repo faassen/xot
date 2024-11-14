@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::error::Error;
+use crate::error::{Error, ParseError};
 use crate::output::Normalizer;
 
 pub(crate) fn parse_text(content: Cow<str>) -> Result<Cow<str>, Error> {
@@ -40,7 +40,7 @@ fn parse_content(content: Cow<str>, attribute: bool) -> Result<Cow<str>, Error> 
                 entity.push(c);
             }
             if !is_complete {
-                return Err(Error::UnclosedEntity(entity));
+                return Err(ParseError::UnclosedEntity(entity).into());
             }
             change = true;
 
@@ -48,15 +48,16 @@ fn parse_content(content: Cow<str>, attribute: bool) -> Result<Cow<str>, Error> 
                 let first_char = entity
                     .chars()
                     .next()
-                    .ok_or_else(|| Error::InvalidEntity(entity.to_string()))?;
+                    .ok_or_else(|| ParseError::InvalidEntity(entity.to_string().into()))?;
                 let code = if first_char == 'x' {
                     u32::from_str_radix(&entity[1..], 16)
                 } else {
                     entity.parse::<u32>()
                 };
-                let code = code.map_err(|_| Error::InvalidEntity(entity.to_string()))?;
+                let code =
+                    code.map_err(|_| ParseError::InvalidEntity(entity.to_string().into()))?;
                 let c = std::char::from_u32(code)
-                    .ok_or_else(|| Error::InvalidEntity(entity.to_string()))?;
+                    .ok_or_else(|| ParseError::InvalidEntity(entity.to_string().into()))?;
                 result.push(c);
             } else {
                 match entity.as_str() {
@@ -65,7 +66,7 @@ fn parse_content(content: Cow<str>, attribute: bool) -> Result<Cow<str>, Error> 
                     "gt" => result.push('>'),
                     "lt" => result.push('<'),
                     "quot" => result.push('"'),
-                    _ => return Err(Error::InvalidEntity(entity)),
+                    _ => return Err(ParseError::InvalidEntity(entity).into()),
                 }
             }
         } else if attribute && (c == '\t' || c == '\n') {
@@ -246,7 +247,7 @@ mod tests {
     fn test_parse_unknown_entity() {
         let text = "&unknown;";
         let err = parse_text(text.into());
-        if let Err(Error::InvalidEntity(entity)) = err {
+        if let Err(Error::Parse(ParseError::InvalidEntity(entity))) = err {
             assert_eq!(entity, "unknown");
         } else {
             unreachable!();
@@ -257,7 +258,7 @@ mod tests {
     fn test_parse_unfinished_entity() {
         let text = "&amp";
         let err = parse_text(text.into());
-        if let Err(Error::UnclosedEntity(entity)) = err {
+        if let Err(Error::Parse(ParseError::UnclosedEntity(entity))) = err {
             assert_eq!(entity, "amp");
         } else {
             unreachable!();

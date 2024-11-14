@@ -4,7 +4,7 @@ use xmlparser::{ElementEnd, StrSpan, Token, Tokenizer};
 
 use crate::encoding::decode;
 use crate::entity::{parse_attribute, parse_text};
-use crate::error::Error;
+use crate::error::{Error, ParseError};
 use crate::id::{Name, NameId, PrefixId};
 use crate::xmlvalue::{Attribute, Comment, Element, Namespace, ProcessingInstruction, Text, Value};
 use crate::xotdata::{Node, Xot};
@@ -18,6 +18,7 @@ struct AttributeBuilder {
     value: String,
     name_span: Span,
     value_span: Span,
+    prefix_span: Span,
 }
 
 struct ElementBuilder {
@@ -25,6 +26,7 @@ struct ElementBuilder {
     name: String,
     namespaces: Namespaces,
     attributes: Vec<AttributeBuilder>,
+    prefix_span: Span,
     span: Span,
 }
 
@@ -35,6 +37,7 @@ impl ElementBuilder {
             name: name.to_string(),
             namespaces: Namespaces::new(),
             attributes: Vec::new(),
+            prefix_span: prefix.into(),
             span: Span::from_prefix_name(prefix, name),
         }
     }
@@ -91,7 +94,7 @@ impl DocumentBuilder {
             } else {
                 format!("{}:{}", prefix, name)
             };
-            return Err(Error::DuplicateAttribute(attr_name));
+            return Err(ParseError::DuplicateAttribute(attr_name, name.into()).into());
         }
         let value_span = value.into();
         let value = parse_attribute(value.as_str().into())?.to_string();
@@ -108,6 +111,7 @@ impl DocumentBuilder {
             value,
             name_span: Span::from_prefix_name(prefix, name),
             value_span,
+            prefix_span: prefix.into(),
         });
         Ok(())
     }
@@ -128,6 +132,7 @@ impl DocumentBuilder {
         let name_id = self.name_id_builder.element_name_id(
             &element_builder.prefix,
             &element_builder.name,
+            element_builder.prefix_span,
             xot,
         )?;
         let element_value = Value::Element(Element { name_id });
@@ -148,6 +153,7 @@ impl DocumentBuilder {
             let name_id = self.name_id_builder.attribute_name_id(
                 &attribute_builder.prefix,
                 &attribute_builder.name,
+                attribute_builder.prefix_span,
                 xot,
             )?;
             let attribute_node = xot.arena.new_node(Value::Attribute(Attribute {
@@ -205,12 +211,24 @@ impl DocumentBuilder {
         closed_node_id
     }
 
-    fn close_element(&mut self, prefix: &str, name: &str, xot: &mut Xot) -> Result<NodeId, Error> {
-        let name_id = self.name_id_builder.element_name_id(prefix, name, xot)?;
+    fn close_element(
+        &mut self,
+        prefix: StrSpan,
+        name: StrSpan,
+        xot: &mut Xot,
+    ) -> Result<NodeId, Error> {
+        let name_id = self
+            .name_id_builder
+            .element_name_id(&prefix, &name, prefix.into(), xot)?;
         let current_node = xot.arena.get(self.current_node_id).unwrap();
         if let Value::Element(element) = current_node.get() {
             if element.name_id != name_id {
-                return Err(Error::InvalidCloseTag(prefix.to_string(), name.to_string()));
+                return Err(ParseError::InvalidCloseTag(
+                    prefix.to_string(),
+                    name.to_string(),
+                    name.into(),
+                )
+                .into());
             }
             self.name_id_builder.pop();
         }
@@ -271,13 +289,14 @@ impl NameIdBuilder {
         &mut self,
         prefix: &str,
         name: &str,
+        prefix_span: Span,
         xot: &mut Xot,
     ) -> Result<NameId, Error> {
         let prefix_id = xot.prefix_lookup.get_id_mut(prefix);
         if let Ok(name_id) = self.name_id_with_prefix_id(prefix_id, name, xot) {
             Ok(name_id)
         } else {
-            Err(Error::UnknownPrefix(prefix.to_string()))
+            Err(ParseError::UnknownPrefix(prefix.to_string(), prefix_span).into())
         }
     }
 
@@ -285,6 +304,7 @@ impl NameIdBuilder {
         &mut self,
         prefix: &str,
         name: &str,
+        prefix_span: Span,
         xot: &mut Xot,
     ) -> Result<NameId, Error> {
         // an unprefixed attribute is in no namespace, not
@@ -298,7 +318,7 @@ impl NameIdBuilder {
         if let Ok(name_id) = self.name_id_with_prefix_id(prefix_id, name, xot) {
             Ok(name_id)
         } else {
-            Err(Error::UnknownPrefix(prefix.to_string()))
+            Err(ParseError::UnknownPrefix(prefix.to_string(), prefix_span).into())
         }
     }
 
@@ -363,6 +383,30 @@ impl<'a> From<xmlparser::StrSpan<'a>> for Span {
         Span {
             start: span.start(),
             end: span.end(),
+        }
+    }
+}
+
+impl<'a> From<&xmlparser::StrSpan<'a>> for Span {
+    fn from(span: &xmlparser::StrSpan) -> Self {
+        Span {
+            start: span.start(),
+            end: span.end(),
+        }
+    }
+}
+
+impl From<Span> for std::ops::Range<usize> {
+    fn from(span: Span) -> Self {
+        span.range()
+    }
+}
+
+impl From<std::ops::Range<usize>> for Span {
+    fn from(range: std::ops::Range<usize>) -> Self {
+        Span {
+            start: range.start,
+            end: range.end,
         }
     }
 }
@@ -499,8 +543,20 @@ impl Xot {
 
         let mut builder = DocumentBuilder::new(self);
         let mut span_info = SpanInfo::new();
-        for token in Tokenizer::from(xml) {
-            match token? {
+
+        let tokenizer = Tokenizer::from(xml);
+        for token in tokenizer {
+            let token = match token {
+                Ok(token) => token,
+                Err(e) => {
+                    // obtain the position from the stream, as parse error
+                    // doesn't have it (it calculates an expensive TextPos that
+                    // we don't need, but so be it)
+                    let position = calculate_position_from_text_pos(xml, e.pos());
+                    return Err(Error::Parse(ParseError::Parser(e, position)));
+                }
+            };
+            match token {
                 Attribute {
                     prefix,
                     local,
@@ -544,8 +600,7 @@ impl Xot {
                             span_info.add_attribute_spans(node_id, attribute_spans);
                         }
                         Close(prefix, local) => {
-                            let node_id =
-                                builder.close_element(prefix.as_str(), local.as_str(), self)?;
+                            let node_id = builder.close_element(prefix, local, self)?;
                             span_info.add(SpanInfoKey::ElementEnd(node_id.into()), end_span.into());
                         }
                         Empty => {
@@ -580,28 +635,32 @@ impl Xot {
                     version,
                     encoding: _,
                     standalone,
-                    span: _,
+                    span,
                 } => {
                     if version.as_str() != "1.0" {
-                        return Err(Error::UnsupportedVersion(version.to_string()));
+                        return Err(ParseError::UnsupportedVersion(
+                            version.to_string(),
+                            version.into(),
+                        )
+                        .into());
                     }
                     if let Some(standalone) = standalone {
                         if !standalone {
-                            return Err(Error::UnsupportedNotStandalone);
+                            return Err(ParseError::UnsupportedNotStandalone(span.into()).into());
                         }
                     }
                 }
-                DtdStart { .. } => {
-                    return Err(Error::DtdUnsupported);
+                DtdStart { span, .. } => {
+                    return Err(ParseError::DtdUnsupported(span.into()).into());
                 }
-                DtdEnd { .. } => {
-                    return Err(Error::DtdUnsupported);
+                DtdEnd { span, .. } => {
+                    return Err(ParseError::DtdUnsupported(span.into()).into());
                 }
-                EmptyDtd { .. } => {
-                    return Err(Error::DtdUnsupported);
+                EmptyDtd { span, .. } => {
+                    return Err(ParseError::DtdUnsupported(span.into()).into());
                 }
-                EntityDeclaration { .. } => {
-                    return Err(Error::DtdUnsupported);
+                EntityDeclaration { span, .. } => {
+                    return Err(ParseError::DtdUnsupported(span.into()).into());
                 }
             }
         }
@@ -611,7 +670,7 @@ impl Xot {
             self.validate_well_formed_document(document_node)?;
             Ok((document_node, span_info))
         } else {
-            Err(Error::UnclosedTag)
+            Err(ParseError::UnclosedTag.into())
         }
     }
 
@@ -652,6 +711,8 @@ impl Xot {
     /// strategy used to support this (with a dummy top-level element we remove
     /// again) makes the span info incorrect.
     pub fn parse_fragment(&mut self, xml: &str) -> Result<Node, Error> {
+        // TODO: xmlparser also allows one to get tokenizer `from_fragment`,
+        // which might solve the span issue if we use that.
         // first we wrap the fragment with a dummy root element we are
         // going to unwrap later
         let xml = format!("<fragment>{}</fragment>", xml);
@@ -719,4 +780,54 @@ fn normalize_xml_id(value: &str) -> String {
         }
     }
     result
+}
+
+// this is really ugly code to reconstruct the position from the text pos
+// This is very silly as the position *already* exists in the xmlparser
+// and constructing the text pos is actually quite expensive there, and
+// now we do MORE expensive work to calculate it back. But I don't see any
+// other way to obtain the position
+// https://github.com/RazrFalcon/xmlparser/issues/30
+fn calculate_position_from_text_pos(s: &str, text_pos: xmlparser::TextPos) -> usize {
+    // text pos row and col are 1-based
+    // we first find the row start
+    let mut row = text_pos.row - 1;
+    let mut bytes = s.as_bytes().iter();
+    // get to the position in bytes so that we know the row
+    if row > 0 {
+        while let Some(byte) = bytes.next() {
+            if *byte == b'\n' {
+                row -= 1;
+                if row == 0 {
+                    break;
+                }
+            }
+        }
+    }
+    // now we should be at the start of the correct row, go to the
+    // right character
+    let col = (text_pos.col - 1) as usize;
+    // we want to grab bytes as a str again. would like to use the
+    // unchecked version but it's unsafe and we want to avoid a can of worms
+    let s = std::str::from_utf8(bytes.as_slice()).unwrap();
+
+    for (i, _c) in s.char_indices() {
+        if i == col {
+            return i;
+        }
+    }
+    unreachable!()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_calculate_position_from_text_pos_1_1() {
+        let s = "foo";
+        let text_pos = xmlparser::TextPos { row: 1, col: 1 };
+        let pos = calculate_position_from_text_pos(s, text_pos);
+        assert_eq!(pos, 0);
+    }
 }
