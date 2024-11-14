@@ -792,31 +792,36 @@ fn calculate_position_from_text_pos(s: &str, text_pos: xmlparser::TextPos) -> us
     // text pos row and col are 1-based
     // we first find the row start
     let mut row = text_pos.row - 1;
-    let mut bytes = s.as_bytes().iter();
-    // get to the position in bytes so that we know the row
-    if row > 0 {
-        while let Some(byte) = bytes.next() {
-            if *byte == b'\n' {
-                row -= 1;
-                if row == 0 {
-                    break;
+
+    let mut char_indices = s.char_indices();
+    // first find the row
+    let row_position = if row != 0 {
+        loop {
+            if let Some((i, c)) = char_indices.next() {
+                if c == '\n' {
+                    row -= 1;
+                    if row == 0 {
+                        break i + 1;
+                    }
                 }
+            } else {
+                unreachable!()
             }
         }
-    }
-    // now we should be at the start of the correct row, go to the
-    // right character
+    } else {
+        0
+    };
+    // now find the column
     let col = (text_pos.col - 1) as usize;
-    // we want to grab bytes as a str again. would like to use the
-    // unchecked version but it's unsafe and we want to avoid a can of worms
-    let s = std::str::from_utf8(bytes.as_slice()).unwrap();
-
-    for (i, _c) in s.char_indices() {
-        if i == col {
-            return i;
+    loop {
+        if let Some((i, _)) = char_indices.next() {
+            if i == row_position + col {
+                return i;
+            }
+        } else {
+            unreachable!()
         }
     }
-    unreachable!()
 }
 
 #[cfg(test)]
@@ -829,5 +834,37 @@ mod tests {
         let text_pos = xmlparser::TextPos { row: 1, col: 1 };
         let pos = calculate_position_from_text_pos(s, text_pos);
         assert_eq!(pos, 0);
+    }
+
+    #[test]
+    fn test_calculate_position_from_text_pos_1_2() {
+        let s = "foo";
+        let text_pos = xmlparser::TextPos { row: 1, col: 2 };
+        let pos = calculate_position_from_text_pos(s, text_pos);
+        assert_eq!(pos, 1);
+    }
+
+    #[test]
+    fn test_calculate_position_from_text_pos_2_1() {
+        let s = "foo\nbar";
+        let text_pos = xmlparser::TextPos { row: 2, col: 1 };
+        let pos = calculate_position_from_text_pos(s, text_pos);
+        assert_eq!(pos, 4);
+    }
+
+    #[test]
+    fn test_calculate_position_from_text_pos_2_2() {
+        let s = "foo\nbar";
+        let text_pos = xmlparser::TextPos { row: 2, col: 2 };
+        let pos = calculate_position_from_text_pos(s, text_pos);
+        assert_eq!(pos, 5);
+    }
+
+    #[test]
+    fn test_calculate_position_from_text_pos_3_4() {
+        let s = "foo\nflurb\nblarghar";
+        let text_pos = xmlparser::TextPos { row: 3, col: 4 };
+        let pos = calculate_position_from_text_pos(s, text_pos);
+        assert_eq!(pos, 13);
     }
 }
