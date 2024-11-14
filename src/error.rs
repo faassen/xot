@@ -1,7 +1,7 @@
 use crate::{xotdata::Node, Span};
 
 /// An error that occurred during parsing.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ParseError {
     /// The XML is not well-formed - a tag is opened and never closed.
     UnclosedTag,
@@ -30,8 +30,27 @@ pub enum ParseError {
     Parser(xmlparser::Error, usize),
 }
 
+impl ParseError {
+    /// Obtain the span for a ParseError.
+    pub fn span(&self) -> Span {
+        match self {
+            ParseError::UnclosedTag => todo!(),
+            ParseError::InvalidCloseTag(_, _, span) => *span,
+            ParseError::UnclosedEntity(_) => todo!(),
+            ParseError::InvalidEntity(_) => todo!(),
+            ParseError::UnknownPrefix(_, span) => *span,
+            ParseError::DuplicateAttribute(_, span) => *span,
+            ParseError::UnsupportedVersion(_, span) => *span,
+            ParseError::UnsupportedEncoding(_) => todo!(),
+            ParseError::UnsupportedNotStandalone(span) => *span,
+            ParseError::DtdUnsupported(span) => *span,
+            ParseError::Parser(_, position) => Span::new(*position, *position),
+        }
+    }
+}
+
 /// Xot errors
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Error {
     // access errors
     /// The node is not a Document node.
@@ -91,7 +110,17 @@ pub enum Error {
     ///
     /// We take the string version of the IO error so as to keep errors comparable,
     /// which is more important than the exact error object in this case (serialization)
-    Io(std::io::Error),
+    Io(String),
+}
+
+impl Error {
+    /// Obtain the ParseError if it is one.
+    pub fn parse_error(self) -> Option<ParseError> {
+        match self {
+            Error::Parse(e) => Some(e),
+            _ => None,
+        }
+    }
 }
 
 impl From<indextree::NodeError> for Error {
@@ -104,7 +133,7 @@ impl From<indextree::NodeError> for Error {
 impl From<std::io::Error> for Error {
     #[inline]
     fn from(e: std::io::Error) -> Self {
-        Error::Io(e)
+        Error::Io(e.to_string())
     }
 }
 

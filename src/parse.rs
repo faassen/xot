@@ -226,7 +226,7 @@ impl DocumentBuilder {
                 return Err(ParseError::InvalidCloseTag(
                     prefix.to_string(),
                     name.to_string(),
-                    name.into(),
+                    Span::from_prefix_name(prefix, name),
                 )
                 .into());
             }
