@@ -113,16 +113,6 @@ pub enum Error {
     Io(String),
 }
 
-impl Error {
-    /// Obtain the ParseError if it is one.
-    pub fn parse_error(self) -> Option<ParseError> {
-        match self {
-            Error::Parse(e) => Some(e),
-            _ => None,
-        }
-    }
-}
-
 impl From<indextree::NodeError> for Error {
     #[inline]
     fn from(e: indextree::NodeError) -> Self {

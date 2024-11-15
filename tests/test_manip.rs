@@ -975,7 +975,7 @@ fn test_new_root() -> Result<(), Error> {
 #[test]
 fn test_prepend_with_attributes() -> Result<(), Error> {
     let mut xot = Xot::new();
-    let doc = xot.parse(r#"<doc foo="FOO"><a/><b/></doc>"#)?;
+    let doc = xot.parse(r#"<doc foo="FOO"><a/><b/></doc>"#).unwrap();
     let document_element = xot.document_element(doc)?;
     let name = xot.add_name("c");
     let new_el = xot.new_element(name);
@@ -987,7 +987,7 @@ fn test_prepend_with_attributes() -> Result<(), Error> {
 #[test]
 fn test_prepend_with_namespaces() -> Result<(), Error> {
     let mut xot = Xot::new();
-    let doc = xot.parse(r#"<doc xmlns:foo="FOO"><a/><b/></doc>"#)?;
+    let doc = xot.parse(r#"<doc xmlns:foo="FOO"><a/><b/></doc>"#).unwrap();
     let document_element = xot.document_element(doc)?;
     let name = xot.add_name("c");
     let new_el = xot.new_element(name);
@@ -1002,7 +1002,7 @@ fn test_prepend_with_namespaces() -> Result<(), Error> {
 #[test]
 fn test_prepend_text_with_attributes() -> Result<(), Error> {
     let mut xot = Xot::new();
-    let doc = xot.parse(r#"<doc foo="FOO">Alpha</doc>"#)?;
+    let doc = xot.parse(r#"<doc foo="FOO">Alpha</doc>"#).unwrap();
     let document_element = xot.document_element(doc)?;
     let new_txt = xot.new_text("Beta");
     xot.prepend(document_element, new_txt)?;

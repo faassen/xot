@@ -1,17 +1,17 @@
 use std::borrow::Cow;
 
-use crate::error::{Error, ParseError};
+use crate::error::ParseError;
 use crate::output::Normalizer;
 
-pub(crate) fn parse_text(content: Cow<str>) -> Result<Cow<str>, Error> {
+pub(crate) fn parse_text(content: Cow<str>) -> Result<Cow<str>, ParseError> {
     parse_content(content, false)
 }
 
-pub(crate) fn parse_attribute(content: Cow<str>) -> Result<Cow<str>, Error> {
+pub(crate) fn parse_attribute(content: Cow<str>) -> Result<Cow<str>, ParseError> {
     parse_content(content, true)
 }
 
-fn parse_content(content: Cow<str>, attribute: bool) -> Result<Cow<str>, Error> {
+fn parse_content(content: Cow<str>, attribute: bool) -> Result<Cow<str>, ParseError> {
     let mut result = String::new();
     let mut chars = content.chars().peekable();
     let mut change = false;
@@ -247,7 +247,7 @@ mod tests {
     fn test_parse_unknown_entity() {
         let text = "&unknown;";
         let err = parse_text(text.into());
-        if let Err(Error::Parse(ParseError::InvalidEntity(entity))) = err {
+        if let Err(ParseError::InvalidEntity(entity)) = err {
             assert_eq!(entity, "unknown");
         } else {
             unreachable!();
@@ -258,7 +258,7 @@ mod tests {
     fn test_parse_unfinished_entity() {
         let text = "&amp";
         let err = parse_text(text.into());
-        if let Err(Error::Parse(ParseError::UnclosedEntity(entity))) = err {
+        if let Err(ParseError::UnclosedEntity(entity)) = err {
             assert_eq!(entity, "amp");
         } else {
             unreachable!();

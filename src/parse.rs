@@ -4,7 +4,7 @@ use xmlparser::{ElementEnd, StrSpan, Token, Tokenizer};
 
 use crate::encoding::decode;
 use crate::entity::{parse_attribute, parse_text};
-use crate::error::{Error, ParseError};
+use crate::error::ParseError;
 use crate::id::{Name, NameId, PrefixId};
 use crate::xmlvalue::{Attribute, Comment, Element, Namespace, ProcessingInstruction, Text, Value};
 use crate::xotdata::{Node, Xot};
@@ -83,7 +83,7 @@ impl DocumentBuilder {
         prefix: StrSpan<'_>,
         name: StrSpan<'_>,
         value: StrSpan<'_>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), ParseError> {
         let attributes = &mut self.element_builder.as_mut().unwrap().attributes;
         let is_duplicate = attributes.iter().any(|attribute_builder| {
             attribute_builder.prefix == prefix.as_str() && attribute_builder.name == name.as_str()
@@ -123,7 +123,10 @@ impl DocumentBuilder {
         node_id
     }
 
-    fn open_element(&mut self, xot: &mut Xot) -> Result<(NodeId, Span, AttributeSpans), Error> {
+    fn open_element(
+        &mut self,
+        xot: &mut Xot,
+    ) -> Result<(NodeId, Span, AttributeSpans), ParseError> {
         let element_builder = self.element_builder.take().unwrap();
         let span = element_builder.span;
 
@@ -187,7 +190,7 @@ impl DocumentBuilder {
         None
     }
 
-    fn text(&mut self, content: &str, xot: &mut Xot) -> Result<NodeId, Error> {
+    fn text(&mut self, content: &str, xot: &mut Xot) -> Result<NodeId, ParseError> {
         let content = parse_text(content.into())?;
         if let Some(last) = self.consolidate_text(&content, xot) {
             return Ok(last);
@@ -195,7 +198,7 @@ impl DocumentBuilder {
         Ok(self.add(Value::Text(Text::new(content.to_string())), xot))
     }
 
-    fn cdata_text(&mut self, content: &str, xot: &mut Xot) -> Result<NodeId, Error> {
+    fn cdata_text(&mut self, content: &str, xot: &mut Xot) -> Result<NodeId, ParseError> {
         if let Some(last) = self.consolidate_text(content, xot) {
             return Ok(last);
         }
@@ -217,7 +220,7 @@ impl DocumentBuilder {
         prefix: StrSpan,
         name: StrSpan,
         xot: &mut Xot,
-    ) -> Result<NodeId, Error> {
+    ) -> Result<NodeId, ParseError> {
         let name_id = self
             .name_id_builder
             .element_name_id(&prefix, &name, prefix.into(), xot)?;
@@ -238,7 +241,7 @@ impl DocumentBuilder {
         Ok(closed_node_id)
     }
 
-    fn comment(&mut self, content: &str, xot: &mut Xot) -> Result<NodeId, Error> {
+    fn comment(&mut self, content: &str, xot: &mut Xot) -> Result<NodeId, ParseError> {
         // XXX are there illegal comments, like those with -- inside? or
         // won't they pass the parser?
         Ok(self.add(Value::Comment(Comment::new(content.to_string())), xot))
@@ -249,7 +252,7 @@ impl DocumentBuilder {
         target: &str,
         content: Option<&str>,
         xot: &mut Xot,
-    ) -> Result<NodeId, Error> {
+    ) -> Result<NodeId, ParseError> {
         // XXX are there illegal processing instructions, like those with
         // ?> inside? or won't they pass the parser? What about those with xml?
         let target = xot.add_name(target);
@@ -292,7 +295,7 @@ impl NameIdBuilder {
         name: &str,
         prefix_span: Span,
         xot: &mut Xot,
-    ) -> Result<NameId, Error> {
+    ) -> Result<NameId, ParseError> {
         let prefix_id = xot.prefix_lookup.get_id_mut(prefix);
         if let Ok(name_id) = self.name_id_with_prefix_id(prefix_id, name, xot) {
             Ok(name_id)
@@ -307,7 +310,7 @@ impl NameIdBuilder {
         name: &str,
         prefix_span: Span,
         xot: &mut Xot,
-    ) -> Result<NameId, Error> {
+    ) -> Result<NameId, ParseError> {
         // an unprefixed attribute is in no namespace, not
         // in the default namespace
         // https://stackoverflow.com/questions/3312390/xml-default-namespaces-for-unqualified-attribute-names
@@ -539,7 +542,7 @@ impl Xot {
     /// This parses the XML source into a Xot tree, and also returns
     /// [`SpanInfo`](`crate::SpanInfo`) which describes where nodes in the
     /// tree are located in the source text.
-    pub fn parse_with_span_info(&mut self, xml: &str) -> Result<(Node, SpanInfo), Error> {
+    pub fn parse_with_span_info(&mut self, xml: &str) -> Result<(Node, SpanInfo), ParseError> {
         use Token::*;
 
         let mut builder = DocumentBuilder::new(self);
@@ -556,7 +559,7 @@ impl Xot {
                 let token = match token {
                     Ok(token) => token,
                     Err(e) => {
-                        return Err(Error::Parse(ParseError::XmlParser(e, position)));
+                        return Err(ParseError::XmlParser(e, position));
                     }
                 };
                 match token {
@@ -677,11 +680,19 @@ impl Xot {
             }
         }
 
+        // we expect both a document as the current node (everything else being closed)
+        // *and* the content of this node containing a single element
+        // if not, we have a problem. We want to produce a parse error
+        // for this, as this is the parser.
         if builder.is_current_node_document(self) {
             let document_node = Node::new(builder.tree);
-            self.validate_well_formed_document(document_node)?;
+            // self.validate_well_formed_document(document_node)?;
             Ok((document_node, span_info))
         } else {
+            // the problem now is to find the unclosed tag. Other unclosed tags
+            // are already handled (through `InvalidCloseTag`), so this is
+            // purely a problem of the top-level tag not being closed
+
             // dbg!(builder.element_builder.unwrap().span);
             // todo!()
 
@@ -706,7 +717,7 @@ impl Xot {
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn parse(&mut self, xml: &str) -> Result<Node, Error> {
+    pub fn parse(&mut self, xml: &str) -> Result<Node, ParseError> {
         self.parse_with_span_info(xml).map(|(node, _)| node)
     }
 
@@ -725,16 +736,16 @@ impl Xot {
     /// For now we don't supply a span info equivalent, as the implementation
     /// strategy used to support this (with a dummy top-level element we remove
     /// again) makes the span info incorrect.
-    pub fn parse_fragment(&mut self, xml: &str) -> Result<Node, Error> {
+    pub fn parse_fragment(&mut self, xml: &str) -> Result<Node, ParseError> {
         // TODO: xmlparser also allows one to get tokenizer `from_fragment`,
         // which might solve the span issue if we use that.
         // first we wrap the fragment with a dummy root element we are
         // going to unwrap later
         let xml = format!("<fragment>{}</fragment>", xml);
         let document = self.parse(&xml)?;
-        let doc_el = self.document_element(document)?;
+        let doc_el = self.document_element(document).unwrap();
         // now unwrap the dummy root element
-        self.element_unwrap(doc_el)?;
+        self.element_unwrap(doc_el).unwrap();
         Ok(document)
     }
 
@@ -761,14 +772,14 @@ impl Xot {
     ///
     /// let mut xot = Xot::new();
     ///
-    /// let document = xot.parse_bytes(b"<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><p>\xe9</p>")?;
+    /// let document = xot.parse_bytes(b"<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><p>\xe9</p>").unwrap();
     ///
     /// let doc_el = xot.document_element(document)?;
     /// let txt_value = xot.text_content_str(doc_el).unwrap();
     /// assert_eq!(txt_value, "é");
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn parse_bytes(&mut self, bytes: &[u8]) -> Result<Node, Error> {
+    pub fn parse_bytes(&mut self, bytes: &[u8]) -> Result<Node, ParseError> {
         let xml = decode(bytes, None);
         self.parse(&xml)
     }
