@@ -381,7 +381,7 @@ fn test_parse_should_reject_multiple_elements_in_document() {
     let err = xot.parse(r#"<a/><b/>"#).unwrap_err();
     assert!(matches!(
         err,
-        Error::Parse(ParseError::Parser(xmlparser::Error::UnknownToken(_), _))
+        Error::Parse(ParseError::XmlParser(xmlparser::Error::UnknownToken(_), _))
     ));
 }
 
@@ -398,7 +398,7 @@ fn test_parse_should_reject_text_in_document() {
     let err = xot.parse(r#"text"#).unwrap_err();
     assert!(matches!(
         err,
-        Error::Parse(ParseError::Parser(xmlparser::Error::UnknownToken(_), _))
+        Error::Parse(ParseError::XmlParser(xmlparser::Error::UnknownToken(_), _))
     ));
 }
 

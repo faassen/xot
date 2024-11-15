@@ -27,7 +27,7 @@ pub enum ParseError {
     DtdUnsupported(Span),
 
     /// xmlparser error
-    Parser(xmlparser::Error, usize),
+    XmlParser(xmlparser::Error, usize),
 }
 
 impl ParseError {
@@ -44,7 +44,7 @@ impl ParseError {
             ParseError::UnsupportedEncoding(_) => todo!(),
             ParseError::UnsupportedNotStandalone(span) => *span,
             ParseError::DtdUnsupported(span) => *span,
-            ParseError::Parser(_, position) => Span::new(*position, *position),
+            ParseError::XmlParser(_, position) => Span::new(*position, *position),
         }
     }
 }
@@ -184,7 +184,7 @@ impl std::fmt::Display for ParseError {
             ParseError::UnsupportedEncoding(s) => write!(f, "Unsupported encoding: {}", s),
             ParseError::UnsupportedNotStandalone(_) => write!(f, "Unsupported standalone"),
             ParseError::DtdUnsupported(_) => write!(f, "DTD is not supported"),
-            ParseError::Parser(e, _position) => write!(f, "Parser error: {}", e),
+            ParseError::XmlParser(e, _position) => write!(f, "Parser error: {}", e),
         }
     }
 }

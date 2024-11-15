@@ -545,124 +545,135 @@ impl Xot {
         let mut builder = DocumentBuilder::new(self);
         let mut span_info = SpanInfo::new();
 
-        let tokenizer = Tokenizer::from(xml);
-        for token in tokenizer {
-            let token = match token {
-                Ok(token) => token,
-                Err(e) => {
-                    // obtain the position from the stream, as parse error
-                    // doesn't have it (it calculates an expensive TextPos that
-                    // we don't need, but so be it)
-                    let position = calculate_position_from_text_pos(xml, e.pos());
-                    return Err(Error::Parse(ParseError::Parser(e, position)));
-                }
-            };
-            match token {
-                Attribute {
-                    prefix,
-                    local,
-                    value,
-                    span: _,
-                } => {
-                    if prefix.as_str() == "xmlns" {
-                        builder.prefix(local.as_str(), value.as_str(), self);
-                    } else if local.as_str() == "xmlns" {
-                        builder.prefix("", value.as_str(), self);
-                    } else {
-                        builder.attribute(prefix, local, value)?;
+        let mut tokenizer = Tokenizer::from(xml);
+        let mut position;
+        loop {
+            // getting the position unconditionally is required to get
+            // the right one for the error handling, which is a bit unfortunate
+            // https://github.com/RazrFalcon/xmlparser/issues/30
+            position = tokenizer.stream().pos();
+            if let Some(token) = tokenizer.next() {
+                let token = match token {
+                    Ok(token) => token,
+                    Err(e) => {
+                        return Err(Error::Parse(ParseError::XmlParser(e, position)));
                     }
-                }
-                Text { text } => {
-                    let node_id = builder.text(text.as_str(), self)?;
-                    span_info.extend_text_span(node_id.into(), text.into());
-                }
-                Cdata { text, span: _ } => {
-                    let node_id = builder.cdata_text(text.as_str(), self)?;
-                    span_info.extend_text_span(node_id.into(), text.into());
-                }
-                ElementStart {
-                    prefix,
-                    local,
-                    span: _,
-                } => {
-                    builder.element(prefix, local);
-                }
+                };
+                match token {
+                    Attribute {
+                        prefix,
+                        local,
+                        value,
+                        span: _,
+                    } => {
+                        if prefix.as_str() == "xmlns" {
+                            builder.prefix(local.as_str(), value.as_str(), self);
+                        } else if local.as_str() == "xmlns" {
+                            builder.prefix("", value.as_str(), self);
+                        } else {
+                            builder.attribute(prefix, local, value)?;
+                        }
+                    }
+                    Text { text } => {
+                        let node_id = builder.text(text.as_str(), self)?;
+                        span_info.extend_text_span(node_id.into(), text.into());
+                    }
+                    Cdata { text, span: _ } => {
+                        let node_id = builder.cdata_text(text.as_str(), self)?;
+                        span_info.extend_text_span(node_id.into(), text.into());
+                    }
+                    ElementStart {
+                        prefix,
+                        local,
+                        span: _,
+                    } => {
+                        builder.element(prefix, local);
+                    }
 
-                ElementEnd {
-                    end,
-                    span: end_span,
-                } => {
-                    use self::ElementEnd::*;
+                    ElementEnd {
+                        end,
+                        span: end_span,
+                    } => {
+                        use self::ElementEnd::*;
 
-                    match end {
-                        Open => {
-                            let (node_id, span, attribute_spans) = builder.open_element(self)?;
-                            span_info.add(SpanInfoKey::ElementStart(node_id.into()), span);
-                            span_info.add_attribute_spans(node_id, attribute_spans);
-                        }
-                        Close(prefix, local) => {
-                            let node_id = builder.close_element(prefix, local, self)?;
-                            span_info.add(SpanInfoKey::ElementEnd(node_id.into()), end_span.into());
-                        }
-                        Empty => {
-                            let (node_id, span, attribute_spans) = builder.open_element(self)?;
-                            span_info.add(SpanInfoKey::ElementStart(node_id.into()), span);
-                            span_info.add_attribute_spans(node_id, attribute_spans);
-                            let node_id = builder.close_element_immediate(self);
-                            span_info.add(SpanInfoKey::ElementEnd(node_id.into()), end_span.into());
-                        }
-                    }
-                }
-                Comment { text, span: _ } => {
-                    let node_id = builder.comment(text.as_str(), self)?;
-                    span_info.add(SpanInfoKey::Comment(node_id.into()), text.into());
-                }
-                ProcessingInstruction {
-                    target,
-                    content,
-                    span: _,
-                } => {
-                    let node_id = builder.processing_instruction(
-                        target.as_str(),
-                        content.map(|s| s.as_str()),
-                        self,
-                    )?;
-                    span_info.add(SpanInfoKey::PiTarget(node_id.into()), target.into());
-                    if let Some(content) = content {
-                        span_info.add(SpanInfoKey::PiContent(node_id.into()), content.into());
-                    }
-                }
-                Declaration {
-                    version,
-                    encoding: _,
-                    standalone,
-                    span,
-                } => {
-                    if version.as_str() != "1.0" {
-                        return Err(ParseError::UnsupportedVersion(
-                            version.to_string(),
-                            version.into(),
-                        )
-                        .into());
-                    }
-                    if let Some(standalone) = standalone {
-                        if !standalone {
-                            return Err(ParseError::UnsupportedNotStandalone(span.into()).into());
+                        match end {
+                            Open => {
+                                let (node_id, span, attribute_spans) =
+                                    builder.open_element(self)?;
+                                span_info.add(SpanInfoKey::ElementStart(node_id.into()), span);
+                                span_info.add_attribute_spans(node_id, attribute_spans);
+                            }
+                            Close(prefix, local) => {
+                                let node_id = builder.close_element(prefix, local, self)?;
+                                span_info
+                                    .add(SpanInfoKey::ElementEnd(node_id.into()), end_span.into());
+                            }
+                            Empty => {
+                                let (node_id, span, attribute_spans) =
+                                    builder.open_element(self)?;
+                                span_info.add(SpanInfoKey::ElementStart(node_id.into()), span);
+                                span_info.add_attribute_spans(node_id, attribute_spans);
+                                let node_id = builder.close_element_immediate(self);
+                                span_info
+                                    .add(SpanInfoKey::ElementEnd(node_id.into()), end_span.into());
+                            }
                         }
                     }
+                    Comment { text, span: _ } => {
+                        let node_id = builder.comment(text.as_str(), self)?;
+                        span_info.add(SpanInfoKey::Comment(node_id.into()), text.into());
+                    }
+                    ProcessingInstruction {
+                        target,
+                        content,
+                        span: _,
+                    } => {
+                        let node_id = builder.processing_instruction(
+                            target.as_str(),
+                            content.map(|s| s.as_str()),
+                            self,
+                        )?;
+                        span_info.add(SpanInfoKey::PiTarget(node_id.into()), target.into());
+                        if let Some(content) = content {
+                            span_info.add(SpanInfoKey::PiContent(node_id.into()), content.into());
+                        }
+                    }
+                    Declaration {
+                        version,
+                        encoding: _,
+                        standalone,
+                        span,
+                    } => {
+                        if version.as_str() != "1.0" {
+                            return Err(ParseError::UnsupportedVersion(
+                                version.to_string(),
+                                version.into(),
+                            )
+                            .into());
+                        }
+                        if let Some(standalone) = standalone {
+                            if !standalone {
+                                return Err(
+                                    ParseError::UnsupportedNotStandalone(span.into()).into()
+                                );
+                            }
+                        }
+                    }
+                    DtdStart { span, .. } => {
+                        return Err(ParseError::DtdUnsupported(span.into()).into());
+                    }
+                    DtdEnd { span, .. } => {
+                        return Err(ParseError::DtdUnsupported(span.into()).into());
+                    }
+                    EmptyDtd { span, .. } => {
+                        return Err(ParseError::DtdUnsupported(span.into()).into());
+                    }
+                    EntityDeclaration { span, .. } => {
+                        return Err(ParseError::DtdUnsupported(span.into()).into());
+                    }
                 }
-                DtdStart { span, .. } => {
-                    return Err(ParseError::DtdUnsupported(span.into()).into());
-                }
-                DtdEnd { span, .. } => {
-                    return Err(ParseError::DtdUnsupported(span.into()).into());
-                }
-                EmptyDtd { span, .. } => {
-                    return Err(ParseError::DtdUnsupported(span.into()).into());
-                }
-                EntityDeclaration { span, .. } => {
-                    return Err(ParseError::DtdUnsupported(span.into()).into());
-                }
+            } else {
+                break;
             }
         }
 
@@ -671,6 +682,9 @@ impl Xot {
             self.validate_well_formed_document(document_node)?;
             Ok((document_node, span_info))
         } else {
+            // dbg!(builder.element_builder.unwrap().span);
+            // todo!()
+
             Err(ParseError::UnclosedTag.into())
         }
     }
@@ -781,91 +795,4 @@ fn normalize_xml_id(value: &str) -> String {
         }
     }
     result
-}
-
-// this is really ugly code to reconstruct the position from the text pos
-// This is very silly as the position *already* exists in the xmlparser
-// and constructing the text pos is actually quite expensive there, and
-// now we do MORE expensive work to calculate it back. But I don't see any
-// other way to obtain the position
-// https://github.com/RazrFalcon/xmlparser/issues/30
-fn calculate_position_from_text_pos(s: &str, text_pos: xmlparser::TextPos) -> usize {
-    // text pos row and col are 1-based
-    // we first find the row start
-    let mut row = text_pos.row - 1;
-
-    let mut char_indices = s.char_indices();
-    // first find the row
-    let row_position = if row != 0 {
-        loop {
-            if let Some((i, c)) = char_indices.next() {
-                if c == '\n' {
-                    row -= 1;
-                    if row == 0 {
-                        break i + 1;
-                    }
-                }
-            } else {
-                unreachable!()
-            }
-        }
-    } else {
-        0
-    };
-    // now find the column
-    let col = (text_pos.col - 1) as usize;
-    loop {
-        if let Some((i, _)) = char_indices.next() {
-            if i == row_position + col {
-                return i;
-            }
-        } else {
-            unreachable!()
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_calculate_position_from_text_pos_1_1() {
-        let s = "foo";
-        let text_pos = xmlparser::TextPos { row: 1, col: 1 };
-        let pos = calculate_position_from_text_pos(s, text_pos);
-        assert_eq!(pos, 0);
-    }
-
-    #[test]
-    fn test_calculate_position_from_text_pos_1_2() {
-        let s = "foo";
-        let text_pos = xmlparser::TextPos { row: 1, col: 2 };
-        let pos = calculate_position_from_text_pos(s, text_pos);
-        assert_eq!(pos, 1);
-    }
-
-    #[test]
-    fn test_calculate_position_from_text_pos_2_1() {
-        let s = "foo\nbar";
-        let text_pos = xmlparser::TextPos { row: 2, col: 1 };
-        let pos = calculate_position_from_text_pos(s, text_pos);
-        assert_eq!(pos, 4);
-    }
-
-    #[test]
-    fn test_calculate_position_from_text_pos_2_2() {
-        let s = "foo\nbar";
-        let text_pos = xmlparser::TextPos { row: 2, col: 2 };
-        let pos = calculate_position_from_text_pos(s, text_pos);
-        assert_eq!(pos, 5);
-    }
-
-    #[test]
-    fn test_calculate_position_from_text_pos_3_4() {
-        let s = "foo\nflurb\nblarghar";
-        let text_pos = xmlparser::TextPos { row: 3, col: 4 };
-        let pos = calculate_position_from_text_pos(s, text_pos);
-        assert_eq!(pos, 13);
-    }
 }
