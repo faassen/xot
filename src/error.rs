@@ -4,7 +4,7 @@ use crate::{xotdata::Node, Span};
 #[derive(Debug, Clone)]
 pub enum ParseError {
     /// The XML is not well-formed - a tag is opened and never closed.
-    UnclosedTag,
+    UnclosedTag(Span),
     /// The XML is not well-formed - a tag is closed that was never opened.
     InvalidCloseTag(String, String, Span),
     /// The XML is not well-formed - you use `&` to open an entity without
@@ -25,7 +25,12 @@ pub enum ParseError {
     UnsupportedNotStandalone(Span),
     /// XML DTD is not supported.
     DtdUnsupported(Span),
-
+    /// No top-level element in the document.
+    NoElementAtTopLevel(usize),
+    /// Multiple top-level elements in the document.
+    MultipleElementsAtTopLevel(Span),
+    /// Text at top level is not allowed in a well-formed document.
+    TextAtTopLevel(Span),
     /// xmlparser error
     XmlParser(xmlparser::Error, usize),
 }
@@ -34,7 +39,7 @@ impl ParseError {
     /// Obtain the span for a ParseError.
     pub fn span(&self) -> Span {
         match self {
-            ParseError::UnclosedTag => todo!(),
+            ParseError::UnclosedTag(span) => *span,
             ParseError::InvalidCloseTag(_, _, span) => *span,
             ParseError::UnclosedEntity(_) => todo!(),
             ParseError::InvalidEntity(_) => todo!(),
@@ -44,6 +49,9 @@ impl ParseError {
             ParseError::UnsupportedEncoding(_) => todo!(),
             ParseError::UnsupportedNotStandalone(span) => *span,
             ParseError::DtdUnsupported(span) => *span,
+            ParseError::NoElementAtTopLevel(position) => Span::new(*position, *position),
+            ParseError::MultipleElementsAtTopLevel(span) => *span,
+            ParseError::TextAtTopLevel(span) => *span,
             ParseError::XmlParser(_, position) => Span::new(*position, *position),
         }
     }
@@ -164,7 +172,7 @@ impl std::fmt::Display for Error {
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            ParseError::UnclosedTag => write!(f, "Unclosed tag"),
+            ParseError::UnclosedTag(_) => write!(f, "Unclosed tag"),
             ParseError::InvalidCloseTag(s, s2, _) => write!(f, "Invalid close tag: {} {}", s, s2),
             ParseError::UnclosedEntity(s) => write!(f, "Unclosed entity: {}", s),
             ParseError::InvalidEntity(s) => write!(f, "Invalid entity: {}", s),
@@ -174,6 +182,11 @@ impl std::fmt::Display for ParseError {
             ParseError::UnsupportedEncoding(s) => write!(f, "Unsupported encoding: {}", s),
             ParseError::UnsupportedNotStandalone(_) => write!(f, "Unsupported standalone"),
             ParseError::DtdUnsupported(_) => write!(f, "DTD is not supported"),
+            ParseError::NoElementAtTopLevel(_) => write!(f, "No element at top level"),
+            ParseError::MultipleElementsAtTopLevel(_) => {
+                write!(f, "Multiple elements at top level")
+            }
+            ParseError::TextAtTopLevel(_) => write!(f, "Text at top level"),
             ParseError::XmlParser(e, _position) => write!(f, "Parser error: {}", e),
         }
     }

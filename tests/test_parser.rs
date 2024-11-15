@@ -13,7 +13,7 @@ fn test_unclosed_tag() {
 fn test_unclosed_tag_at_end() {
     let mut xot = Xot::new();
     let err = xot.parse(r#"<a>"#).unwrap_err();
-    assert!(matches!(err, ParseError::UnclosedTag));
+    assert!(matches!(err, ParseError::UnclosedTag(_)));
 }
 
 #[test]

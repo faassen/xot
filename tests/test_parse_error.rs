@@ -102,14 +102,14 @@ fn test_dtd_unsupported2() {
     assert_eq!(err.span(), (21..54).into());
 }
 
-// #[test]
-// fn test_unclosed_tag() {
-//     let xml = r#"<doc>"#;
-//     let mut xot = Xot::new();
-//     let err = xot.parse(xml).unwrap_err();
-//     assert!(matches!(err, xot::ParseError::UnclosedTag));
-//     assert_eq!(err.span(), (0..5).into());
-// }
+#[test]
+fn test_unclosed_tag() {
+    let xml = r#"<doc>"#;
+    let mut xot = Xot::new();
+    let err = xot.parse(xml).unwrap_err();
+    assert!(matches!(err, xot::ParseError::UnclosedTag(_)));
+    assert_eq!(err.span(), (1..4).into());
+}
 
 #[test]
 fn test_unclosed_tag_middle() {
@@ -120,31 +120,29 @@ fn test_unclosed_tag_middle() {
     assert_eq!(err.span(), (10..13).into());
 }
 
-// #[test]
-// fn test_unclosed_tag_with_prefix() {
-//     let xml = r#"<a:doc xmlns:a="http://example.com">"#;
-//     let mut xot = Xot::new();
-//     let err = xot.parse(xml).unwrap_err();
-//     assert!(matches!(err, xot::ParseError::UnclosedTag));
-//     assert_eq!(err.span(), (0..29).into());
-// }
+#[test]
+fn test_unclosed_tag_with_prefix() {
+    let xml = r#"<a:doc xmlns:a="http://example.com">"#;
+    let mut xot = Xot::new();
+    let err = xot.parse(xml).unwrap_err();
+    assert!(matches!(err, xot::ParseError::UnclosedTag(_)));
+    assert_eq!(err.span(), (1..6).into());
+}
 
-// #[test]
-// fn test_only_text_top_level() {
-//     let xml = r#"a"#;
-//     let mut xot = Xot::new();
-//     let err = xot.parse(xml).unwrap_err();
-//     assert!(matches!(err, xot::ParseError::XmlParser { .. }));
-//     assert_eq!(err.span(), (0..0).into());
-// }
+#[test]
+fn test_only_text_top_level() {
+    let xml = r#"abc"#;
+    let mut xot = Xot::new();
+    let err = xot.parse(xml).unwrap_err();
+    assert!(matches!(err, xot::ParseError::XmlParser { .. }));
+    assert_eq!(err.span(), (0..0).into());
+}
 
-// #[test]
-// fn test_only_comment_top_level() {
-//     let xml = r#"<!-- foo -->"#;
-//     let mut xot = Xot::new();
-//     let err = xot.parse(xml).unwrap_err();
-//     dbg!(&err);
-//     assert!(false);
-//     // assert!(matches!(err, xot::ParseError::XmlParser { .. }));
-//     // assert_eq!(err.span(), (0..0).into());
-// }
+#[test]
+fn test_only_comment_top_level() {
+    let xml = r#"<!-- foo -->"#;
+    let mut xot = Xot::new();
+    let err = xot.parse(xml).unwrap_err();
+    assert!(matches!(err, xot::ParseError::NoElementAtTopLevel { .. }));
+    assert_eq!(err.span(), (12..12).into());
+}

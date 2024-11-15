@@ -676,23 +676,45 @@ impl Xot {
             }
         }
 
-        // we expect both a document as the current node (everything else being closed)
-        // *and* the content of this node containing a single element
-        // if not, we have a problem. We want to produce a parse error
-        // for this, as this is the parser.
+        // we expect both a document as the current node (everything else being
+        // closed) *and* the content of this node containing a single element
+        // if not, we have a problem. We want to produce a parse error for
+        // this, as this is the parser.
         if builder.is_current_node_document(self) {
             let document_node = Node::new(builder.tree);
-            // self.validate_well_formed_document(document_node)?;
+            let mut element_nodes = Vec::new();
+
+            for child in self.children(document_node) {
+                match self.value(child) {
+                    Value::Element(_) => element_nodes.push(child),
+                    Value::Text(_) => {
+                        return Err(ParseError::TextAtTopLevel(
+                            *span_info.get(SpanInfoKey::Text(child)).unwrap(),
+                        ));
+                    }
+                    _ => {}
+                }
+            }
+            if element_nodes.is_empty() {
+                return Err(ParseError::NoElementAtTopLevel(xml.len()));
+            }
+            if element_nodes.len() > 1 {
+                return Err(ParseError::MultipleElementsAtTopLevel(
+                    *span_info
+                        .get(SpanInfoKey::ElementStart(element_nodes[1]))
+                        .unwrap(),
+                ));
+            }
             Ok((document_node, span_info))
         } else {
-            // the problem now is to find the unclosed tag. Other unclosed tags
-            // are already handled (through `InvalidCloseTag`), so this is
-            // purely a problem of the top-level tag not being closed
+            let current_node = Node::new(builder.current_node_id);
 
-            // dbg!(builder.element_builder.unwrap().span);
-            // todo!()
-
-            Err(ParseError::UnclosedTag)
+            // the top level node's span is the problem
+            Err(ParseError::UnclosedTag(
+                *span_info
+                    .get(SpanInfoKey::ElementStart(current_node))
+                    .unwrap(),
+            ))
         }
     }
 
