@@ -40,7 +40,7 @@ fn parse_content(content: Cow<str>, attribute: bool) -> Result<Cow<str>, ParseEr
                 entity.push(c);
             }
             if !is_complete {
-                return Err(ParseError::UnclosedEntity(entity).into());
+                return Err(ParseError::UnclosedEntity(entity));
             }
             change = true;
 
@@ -48,16 +48,15 @@ fn parse_content(content: Cow<str>, attribute: bool) -> Result<Cow<str>, ParseEr
                 let first_char = entity
                     .chars()
                     .next()
-                    .ok_or_else(|| ParseError::InvalidEntity(entity.to_string().into()))?;
+                    .ok_or_else(|| ParseError::InvalidEntity(entity.to_string()))?;
                 let code = if first_char == 'x' {
                     u32::from_str_radix(&entity[1..], 16)
                 } else {
                     entity.parse::<u32>()
                 };
-                let code =
-                    code.map_err(|_| ParseError::InvalidEntity(entity.to_string().into()))?;
+                let code = code.map_err(|_| ParseError::InvalidEntity(entity.to_string()))?;
                 let c = std::char::from_u32(code)
-                    .ok_or_else(|| ParseError::InvalidEntity(entity.to_string().into()))?;
+                    .ok_or_else(|| ParseError::InvalidEntity(entity.to_string()))?;
                 result.push(c);
             } else {
                 match entity.as_str() {
@@ -66,7 +65,7 @@ fn parse_content(content: Cow<str>, attribute: bool) -> Result<Cow<str>, ParseEr
                     "gt" => result.push('>'),
                     "lt" => result.push('<'),
                     "quot" => result.push('"'),
-                    _ => return Err(ParseError::InvalidEntity(entity).into()),
+                    _ => return Err(ParseError::InvalidEntity(entity)),
                 }
             }
         } else if attribute && (c == '\t' || c == '\n') {

@@ -95,7 +95,7 @@ impl DocumentBuilder {
                 format!("{}:{}", prefix, name)
             };
             let span = Span::from_prefix_name(prefix, name);
-            return Err(ParseError::DuplicateAttribute(attr_name, span).into());
+            return Err(ParseError::DuplicateAttribute(attr_name, span));
         }
         let value_span = value.into();
         let value = parse_attribute(value.as_str().into())?.to_string();
@@ -231,8 +231,7 @@ impl DocumentBuilder {
                     prefix.to_string(),
                     name.to_string(),
                     Span::from_prefix_name(prefix, name),
-                )
-                .into());
+                ));
             }
             self.name_id_builder.pop();
         }
@@ -300,7 +299,7 @@ impl NameIdBuilder {
         if let Ok(name_id) = self.name_id_with_prefix_id(prefix_id, name, xot) {
             Ok(name_id)
         } else {
-            Err(ParseError::UnknownPrefix(prefix.to_string(), prefix_span).into())
+            Err(ParseError::UnknownPrefix(prefix.to_string(), prefix_span))
         }
     }
 
@@ -322,7 +321,7 @@ impl NameIdBuilder {
         if let Ok(name_id) = self.name_id_with_prefix_id(prefix_id, name, xot) {
             Ok(name_id)
         } else {
-            Err(ParseError::UnknownPrefix(prefix.to_string(), prefix_span).into())
+            Err(ParseError::UnknownPrefix(prefix.to_string(), prefix_span))
         }
     }
 
@@ -651,28 +650,25 @@ impl Xot {
                             return Err(ParseError::UnsupportedVersion(
                                 version.to_string(),
                                 version.into(),
-                            )
-                            .into());
+                            ));
                         }
                         if let Some(standalone) = standalone {
                             if !standalone {
-                                return Err(
-                                    ParseError::UnsupportedNotStandalone(span.into()).into()
-                                );
+                                return Err(ParseError::UnsupportedNotStandalone(span.into()));
                             }
                         }
                     }
                     DtdStart { span, .. } => {
-                        return Err(ParseError::DtdUnsupported(span.into()).into());
+                        return Err(ParseError::DtdUnsupported(span.into()));
                     }
                     DtdEnd { span, .. } => {
-                        return Err(ParseError::DtdUnsupported(span.into()).into());
+                        return Err(ParseError::DtdUnsupported(span.into()));
                     }
                     EmptyDtd { span, .. } => {
-                        return Err(ParseError::DtdUnsupported(span.into()).into());
+                        return Err(ParseError::DtdUnsupported(span.into()));
                     }
                     EntityDeclaration { span, .. } => {
-                        return Err(ParseError::DtdUnsupported(span.into()).into());
+                        return Err(ParseError::DtdUnsupported(span.into()));
                     }
                 }
             } else {
@@ -696,7 +692,7 @@ impl Xot {
             // dbg!(builder.element_builder.unwrap().span);
             // todo!()
 
-            Err(ParseError::UnclosedTag.into())
+            Err(ParseError::UnclosedTag)
         }
     }
 

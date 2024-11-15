@@ -24,7 +24,7 @@ use super::Indentation;
 /// - no-namespace and XHTML namespace is serialized as HTML tags
 ///
 /// - Always use explicit close tags such as `</p>`, never use self-closing
-///  tags such as `<p/>`.
+///   tags such as `<p/>`.
 ///
 /// - certain HTML tags are unclosed (void names such `br`, `meta`), i.e.
 ///   `<br>`
