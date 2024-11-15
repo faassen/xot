@@ -9,7 +9,7 @@ pub enum ParseError {
     InvalidCloseTag(String, String, Span),
     /// The XML is not well-formed - you use `&` to open an entity without
     /// closing it with `;`.
-    UnclosedEntity(String),
+    UnclosedEntity(String, usize),
     /// The entity is not known. Only the basic entities are supported
     /// right now, not any user defined ones.
     InvalidEntity(String),
@@ -41,7 +41,7 @@ impl ParseError {
         match self {
             ParseError::UnclosedTag(span) => *span,
             ParseError::InvalidCloseTag(_, _, span) => *span,
-            ParseError::UnclosedEntity(_) => todo!(),
+            ParseError::UnclosedEntity(_, position) => Span::new(*position, *position),
             ParseError::InvalidEntity(_) => todo!(),
             ParseError::UnknownPrefix(_, span) => *span,
             ParseError::DuplicateAttribute(_, span) => *span,
@@ -174,7 +174,7 @@ impl std::fmt::Display for ParseError {
         match self {
             ParseError::UnclosedTag(_) => write!(f, "Unclosed tag"),
             ParseError::InvalidCloseTag(s, s2, _) => write!(f, "Invalid close tag: {} {}", s, s2),
-            ParseError::UnclosedEntity(s) => write!(f, "Unclosed entity: {}", s),
+            ParseError::UnclosedEntity(s, _) => write!(f, "Unclosed entity: {}", s),
             ParseError::InvalidEntity(s) => write!(f, "Invalid entity: {}", s),
             ParseError::UnknownPrefix(s, _) => write!(f, "Unknown prefix: {}", s),
             ParseError::DuplicateAttribute(s, _) => write!(f, "Duplicate attribute: {}", s),

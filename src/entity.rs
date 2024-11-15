@@ -3,24 +3,33 @@ use std::borrow::Cow;
 use crate::error::ParseError;
 use crate::output::Normalizer;
 
-pub(crate) fn parse_text(content: Cow<str>) -> Result<Cow<str>, ParseError> {
-    parse_content(content, false)
+pub(crate) fn parse_text(content: Cow<str>, base_position: usize) -> Result<Cow<str>, ParseError> {
+    parse_content(content, false, base_position)
 }
 
-pub(crate) fn parse_attribute(content: Cow<str>) -> Result<Cow<str>, ParseError> {
-    parse_content(content, true)
+pub(crate) fn parse_attribute(
+    content: Cow<str>,
+    base_position: usize,
+) -> Result<Cow<str>, ParseError> {
+    parse_content(content, true, base_position)
 }
 
-fn parse_content(content: Cow<str>, attribute: bool) -> Result<Cow<str>, ParseError> {
+fn parse_content(
+    content: Cow<str>,
+    attribute: bool,
+    base_position: usize,
+) -> Result<Cow<str>, ParseError> {
     let mut result = String::new();
-    let mut chars = content.chars().peekable();
+    let mut chars = content.char_indices().peekable();
     let mut change = false;
-    while let Some(c) = chars.next() {
+    while let Some((position, c)) = chars.next() {
         // https://www.w3.org/TR/xml/#sec-line-ends
         if c == '\r' {
-            if chars.peek() == Some(&'\n') {
-                // consume next char
-                chars.next();
+            if let Some((_, peeked)) = chars.peek() {
+                if peeked == &'\n' {
+                    // consume next char
+                    chars.next();
+                }
             }
             if !attribute {
                 result.push('\n');
@@ -32,7 +41,7 @@ fn parse_content(content: Cow<str>, attribute: bool) -> Result<Cow<str>, ParseEr
         } else if c == '&' {
             let mut entity = String::new();
             let mut is_complete = false;
-            for c in chars.by_ref() {
+            for (_, c) in chars.by_ref() {
                 if c == ';' {
                     is_complete = true;
                     break;
@@ -40,7 +49,7 @@ fn parse_content(content: Cow<str>, attribute: bool) -> Result<Cow<str>, ParseEr
                 entity.push(c);
             }
             if !is_complete {
-                return Err(ParseError::UnclosedEntity(entity));
+                return Err(ParseError::UnclosedEntity(entity, base_position + position));
             }
             change = true;
 
@@ -233,19 +242,19 @@ mod tests {
     #[test]
     fn test_parse() {
         let text = "A &amp; B";
-        assert_eq!(parse_text(text.into()).unwrap(), "A & B");
+        assert_eq!(parse_text(text.into(), 0).unwrap(), "A & B");
     }
 
     #[test]
     fn test_parse_multiple() {
         let text = "&amp;&apos;&gt;&lt;&quot;";
-        assert_eq!(parse_text(text.into()).unwrap(), "&'><\"");
+        assert_eq!(parse_text(text.into(), 0).unwrap(), "&'><\"");
     }
 
     #[test]
     fn test_parse_unknown_entity() {
         let text = "&unknown;";
-        let err = parse_text(text.into());
+        let err = parse_text(text.into(), 0);
         if let Err(ParseError::InvalidEntity(entity)) = err {
             assert_eq!(entity, "unknown");
         } else {
@@ -256,9 +265,10 @@ mod tests {
     #[test]
     fn test_parse_unfinished_entity() {
         let text = "&amp";
-        let err = parse_text(text.into());
-        if let Err(ParseError::UnclosedEntity(entity)) = err {
+        let err = parse_text(text.into(), 0);
+        if let Err(ParseError::UnclosedEntity(entity, position)) = err {
             assert_eq!(entity, "amp");
+            assert_eq!(position, 0);
         } else {
             unreachable!();
         }
@@ -267,7 +277,7 @@ mod tests {
     #[test]
     fn test_parse_no_entities() {
         let text = "hello";
-        let result = parse_text(text.into()).unwrap();
+        let result = parse_text(text.into(), 0).unwrap();
         // this is the same slice
         assert!(std::ptr::eq(text, result.as_ref()));
     }
@@ -275,49 +285,49 @@ mod tests {
     #[test]
     fn test_parse_newline_r() {
         let text = "A \r B";
-        assert_eq!(parse_text(text.into()).unwrap(), "A \n B");
+        assert_eq!(parse_text(text.into(), 0).unwrap(), "A \n B");
     }
 
     #[test]
     fn test_parse_newline_rn() {
         let text = "A \r\n B";
-        assert_eq!(parse_text(text.into()).unwrap(), "A \n B");
+        assert_eq!(parse_text(text.into(), 0).unwrap(), "A \n B");
     }
 
     #[test]
     fn test_do_not_normalize_text_tab() {
         let text = "A \t B";
-        assert_eq!(parse_text(text.into()).unwrap(), "A \t B");
+        assert_eq!(parse_text(text.into(), 0).unwrap(), "A \t B");
     }
 
     #[test]
     fn test_do_not_normalize_text_newline() {
         let text = "A \n B";
-        assert_eq!(parse_text(text.into()).unwrap(), "A \n B");
+        assert_eq!(parse_text(text.into(), 0).unwrap(), "A \n B");
     }
 
     #[test]
     fn test_normalize_attribute_tab() {
         let text = "A \t B";
-        assert_eq!(parse_attribute(text.into()).unwrap(), "A   B");
+        assert_eq!(parse_attribute(text.into(), 0).unwrap(), "A   B");
     }
 
     #[test]
     fn test_normalize_attribute_r_newline() {
         let text = "A \r B";
-        assert_eq!(parse_attribute(text.into()).unwrap(), "A   B");
+        assert_eq!(parse_attribute(text.into(), 0).unwrap(), "A   B");
     }
 
     #[test]
     fn test_normalize_attribute_rn_newline() {
         let text = "A \r\n B";
-        assert_eq!(parse_attribute(text.into()).unwrap(), "A   B");
+        assert_eq!(parse_attribute(text.into(), 0).unwrap(), "A   B");
     }
 
     #[test]
     fn test_normalize_attribute_newline() {
         let text = "A \n B";
-        assert_eq!(parse_attribute(text.into()).unwrap(), "A   B");
+        assert_eq!(parse_attribute(text.into(), 0).unwrap(), "A   B");
     }
 
     #[test]
@@ -438,31 +448,31 @@ mod tests {
     #[test]
     fn test_parse_character_hex_entity() {
         let text = "A &#x26; B";
-        assert_eq!(parse_text(text.into()).unwrap(), "A & B");
+        assert_eq!(parse_text(text.into(), 0).unwrap(), "A & B");
     }
 
     #[test]
     fn test_parse_character_decimal_entity() {
         let text = "A &#38; B";
-        assert_eq!(parse_text(text.into()).unwrap(), "A & B");
+        assert_eq!(parse_text(text.into(), 0).unwrap(), "A & B");
     }
 
     #[test]
     fn test_parse_character_empty_entity() {
         let text = "A &#; B";
-        assert!(parse_text(text.into()).is_err());
+        assert!(parse_text(text.into(), 0).is_err());
     }
 
     #[test]
     fn test_parse_character_empty_hex_entity() {
         let text = "A &x#; B";
-        assert!(parse_text(text.into()).is_err());
+        assert!(parse_text(text.into(), 0).is_err());
     }
 
     #[test]
     fn test_parse_character_broken_hex_entity() {
         let text = "A &xflub#; B";
-        assert!(parse_text(text.into()).is_err());
+        assert!(parse_text(text.into(), 0).is_err());
     }
 
     #[test]

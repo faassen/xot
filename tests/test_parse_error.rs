@@ -146,3 +146,12 @@ fn test_only_comment_top_level() {
     assert!(matches!(err, xot::ParseError::NoElementAtTopLevel { .. }));
     assert_eq!(err.span(), (12..12).into());
 }
+
+#[test]
+fn test_unclosed_entity() {
+    let xml = r#"<doc>&foo"#;
+    let mut xot = Xot::new();
+    let err = xot.parse(xml).unwrap_err();
+    assert!(matches!(err, xot::ParseError::UnclosedEntity(_, _)));
+    assert_eq!(err.span(), (5..5).into());
+}

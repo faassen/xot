@@ -95,7 +95,7 @@ fn test_parse_non_static() -> Result<(), ParseError> {
 fn test_ampersand() -> Result<(), ParseError> {
     let mut xot = Xot::new();
     let err = xot.parse(r#"<a>&</a>"#).unwrap_err();
-    assert!(matches!(err, ParseError::UnclosedEntity(_)));
+    assert!(matches!(err, ParseError::UnclosedEntity(_, _)));
     Ok(())
 }
 

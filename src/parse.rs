@@ -98,7 +98,7 @@ impl DocumentBuilder {
             return Err(ParseError::DuplicateAttribute(attr_name, span));
         }
         let value_span = value.into();
-        let value = parse_attribute(value.as_str().into())?.to_string();
+        let value = parse_attribute(value.as_str().into(), value.start())?.to_string();
         // if this is an xml:id we want to apply xml:id normalization as described here
         // https://www.w3.org/TR/xml-id/#id-avn
         let value = if name == "id" && prefix == "xml" {
@@ -190,8 +190,8 @@ impl DocumentBuilder {
         None
     }
 
-    fn text(&mut self, content: &str, xot: &mut Xot) -> Result<NodeId, ParseError> {
-        let content = parse_text(content.into())?;
+    fn text(&mut self, content: &StrSpan, xot: &mut Xot) -> Result<NodeId, ParseError> {
+        let content = parse_text(content.as_str().into(), content.start())?;
         if let Some(last) = self.consolidate_text(&content, xot) {
             return Ok(last);
         }
@@ -577,7 +577,7 @@ impl Xot {
                         }
                     }
                     Text { text } => {
-                        let node_id = builder.text(text.as_str(), self)?;
+                        let node_id = builder.text(&text, self)?;
                         span_info.extend_text_span(node_id.into(), text.into());
                     }
                     Cdata { text, span: _ } => {
