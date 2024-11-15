@@ -47,6 +47,37 @@ fn test_parser_error() {
     let xml = r#"<doc><"#;
     let mut xot = Xot::new();
     let err = xot.parse(xml).unwrap_err();
-    dbg!(&err);
     assert_eq!(err.parse_error().unwrap().span(), (5..5).into());
+}
+
+#[test]
+fn test_duplicate_attribute() {
+    let xml = r#"<doc a="1" a="2"/>"#;
+    let mut xot = Xot::new();
+    let err = xot.parse(xml).unwrap_err();
+    assert_eq!(err.parse_error().unwrap().span(), (11..12).into());
+}
+
+#[test]
+fn test_duplicate_attribute_with_prefix() {
+    let xml = r#"<doc xmlns:a="http://example.com" a:b="1" a:b="2"/>"#;
+    let mut xot = Xot::new();
+    let err = xot.parse(xml).unwrap_err();
+    assert_eq!(err.parse_error().unwrap().span(), (42..45).into());
+}
+
+#[test]
+fn test_dtd_unsupported() {
+    let xml = r#"<!DOCTYPE note SYSTEM "Note.dtd><note></note>"#;
+    let mut xot = Xot::new();
+    let err = xot.parse(xml).unwrap_err();
+    assert_eq!(err.parse_error().unwrap().span(), (0..0).into());
+}
+
+#[test]
+fn test_dtd_unsupported2() {
+    let xml = r#"<?xml version="1.0"?><!DOCTYPE note SYSTEM "Note.dtd><note></note>"#;
+    let mut xot = Xot::new();
+    let err = xot.parse(xml).unwrap_err();
+    assert_eq!(err.parse_error().unwrap().span(), (21..21).into());
 }

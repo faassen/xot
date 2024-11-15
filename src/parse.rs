@@ -94,7 +94,8 @@ impl DocumentBuilder {
             } else {
                 format!("{}:{}", prefix, name)
             };
-            return Err(ParseError::DuplicateAttribute(attr_name, name.into()).into());
+            let span = Span::from_prefix_name(prefix, name);
+            return Err(ParseError::DuplicateAttribute(attr_name, span).into());
         }
         let value_span = value.into();
         let value = parse_attribute(value.as_str().into())?.to_string();
