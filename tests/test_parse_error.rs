@@ -155,3 +155,12 @@ fn test_unclosed_entity() {
     assert!(matches!(err, xot::ParseError::UnclosedEntity(_, _)));
     assert_eq!(err.span(), (5..5).into());
 }
+
+#[test]
+fn test_invalid_entity() {
+    let xml = r#"<doc>&foo;</doc>"#;
+    let mut xot = Xot::new();
+    let err = xot.parse(xml).unwrap_err();
+    assert!(matches!(err, xot::ParseError::InvalidEntity(_, _)));
+    assert_eq!(err.span(), (5..10).into());
+}

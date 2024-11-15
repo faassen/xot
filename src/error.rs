@@ -12,15 +12,13 @@ pub enum ParseError {
     UnclosedEntity(String, usize),
     /// The entity is not known. Only the basic entities are supported
     /// right now, not any user defined ones.
-    InvalidEntity(String),
+    InvalidEntity(String, Span),
     /// You used a namespace prefix that is not declared during parsing.
     UnknownPrefix(String, Span),
     /// You declared an attribute of the same name twice.
     DuplicateAttribute(String, Span),
     /// Unsupported XML version. Only 1.0 is supported.
     UnsupportedVersion(String, Span),
-    /// Unsupported XML encoding. Only UTF-8 is supported.
-    UnsupportedEncoding(String),
     /// Unsupported standalone declaration. Only `yes` is supported.
     UnsupportedNotStandalone(Span),
     /// XML DTD is not supported.
@@ -42,11 +40,10 @@ impl ParseError {
             ParseError::UnclosedTag(span) => *span,
             ParseError::InvalidCloseTag(_, _, span) => *span,
             ParseError::UnclosedEntity(_, position) => Span::new(*position, *position),
-            ParseError::InvalidEntity(_) => todo!(),
+            ParseError::InvalidEntity(_, span) => *span,
             ParseError::UnknownPrefix(_, span) => *span,
             ParseError::DuplicateAttribute(_, span) => *span,
             ParseError::UnsupportedVersion(_, span) => *span,
-            ParseError::UnsupportedEncoding(_) => todo!(),
             ParseError::UnsupportedNotStandalone(span) => *span,
             ParseError::DtdUnsupported(span) => *span,
             ParseError::NoElementAtTopLevel(position) => Span::new(*position, *position),
@@ -175,11 +172,10 @@ impl std::fmt::Display for ParseError {
             ParseError::UnclosedTag(_) => write!(f, "Unclosed tag"),
             ParseError::InvalidCloseTag(s, s2, _) => write!(f, "Invalid close tag: {} {}", s, s2),
             ParseError::UnclosedEntity(s, _) => write!(f, "Unclosed entity: {}", s),
-            ParseError::InvalidEntity(s) => write!(f, "Invalid entity: {}", s),
+            ParseError::InvalidEntity(s, _) => write!(f, "Invalid entity: {}", s),
             ParseError::UnknownPrefix(s, _) => write!(f, "Unknown prefix: {}", s),
             ParseError::DuplicateAttribute(s, _) => write!(f, "Duplicate attribute: {}", s),
             ParseError::UnsupportedVersion(s, _) => write!(f, "Unsupported version: {}", s),
-            ParseError::UnsupportedEncoding(s) => write!(f, "Unsupported encoding: {}", s),
             ParseError::UnsupportedNotStandalone(_) => write!(f, "Unsupported standalone"),
             ParseError::DtdUnsupported(_) => write!(f, "DTD is not supported"),
             ParseError::NoElementAtTopLevel(_) => write!(f, "No element at top level"),

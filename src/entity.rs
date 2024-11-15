@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use crate::error::ParseError;
 use crate::output::Normalizer;
+use crate::Span;
 
 pub(crate) fn parse_text(content: Cow<str>, base_position: usize) -> Result<Cow<str>, ParseError> {
     parse_content(content, false, base_position)
@@ -41,9 +42,11 @@ fn parse_content(
         } else if c == '&' {
             let mut entity = String::new();
             let mut is_complete = false;
-            for (_, c) in chars.by_ref() {
+            let mut end_position = 0;
+            for (p, c) in chars.by_ref() {
                 if c == ';' {
                     is_complete = true;
+                    end_position = p + 1;
                     break;
                 }
                 entity.push(c);
@@ -54,18 +57,29 @@ fn parse_content(
             change = true;
 
             if let Some(entity) = entity.strip_prefix('#') {
-                let first_char = entity
-                    .chars()
-                    .next()
-                    .ok_or_else(|| ParseError::InvalidEntity(entity.to_string()))?;
+                let first_char = entity.chars().next().ok_or_else(|| {
+                    ParseError::InvalidEntity(
+                        entity.to_string(),
+                        Span::new(base_position + position, base_position + end_position),
+                    )
+                })?;
                 let code = if first_char == 'x' {
                     u32::from_str_radix(&entity[1..], 16)
                 } else {
                     entity.parse::<u32>()
                 };
-                let code = code.map_err(|_| ParseError::InvalidEntity(entity.to_string()))?;
-                let c = std::char::from_u32(code)
-                    .ok_or_else(|| ParseError::InvalidEntity(entity.to_string()))?;
+                let code = code.map_err(|_| {
+                    ParseError::InvalidEntity(
+                        entity.to_string(),
+                        Span::new(base_position + position, base_position + end_position),
+                    )
+                })?;
+                let c = std::char::from_u32(code).ok_or_else(|| {
+                    ParseError::InvalidEntity(
+                        entity.to_string(),
+                        Span::new(base_position + position, base_position + end_position),
+                    )
+                })?;
                 result.push(c);
             } else {
                 match entity.as_str() {
@@ -74,7 +88,12 @@ fn parse_content(
                     "gt" => result.push('>'),
                     "lt" => result.push('<'),
                     "quot" => result.push('"'),
-                    _ => return Err(ParseError::InvalidEntity(entity)),
+                    _ => {
+                        return Err(ParseError::InvalidEntity(
+                            entity,
+                            Span::new(base_position + position, base_position + end_position),
+                        ))
+                    }
                 }
             }
         } else if attribute && (c == '\t' || c == '\n') {
@@ -255,8 +274,9 @@ mod tests {
     fn test_parse_unknown_entity() {
         let text = "&unknown;";
         let err = parse_text(text.into(), 0);
-        if let Err(ParseError::InvalidEntity(entity)) = err {
+        if let Err(ParseError::InvalidEntity(entity, span)) = err {
             assert_eq!(entity, "unknown");
+            assert_eq!(span, Span::new(0, 9));
         } else {
             unreachable!();
         }
