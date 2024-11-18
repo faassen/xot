@@ -1,41 +1,43 @@
-use xot::{Error, Span, SpanInfoKey, Xot};
+use xot::{ParseError, Span, SpanInfoKey, Xot};
 
 const US_ASCII: &str = include_str!("fixtures/us-ascii.xml");
 
 #[test]
 fn test_unclosed_tag() {
     let mut xot = Xot::new();
-    let doc = xot.parse(r#"<a><b></a>"#);
-    assert!(matches!(doc, Err(Error::InvalidCloseTag(_, _))));
+    let err = xot.parse(r#"<a><b></a>"#).unwrap_err();
+    assert!(matches!(err, ParseError::InvalidCloseTag(_, _, _)));
 }
 
 #[test]
 fn test_unclosed_tag_at_end() {
     let mut xot = Xot::new();
-    let doc = xot.parse(r#"<a>"#);
-    assert!(matches!(doc, Err(Error::UnclosedTag)));
+    let err = xot.parse(r#"<a>"#).unwrap_err();
+    assert!(matches!(err, ParseError::UnclosedTag(_)));
 }
 
 #[test]
 fn test_duplicate_attributes() {
     let mut xot = Xot::new();
-    let doc = xot.parse(r#"<a x="x" x="y"/>"#);
-    if let Err(Error::DuplicateAttribute(s)) = doc {
-        assert_eq!(s, "x");
-    } else {
-        unreachable!();
-    }
+    let err = xot.parse(r#"<a x="x" x="y"/>"#).unwrap_err();
+    let s = match err {
+        ParseError::DuplicateAttribute(s, _) => s,
+        _ => unreachable!(),
+    };
+    assert_eq!(s, "x");
 }
 
 #[test]
 fn test_duplicate_attributes_ns() {
     let mut xot = Xot::new();
-    let doc = xot.parse(r#"<a xmlns:foo="http://example.com" foo:x="x" foo:x="y"/>"#);
-    if let Err(Error::DuplicateAttribute(s)) = doc {
-        assert_eq!(s, "foo:x");
-    } else {
-        unreachable!();
-    }
+    let err = xot
+        .parse(r#"<a xmlns:foo="http://example.com" foo:x="x" foo:x="y"/>"#)
+        .unwrap_err();
+    let s = match err {
+        ParseError::DuplicateAttribute(s, _) => s,
+        _ => unreachable!(),
+    };
+    assert_eq!(s, "foo:x");
 }
 
 #[test]
@@ -62,8 +64,8 @@ fn test_encoding_us_ascii() {
 #[test]
 fn test_unknown_prefix() {
     let mut xot = Xot::new();
-    let doc = xot.parse(r#"<a><foo:b></a>"#);
-    if let Err(Error::UnknownPrefix(s)) = doc {
+    let err = xot.parse(r#"<a><foo:b></a>"#).unwrap_err();
+    if let ParseError::UnknownPrefix(s, _) = err {
         assert_eq!(s, "foo");
     } else {
         unreachable!();
@@ -71,7 +73,7 @@ fn test_unknown_prefix() {
 }
 
 #[test]
-fn test_parse_non_static() -> Result<(), Error> {
+fn test_parse_non_static() -> Result<(), ParseError> {
     let mut xot = Xot::new();
     let mut xml = String::new();
     xml.push('<');
@@ -90,19 +92,15 @@ fn test_parse_non_static() -> Result<(), Error> {
 }
 
 #[test]
-fn test_ampersand() -> Result<(), Error> {
+fn test_ampersand() -> Result<(), ParseError> {
     let mut xot = Xot::new();
-    let doc = xot.parse(r#"<a>&</a>"#);
-    if let Err(err) = doc {
-        assert!(matches!(err, Error::UnclosedEntity(_)));
-    } else {
-        unreachable!();
-    }
+    let err = xot.parse(r#"<a>&</a>"#).unwrap_err();
+    assert!(matches!(err, ParseError::UnclosedEntity(_, _)));
     Ok(())
 }
 
 #[test]
-fn test_ampersand_in_cdata() -> Result<(), Error> {
+fn test_ampersand_in_cdata() -> Result<(), ParseError> {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<a><![CDATA[&]]></a>"#)?;
     let doc_el = xot.document_element(doc).unwrap();
@@ -380,7 +378,7 @@ fn test_parse_should_reject_multiple_elements_in_document() {
     let err = xot.parse(r#"<a/><b/>"#).unwrap_err();
     assert!(matches!(
         err,
-        Error::Parser(xmlparser::Error::UnknownToken(_))
+        ParseError::XmlParser(xmlparser::Error::UnknownToken(_), _)
     ));
 }
 
@@ -388,7 +386,7 @@ fn test_parse_should_reject_multiple_elements_in_document() {
 fn test_parse_should_reject_no_elements_in_document() {
     let mut xot = Xot::new();
     let err = xot.parse(r#""#).unwrap_err();
-    assert!(matches!(err, Error::NoElementAtTopLevel))
+    assert!(matches!(err, ParseError::NoElementAtTopLevel(_)))
 }
 
 #[test]
@@ -397,7 +395,7 @@ fn test_parse_should_reject_text_in_document() {
     let err = xot.parse(r#"text"#).unwrap_err();
     assert!(matches!(
         err,
-        Error::Parser(xmlparser::Error::UnknownToken(_))
+        ParseError::XmlParser(xmlparser::Error::UnknownToken(_), _)
     ));
 }
 
@@ -405,7 +403,7 @@ fn test_parse_should_reject_text_in_document() {
 fn test_parse_should_reject_no_elements_in_document_with_comment() {
     let mut xot = Xot::new();
     let err = xot.parse(r#"<!-- comment -->"#).unwrap_err();
-    assert!(matches!(err, Error::NoElementAtTopLevel))
+    assert!(matches!(err, ParseError::NoElementAtTopLevel(_)))
 }
 
 #[test]
@@ -441,4 +439,27 @@ fn test_parse_fragment_element_with_text_after() {
     let mut xot = Xot::new();
     let doc = xot.parse_fragment(r#"<a/>text"#).unwrap();
     assert_eq!(xot.children(doc).count(), 2);
+}
+
+#[test]
+fn test_parse_fragment_error_span() {
+    let mut xot = Xot::new();
+    let err = xot.parse_fragment(r#"<a><b></a>"#).unwrap_err();
+    assert!(matches!(err, ParseError::InvalidCloseTag(_, _, _)));
+    let span = err.span();
+    assert_eq!(span, (8..9).into());
+}
+
+#[test]
+fn test_parse_fragment_with_span_info() {
+    let mut xot = Xot::new();
+    let (doc, span_info) = xot
+        .parse_fragment_with_span_info(r#"<a><b></b></a>"#)
+        .unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    let b_el = xot.first_child(doc_el).unwrap();
+    assert_eq!(
+        span_info.get(SpanInfoKey::ElementStart(b_el)).unwrap(),
+        &Span::new(4, 5)
+    );
 }

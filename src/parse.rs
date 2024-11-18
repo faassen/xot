@@ -4,7 +4,7 @@ use xmlparser::{ElementEnd, StrSpan, Token, Tokenizer};
 
 use crate::encoding::decode;
 use crate::entity::{parse_attribute, parse_text};
-use crate::error::Error;
+use crate::error::ParseError;
 use crate::id::{Name, NameId, PrefixId};
 use crate::xmlvalue::{Attribute, Comment, Element, Namespace, ProcessingInstruction, Text, Value};
 use crate::xotdata::{Node, Xot};
@@ -18,6 +18,7 @@ struct AttributeBuilder {
     value: String,
     name_span: Span,
     value_span: Span,
+    prefix_span: Span,
 }
 
 struct ElementBuilder {
@@ -25,6 +26,7 @@ struct ElementBuilder {
     name: String,
     namespaces: Namespaces,
     attributes: Vec<AttributeBuilder>,
+    prefix_span: Span,
     span: Span,
 }
 
@@ -35,6 +37,7 @@ impl ElementBuilder {
             name: name.to_string(),
             namespaces: Namespaces::new(),
             attributes: Vec::new(),
+            prefix_span: prefix.into(),
             span: Span::from_prefix_name(prefix, name),
         }
     }
@@ -80,7 +83,7 @@ impl DocumentBuilder {
         prefix: StrSpan<'_>,
         name: StrSpan<'_>,
         value: StrSpan<'_>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), ParseError> {
         let attributes = &mut self.element_builder.as_mut().unwrap().attributes;
         let is_duplicate = attributes.iter().any(|attribute_builder| {
             attribute_builder.prefix == prefix.as_str() && attribute_builder.name == name.as_str()
@@ -91,10 +94,11 @@ impl DocumentBuilder {
             } else {
                 format!("{}:{}", prefix, name)
             };
-            return Err(Error::DuplicateAttribute(attr_name));
+            let span = Span::from_prefix_name(prefix, name);
+            return Err(ParseError::DuplicateAttribute(attr_name, span));
         }
         let value_span = value.into();
-        let value = parse_attribute(value.as_str().into())?.to_string();
+        let value = parse_attribute(value.as_str().into(), value.start())?.to_string();
         // if this is an xml:id we want to apply xml:id normalization as described here
         // https://www.w3.org/TR/xml-id/#id-avn
         let value = if name == "id" && prefix == "xml" {
@@ -108,6 +112,7 @@ impl DocumentBuilder {
             value,
             name_span: Span::from_prefix_name(prefix, name),
             value_span,
+            prefix_span: prefix.into(),
         });
         Ok(())
     }
@@ -118,7 +123,10 @@ impl DocumentBuilder {
         node_id
     }
 
-    fn open_element(&mut self, xot: &mut Xot) -> Result<(NodeId, Span, AttributeSpans), Error> {
+    fn open_element(
+        &mut self,
+        xot: &mut Xot,
+    ) -> Result<(NodeId, Span, AttributeSpans), ParseError> {
         let element_builder = self.element_builder.take().unwrap();
         let span = element_builder.span;
 
@@ -128,6 +136,7 @@ impl DocumentBuilder {
         let name_id = self.name_id_builder.element_name_id(
             &element_builder.prefix,
             &element_builder.name,
+            element_builder.prefix_span,
             xot,
         )?;
         let element_value = Value::Element(Element { name_id });
@@ -148,6 +157,7 @@ impl DocumentBuilder {
             let name_id = self.name_id_builder.attribute_name_id(
                 &attribute_builder.prefix,
                 &attribute_builder.name,
+                attribute_builder.prefix_span,
                 xot,
             )?;
             let attribute_node = xot.arena.new_node(Value::Attribute(Attribute {
@@ -180,15 +190,15 @@ impl DocumentBuilder {
         None
     }
 
-    fn text(&mut self, content: &str, xot: &mut Xot) -> Result<NodeId, Error> {
-        let content = parse_text(content.into())?;
+    fn text(&mut self, content: &StrSpan, xot: &mut Xot) -> Result<NodeId, ParseError> {
+        let content = parse_text(content.as_str().into(), content.start())?;
         if let Some(last) = self.consolidate_text(&content, xot) {
             return Ok(last);
         }
         Ok(self.add(Value::Text(Text::new(content.to_string())), xot))
     }
 
-    fn cdata_text(&mut self, content: &str, xot: &mut Xot) -> Result<NodeId, Error> {
+    fn cdata_text(&mut self, content: &str, xot: &mut Xot) -> Result<NodeId, ParseError> {
         if let Some(last) = self.consolidate_text(content, xot) {
             return Ok(last);
         }
@@ -205,12 +215,23 @@ impl DocumentBuilder {
         closed_node_id
     }
 
-    fn close_element(&mut self, prefix: &str, name: &str, xot: &mut Xot) -> Result<NodeId, Error> {
-        let name_id = self.name_id_builder.element_name_id(prefix, name, xot)?;
+    fn close_element(
+        &mut self,
+        prefix: StrSpan,
+        name: StrSpan,
+        xot: &mut Xot,
+    ) -> Result<NodeId, ParseError> {
+        let name_id = self
+            .name_id_builder
+            .element_name_id(&prefix, &name, prefix.into(), xot)?;
         let current_node = xot.arena.get(self.current_node_id).unwrap();
         if let Value::Element(element) = current_node.get() {
             if element.name_id != name_id {
-                return Err(Error::InvalidCloseTag(prefix.to_string(), name.to_string()));
+                return Err(ParseError::InvalidCloseTag(
+                    prefix.to_string(),
+                    name.to_string(),
+                    Span::from_prefix_name(prefix, name),
+                ));
             }
             self.name_id_builder.pop();
         }
@@ -219,7 +240,7 @@ impl DocumentBuilder {
         Ok(closed_node_id)
     }
 
-    fn comment(&mut self, content: &str, xot: &mut Xot) -> Result<NodeId, Error> {
+    fn comment(&mut self, content: &str, xot: &mut Xot) -> Result<NodeId, ParseError> {
         // XXX are there illegal comments, like those with -- inside? or
         // won't they pass the parser?
         Ok(self.add(Value::Comment(Comment::new(content.to_string())), xot))
@@ -230,7 +251,7 @@ impl DocumentBuilder {
         target: &str,
         content: Option<&str>,
         xot: &mut Xot,
-    ) -> Result<NodeId, Error> {
+    ) -> Result<NodeId, ParseError> {
         // XXX are there illegal processing instructions, like those with
         // ?> inside? or won't they pass the parser? What about those with xml?
         let target = xot.add_name(target);
@@ -271,13 +292,14 @@ impl NameIdBuilder {
         &mut self,
         prefix: &str,
         name: &str,
+        prefix_span: Span,
         xot: &mut Xot,
-    ) -> Result<NameId, Error> {
+    ) -> Result<NameId, ParseError> {
         let prefix_id = xot.prefix_lookup.get_id_mut(prefix);
         if let Ok(name_id) = self.name_id_with_prefix_id(prefix_id, name, xot) {
             Ok(name_id)
         } else {
-            Err(Error::UnknownPrefix(prefix.to_string()))
+            Err(ParseError::UnknownPrefix(prefix.to_string(), prefix_span))
         }
     }
 
@@ -285,8 +307,9 @@ impl NameIdBuilder {
         &mut self,
         prefix: &str,
         name: &str,
+        prefix_span: Span,
         xot: &mut Xot,
-    ) -> Result<NameId, Error> {
+    ) -> Result<NameId, ParseError> {
         // an unprefixed attribute is in no namespace, not
         // in the default namespace
         // https://stackoverflow.com/questions/3312390/xml-default-namespaces-for-unqualified-attribute-names
@@ -298,7 +321,7 @@ impl NameIdBuilder {
         if let Ok(name_id) = self.name_id_with_prefix_id(prefix_id, name, xot) {
             Ok(name_id)
         } else {
-            Err(Error::UnknownPrefix(prefix.to_string()))
+            Err(ParseError::UnknownPrefix(prefix.to_string(), prefix_span))
         }
     }
 
@@ -363,6 +386,30 @@ impl<'a> From<xmlparser::StrSpan<'a>> for Span {
         Span {
             start: span.start(),
             end: span.end(),
+        }
+    }
+}
+
+impl<'a> From<&xmlparser::StrSpan<'a>> for Span {
+    fn from(span: &xmlparser::StrSpan) -> Self {
+        Span {
+            start: span.start(),
+            end: span.end(),
+        }
+    }
+}
+
+impl From<Span> for std::ops::Range<usize> {
+    fn from(span: Span) -> Self {
+        span.range()
+    }
+}
+
+impl From<std::ops::Range<usize>> for Span {
+    fn from(range: std::ops::Range<usize>) -> Self {
+        Span {
+            start: range.start,
+            end: range.end,
         }
     }
 }
@@ -494,124 +541,222 @@ impl Xot {
     /// This parses the XML source into a Xot tree, and also returns
     /// [`SpanInfo`](`crate::SpanInfo`) which describes where nodes in the
     /// tree are located in the source text.
-    pub fn parse_with_span_info(&mut self, xml: &str) -> Result<(Node, SpanInfo), Error> {
+    pub fn parse_with_span_info(&mut self, xml: &str) -> Result<(Node, SpanInfo), ParseError> {
+        let tokenizer = Tokenizer::from(xml);
+        let (span_info, builder) = self._parse(tokenizer)?;
+        // we expect both a document as the current node (everything else being
+        // closed) *and* the content of this node containing a single element
+        // if not, we have a problem. We want to produce a parse error for
+        // this, as this is the parser.
+        if builder.is_current_node_document(self) {
+            let document_node = Node::new(builder.tree);
+            let mut element_nodes = Vec::new();
+
+            for child in self.children(document_node) {
+                match self.value(child) {
+                    Value::Element(_) => element_nodes.push(child),
+                    Value::Text(_) => {
+                        return Err(ParseError::TextAtTopLevel(
+                            *span_info.get(SpanInfoKey::Text(child)).unwrap(),
+                        ));
+                    }
+                    _ => {}
+                }
+            }
+            if element_nodes.is_empty() {
+                return Err(ParseError::NoElementAtTopLevel(xml.len()));
+            }
+            if element_nodes.len() > 1 {
+                return Err(ParseError::MultipleElementsAtTopLevel(
+                    *span_info
+                        .get(SpanInfoKey::ElementStart(element_nodes[1]))
+                        .unwrap(),
+                ));
+            }
+            Ok((document_node, span_info))
+        } else {
+            let current_node = Node::new(builder.current_node_id);
+
+            // the top level node's span is the problem
+            Err(ParseError::UnclosedTag(
+                *span_info
+                    .get(SpanInfoKey::ElementStart(current_node))
+                    .unwrap(),
+            ))
+        }
+    }
+
+    /// Parse a string containing an XML fragment into a document node.
+    ///
+    /// This is similar to [`Xot::parse``], but it relaxes the well-formedness
+    /// requirements. Specifically, it allows text nodes at the top level, and
+    /// does not require a document element, and allows multiple elements. In
+    /// short, a fragment behaves like an element (without name, attributes or
+    /// namespace definitions).
+    ///
+    /// This is to support
+    /// <https://www.w3.org/TR/xpath-datamodel/#DocumentNode> which is more
+    /// permissive than standard XML.
+    ///
+    /// This parses the XML source into a Xot tree, and also returns
+    /// [`SpanInfo`](`crate::SpanInfo`) which describes where nodes in the
+    /// tree are located in the source text.
+    pub fn parse_fragment_with_span_info(
+        &mut self,
+        xml: &str,
+    ) -> Result<(Node, SpanInfo), ParseError> {
+        let tokenizer = Tokenizer::from_fragment(xml, 0..xml.len());
+        let (span_info, builder) = self._parse(tokenizer)?;
+        if builder.is_current_node_document(self) {
+            let document_node = Node::new(builder.tree);
+            Ok((document_node, span_info))
+        } else {
+            let current_node = Node::new(builder.current_node_id);
+
+            // the top level node's span is the problem
+            Err(ParseError::UnclosedTag(
+                *span_info
+                    .get(SpanInfoKey::ElementStart(current_node))
+                    .unwrap(),
+            ))
+        }
+    }
+
+    fn _parse(
+        &mut self,
+        mut tokenizer: Tokenizer<'_>,
+    ) -> Result<(SpanInfo, DocumentBuilder), ParseError> {
         use Token::*;
 
         let mut builder = DocumentBuilder::new(self);
         let mut span_info = SpanInfo::new();
-        for token in Tokenizer::from(xml) {
-            match token? {
-                Attribute {
-                    prefix,
-                    local,
-                    value,
-                    span: _,
-                } => {
-                    if prefix.as_str() == "xmlns" {
-                        builder.prefix(local.as_str(), value.as_str(), self);
-                    } else if local.as_str() == "xmlns" {
-                        builder.prefix("", value.as_str(), self);
-                    } else {
-                        builder.attribute(prefix, local, value)?;
-                    }
-                }
-                Text { text } => {
-                    let node_id = builder.text(text.as_str(), self)?;
-                    span_info.extend_text_span(node_id.into(), text.into());
-                }
-                Cdata { text, span: _ } => {
-                    let node_id = builder.cdata_text(text.as_str(), self)?;
-                    span_info.extend_text_span(node_id.into(), text.into());
-                }
-                ElementStart {
-                    prefix,
-                    local,
-                    span: _,
-                } => {
-                    builder.element(prefix, local);
-                }
 
-                ElementEnd {
-                    end,
-                    span: end_span,
-                } => {
-                    use self::ElementEnd::*;
+        let mut position;
+        loop {
+            // getting the position unconditionally is required to get
+            // the right one for the error handling, which is a bit unfortunate
+            // https://github.com/RazrFalcon/xmlparser/issues/30
+            position = tokenizer.stream().pos();
+            if let Some(token) = tokenizer.next() {
+                let token = match token {
+                    Ok(token) => token,
+                    Err(e) => {
+                        return Err(ParseError::XmlParser(e, position));
+                    }
+                };
+                match token {
+                    Attribute {
+                        prefix,
+                        local,
+                        value,
+                        span: _,
+                    } => {
+                        if prefix.as_str() == "xmlns" {
+                            builder.prefix(local.as_str(), value.as_str(), self);
+                        } else if local.as_str() == "xmlns" {
+                            builder.prefix("", value.as_str(), self);
+                        } else {
+                            builder.attribute(prefix, local, value)?;
+                        }
+                    }
+                    Text { text } => {
+                        let node_id = builder.text(&text, self)?;
+                        span_info.extend_text_span(node_id.into(), text.into());
+                    }
+                    Cdata { text, span: _ } => {
+                        let node_id = builder.cdata_text(text.as_str(), self)?;
+                        span_info.extend_text_span(node_id.into(), text.into());
+                    }
+                    ElementStart {
+                        prefix,
+                        local,
+                        span: _,
+                    } => {
+                        builder.element(prefix, local);
+                    }
 
-                    match end {
-                        Open => {
-                            let (node_id, span, attribute_spans) = builder.open_element(self)?;
-                            span_info.add(SpanInfoKey::ElementStart(node_id.into()), span);
-                            span_info.add_attribute_spans(node_id, attribute_spans);
-                        }
-                        Close(prefix, local) => {
-                            let node_id =
-                                builder.close_element(prefix.as_str(), local.as_str(), self)?;
-                            span_info.add(SpanInfoKey::ElementEnd(node_id.into()), end_span.into());
-                        }
-                        Empty => {
-                            let (node_id, span, attribute_spans) = builder.open_element(self)?;
-                            span_info.add(SpanInfoKey::ElementStart(node_id.into()), span);
-                            span_info.add_attribute_spans(node_id, attribute_spans);
-                            let node_id = builder.close_element_immediate(self);
-                            span_info.add(SpanInfoKey::ElementEnd(node_id.into()), end_span.into());
-                        }
-                    }
-                }
-                Comment { text, span: _ } => {
-                    let node_id = builder.comment(text.as_str(), self)?;
-                    span_info.add(SpanInfoKey::Comment(node_id.into()), text.into());
-                }
-                ProcessingInstruction {
-                    target,
-                    content,
-                    span: _,
-                } => {
-                    let node_id = builder.processing_instruction(
-                        target.as_str(),
-                        content.map(|s| s.as_str()),
-                        self,
-                    )?;
-                    span_info.add(SpanInfoKey::PiTarget(node_id.into()), target.into());
-                    if let Some(content) = content {
-                        span_info.add(SpanInfoKey::PiContent(node_id.into()), content.into());
-                    }
-                }
-                Declaration {
-                    version,
-                    encoding: _,
-                    standalone,
-                    span: _,
-                } => {
-                    if version.as_str() != "1.0" {
-                        return Err(Error::UnsupportedVersion(version.to_string()));
-                    }
-                    if let Some(standalone) = standalone {
-                        if !standalone {
-                            return Err(Error::UnsupportedNotStandalone);
+                    ElementEnd {
+                        end,
+                        span: end_span,
+                    } => {
+                        use self::ElementEnd::*;
+
+                        match end {
+                            Open => {
+                                let (node_id, span, attribute_spans) =
+                                    builder.open_element(self)?;
+                                span_info.add(SpanInfoKey::ElementStart(node_id.into()), span);
+                                span_info.add_attribute_spans(node_id, attribute_spans);
+                            }
+                            Close(prefix, local) => {
+                                let node_id = builder.close_element(prefix, local, self)?;
+                                span_info
+                                    .add(SpanInfoKey::ElementEnd(node_id.into()), end_span.into());
+                            }
+                            Empty => {
+                                let (node_id, span, attribute_spans) =
+                                    builder.open_element(self)?;
+                                span_info.add(SpanInfoKey::ElementStart(node_id.into()), span);
+                                span_info.add_attribute_spans(node_id, attribute_spans);
+                                let node_id = builder.close_element_immediate(self);
+                                span_info
+                                    .add(SpanInfoKey::ElementEnd(node_id.into()), end_span.into());
+                            }
                         }
                     }
+                    Comment { text, span: _ } => {
+                        let node_id = builder.comment(text.as_str(), self)?;
+                        span_info.add(SpanInfoKey::Comment(node_id.into()), text.into());
+                    }
+                    ProcessingInstruction {
+                        target,
+                        content,
+                        span: _,
+                    } => {
+                        let node_id = builder.processing_instruction(
+                            target.as_str(),
+                            content.map(|s| s.as_str()),
+                            self,
+                        )?;
+                        span_info.add(SpanInfoKey::PiTarget(node_id.into()), target.into());
+                        if let Some(content) = content {
+                            span_info.add(SpanInfoKey::PiContent(node_id.into()), content.into());
+                        }
+                    }
+                    Declaration {
+                        version,
+                        encoding: _,
+                        standalone,
+                        span,
+                    } => {
+                        if version.as_str() != "1.0" {
+                            return Err(ParseError::UnsupportedVersion(
+                                version.to_string(),
+                                version.into(),
+                            ));
+                        }
+                        if let Some(standalone) = standalone {
+                            if !standalone {
+                                return Err(ParseError::UnsupportedNotStandalone(span.into()));
+                            }
+                        }
+                    }
+                    DtdStart { span, .. } => {
+                        return Err(ParseError::DtdUnsupported(span.into()));
+                    }
+                    DtdEnd { span, .. } => {
+                        return Err(ParseError::DtdUnsupported(span.into()));
+                    }
+                    EmptyDtd { span, .. } => {
+                        return Err(ParseError::DtdUnsupported(span.into()));
+                    }
+                    EntityDeclaration { span, .. } => {
+                        return Err(ParseError::DtdUnsupported(span.into()));
+                    }
                 }
-                DtdStart { .. } => {
-                    return Err(Error::DtdUnsupported);
-                }
-                DtdEnd { .. } => {
-                    return Err(Error::DtdUnsupported);
-                }
-                EmptyDtd { .. } => {
-                    return Err(Error::DtdUnsupported);
-                }
-                EntityDeclaration { .. } => {
-                    return Err(Error::DtdUnsupported);
-                }
+            } else {
+                return Ok((span_info, builder));
             }
-        }
-
-        if builder.is_current_node_document(self) {
-            let document_node = Node::new(builder.tree);
-            self.validate_well_formed_document(document_node)?;
-            Ok((document_node, span_info))
-        } else {
-            Err(Error::UnclosedTag)
         }
     }
 
@@ -632,7 +777,7 @@ impl Xot {
     ///
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn parse(&mut self, xml: &str) -> Result<Node, Error> {
+    pub fn parse(&mut self, xml: &str) -> Result<Node, ParseError> {
         self.parse_with_span_info(xml).map(|(node, _)| node)
     }
 
@@ -647,19 +792,9 @@ impl Xot {
     /// This is to support
     /// <https://www.w3.org/TR/xpath-datamodel/#DocumentNode> which is more
     /// permissive than standard XML.
-    ///
-    /// For now we don't supply a span info equivalent, as the implementation
-    /// strategy used to support this (with a dummy top-level element we remove
-    /// again) makes the span info incorrect.
-    pub fn parse_fragment(&mut self, xml: &str) -> Result<Node, Error> {
-        // first we wrap the fragment with a dummy root element we are
-        // going to unwrap later
-        let xml = format!("<fragment>{}</fragment>", xml);
-        let document = self.parse(&xml)?;
-        let doc_el = self.document_element(document)?;
-        // now unwrap the dummy root element
-        self.element_unwrap(doc_el)?;
-        Ok(document)
+    pub fn parse_fragment(&mut self, xml: &str) -> Result<Node, ParseError> {
+        self.parse_fragment_with_span_info(xml)
+            .map(|(node, _)| node)
     }
 
     /// Parse bytes containing XML into a node.
@@ -685,14 +820,14 @@ impl Xot {
     ///
     /// let mut xot = Xot::new();
     ///
-    /// let document = xot.parse_bytes(b"<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><p>\xe9</p>")?;
+    /// let document = xot.parse_bytes(b"<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><p>\xe9</p>").unwrap();
     ///
     /// let doc_el = xot.document_element(document)?;
     /// let txt_value = xot.text_content_str(doc_el).unwrap();
     /// assert_eq!(txt_value, "é");
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn parse_bytes(&mut self, bytes: &[u8]) -> Result<Node, Error> {
+    pub fn parse_bytes(&mut self, bytes: &[u8]) -> Result<Node, ParseError> {
         let xml = decode(bytes, None);
         self.parse(&xml)
     }

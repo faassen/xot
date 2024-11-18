@@ -1,10 +1,10 @@
 use xot::{
     output::{Output, TokenSerializeParameters},
-    Error, Xot,
+    ParseError, Xot,
 };
 
 #[test]
-fn test_style() -> Result<(), Error> {
+fn test_style() -> Result<(), ParseError> {
     let mut xot = Xot::new();
 
     let root = xot.parse("<a><b><style>foo</style></b></a>")?;
@@ -69,7 +69,7 @@ fn test_style() -> Result<(), Error> {
 }
 
 #[test]
-fn test_style_element() -> Result<(), Error> {
+fn test_style_element() -> Result<(), ParseError> {
     let mut xot = Xot::new();
 
     let root = xot.parse("<a><b>foo</b></a>")?;
@@ -135,7 +135,7 @@ fn test_style_element() -> Result<(), Error> {
 }
 
 #[test]
-fn test_style_attribute() -> Result<(), Error> {
+fn test_style_attribute() -> Result<(), ParseError> {
     let mut xot = Xot::new();
 
     let root = xot.parse(r#"<doc a="A" b="B"/>"#)?;
