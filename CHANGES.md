@@ -2,6 +2,21 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Features added
+
+- A new error named `ParseError`. This has a `span()` method which returns
+  the span to which the parse error occurs. In some cases the span is
+  an empty range, if only an error position can be known.
+
+### Breaking changes
+
+- APIs that only have to do with parsing now return a `ParseError` rather than
+  a more general `Error`. It's possible to convert a `ParseError` into an
+  `Error` though (using `.into()`, or implicitly using the `?` operator).
+
+- `ParseError` has been pulled out of `Error`. If you were relying on catching
+   particular errors you may have to adjust your code.
+
 ## [0.27.1] - 2024-11-01
 
 ### Bugs fixed
