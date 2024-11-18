@@ -542,12 +542,95 @@ impl Xot {
     /// [`SpanInfo`](`crate::SpanInfo`) which describes where nodes in the
     /// tree are located in the source text.
     pub fn parse_with_span_info(&mut self, xml: &str) -> Result<(Node, SpanInfo), ParseError> {
+        let tokenizer = Tokenizer::from(xml);
+        let (span_info, builder) = self._parse(tokenizer)?;
+        // we expect both a document as the current node (everything else being
+        // closed) *and* the content of this node containing a single element
+        // if not, we have a problem. We want to produce a parse error for
+        // this, as this is the parser.
+        if builder.is_current_node_document(self) {
+            let document_node = Node::new(builder.tree);
+            let mut element_nodes = Vec::new();
+
+            for child in self.children(document_node) {
+                match self.value(child) {
+                    Value::Element(_) => element_nodes.push(child),
+                    Value::Text(_) => {
+                        return Err(ParseError::TextAtTopLevel(
+                            *span_info.get(SpanInfoKey::Text(child)).unwrap(),
+                        ));
+                    }
+                    _ => {}
+                }
+            }
+            if element_nodes.is_empty() {
+                return Err(ParseError::NoElementAtTopLevel(xml.len()));
+            }
+            if element_nodes.len() > 1 {
+                return Err(ParseError::MultipleElementsAtTopLevel(
+                    *span_info
+                        .get(SpanInfoKey::ElementStart(element_nodes[1]))
+                        .unwrap(),
+                ));
+            }
+            Ok((document_node, span_info))
+        } else {
+            let current_node = Node::new(builder.current_node_id);
+
+            // the top level node's span is the problem
+            Err(ParseError::UnclosedTag(
+                *span_info
+                    .get(SpanInfoKey::ElementStart(current_node))
+                    .unwrap(),
+            ))
+        }
+    }
+
+    /// Parse a string containing an XML fragment into a document node.
+    ///
+    /// This is similar to [`Xot::parse``], but it relaxes the well-formedness
+    /// requirements. Specifically, it allows text nodes at the top level, and
+    /// does not require a document element, and allows multiple elements. In
+    /// short, a fragment behaves like an element (without name, attributes or
+    /// namespace definitions).
+    ///
+    /// This is to support
+    /// <https://www.w3.org/TR/xpath-datamodel/#DocumentNode> which is more
+    /// permissive than standard XML.
+    ///
+    /// This parses the XML source into a Xot tree, and also returns
+    /// [`SpanInfo`](`crate::SpanInfo`) which describes where nodes in the
+    /// tree are located in the source text.
+    pub fn parse_fragment_with_span_info(
+        &mut self,
+        xml: &str,
+    ) -> Result<(Node, SpanInfo), ParseError> {
+        let tokenizer = Tokenizer::from_fragment(xml, 0..xml.len());
+        let (span_info, builder) = self._parse(tokenizer)?;
+        if builder.is_current_node_document(self) {
+            let document_node = Node::new(builder.tree);
+            Ok((document_node, span_info))
+        } else {
+            let current_node = Node::new(builder.current_node_id);
+
+            // the top level node's span is the problem
+            Err(ParseError::UnclosedTag(
+                *span_info
+                    .get(SpanInfoKey::ElementStart(current_node))
+                    .unwrap(),
+            ))
+        }
+    }
+
+    fn _parse(
+        &mut self,
+        mut tokenizer: Tokenizer<'_>,
+    ) -> Result<(SpanInfo, DocumentBuilder), ParseError> {
         use Token::*;
 
         let mut builder = DocumentBuilder::new(self);
         let mut span_info = SpanInfo::new();
 
-        let mut tokenizer = Tokenizer::from(xml);
         let mut position;
         loop {
             // getting the position unconditionally is required to get
@@ -672,49 +755,8 @@ impl Xot {
                     }
                 }
             } else {
-                break;
+                return Ok((span_info, builder));
             }
-        }
-
-        // we expect both a document as the current node (everything else being
-        // closed) *and* the content of this node containing a single element
-        // if not, we have a problem. We want to produce a parse error for
-        // this, as this is the parser.
-        if builder.is_current_node_document(self) {
-            let document_node = Node::new(builder.tree);
-            let mut element_nodes = Vec::new();
-
-            for child in self.children(document_node) {
-                match self.value(child) {
-                    Value::Element(_) => element_nodes.push(child),
-                    Value::Text(_) => {
-                        return Err(ParseError::TextAtTopLevel(
-                            *span_info.get(SpanInfoKey::Text(child)).unwrap(),
-                        ));
-                    }
-                    _ => {}
-                }
-            }
-            if element_nodes.is_empty() {
-                return Err(ParseError::NoElementAtTopLevel(xml.len()));
-            }
-            if element_nodes.len() > 1 {
-                return Err(ParseError::MultipleElementsAtTopLevel(
-                    *span_info
-                        .get(SpanInfoKey::ElementStart(element_nodes[1]))
-                        .unwrap(),
-                ));
-            }
-            Ok((document_node, span_info))
-        } else {
-            let current_node = Node::new(builder.current_node_id);
-
-            // the top level node's span is the problem
-            Err(ParseError::UnclosedTag(
-                *span_info
-                    .get(SpanInfoKey::ElementStart(current_node))
-                    .unwrap(),
-            ))
         }
     }
 
@@ -750,21 +792,9 @@ impl Xot {
     /// This is to support
     /// <https://www.w3.org/TR/xpath-datamodel/#DocumentNode> which is more
     /// permissive than standard XML.
-    ///
-    /// For now we don't supply a span info equivalent, as the implementation
-    /// strategy used to support this (with a dummy top-level element we remove
-    /// again) makes the span info incorrect.
     pub fn parse_fragment(&mut self, xml: &str) -> Result<Node, ParseError> {
-        // TODO: xmlparser also allows one to get tokenizer `from_fragment`,
-        // which might solve the span issue if we use that.
-        // first we wrap the fragment with a dummy root element we are
-        // going to unwrap later
-        let xml = format!("<fragment>{}</fragment>", xml);
-        let document = self.parse(&xml)?;
-        let doc_el = self.document_element(document).unwrap();
-        // now unwrap the dummy root element
-        self.element_unwrap(doc_el).unwrap();
-        Ok(document)
+        self.parse_fragment_with_span_info(xml)
+            .map(|(node, _)| node)
     }
 
     /// Parse bytes containing XML into a node.

@@ -382,12 +382,12 @@ fn test_parse_should_reject_multiple_elements_in_document() {
     ));
 }
 
-// #[test]
-// fn test_parse_should_reject_no_elements_in_document() {
-//     let mut xot = Xot::new();
-//     let err = xot.parse(r#""#).unwrap_err();
-//     assert!(matches!(err, Error::NoElementAtTopLevel))
-// }
+#[test]
+fn test_parse_should_reject_no_elements_in_document() {
+    let mut xot = Xot::new();
+    let err = xot.parse(r#""#).unwrap_err();
+    assert!(matches!(err, ParseError::NoElementAtTopLevel(_)))
+}
 
 #[test]
 fn test_parse_should_reject_text_in_document() {
@@ -399,12 +399,12 @@ fn test_parse_should_reject_text_in_document() {
     ));
 }
 
-// #[test]
-// fn test_parse_should_reject_no_elements_in_document_with_comment() {
-//     let mut xot = Xot::new();
-//     let err = xot.parse(r#"<!-- comment -->"#).unwrap_err();
-//     assert!(matches!(err, Error::NoElementAtTopLevel))
-// }
+#[test]
+fn test_parse_should_reject_no_elements_in_document_with_comment() {
+    let mut xot = Xot::new();
+    let err = xot.parse(r#"<!-- comment -->"#).unwrap_err();
+    assert!(matches!(err, ParseError::NoElementAtTopLevel(_)))
+}
 
 #[test]
 fn test_parse_fragment_multiple_elements() {
@@ -439,4 +439,27 @@ fn test_parse_fragment_element_with_text_after() {
     let mut xot = Xot::new();
     let doc = xot.parse_fragment(r#"<a/>text"#).unwrap();
     assert_eq!(xot.children(doc).count(), 2);
+}
+
+#[test]
+fn test_parse_fragment_error_span() {
+    let mut xot = Xot::new();
+    let err = xot.parse_fragment(r#"<a><b></a>"#).unwrap_err();
+    assert!(matches!(err, ParseError::InvalidCloseTag(_, _, _)));
+    let span = err.span();
+    assert_eq!(span, (8..9).into());
+}
+
+#[test]
+fn test_parse_fragment_with_span_info() {
+    let mut xot = Xot::new();
+    let (doc, span_info) = xot
+        .parse_fragment_with_span_info(r#"<a><b></b></a>"#)
+        .unwrap();
+    let doc_el = xot.document_element(doc).unwrap();
+    let b_el = xot.first_child(doc_el).unwrap();
+    assert_eq!(
+        span_info.get(SpanInfoKey::ElementStart(b_el)).unwrap(),
+        &Span::new(4, 5)
+    );
 }
