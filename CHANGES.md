@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.28.0] - 2024-11-18
+
 ### Features added
 
 - A new error named `ParseError`. This has a `span()` method which returns
@@ -855,7 +857,8 @@ Processing instruction `target` is now a `xot::NameId`, not a string.
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.27.1...HEAD
+[Unreleased]: https://github.com/faassen/xot/compare/v0.28.0...HEAD
+[0.28.0]: https://github.com/faassen/xot/compare/v0.27.1...v0.28.0
 [0.27.1]: https://github.com/faassen/xot/compare/v0.27.0...v0.27.1
 [0.27.0]: https://github.com/faassen/xot/compare/v0.26.0...v0.27.0
 [0.26.0]: https://github.com/faassen/xot/compare/v0.25.0...v0.26.0
