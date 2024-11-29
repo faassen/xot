@@ -2,6 +2,10 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Optimizations
+
+- Use size hint to try to make string value a bit faster.
+
 ## [0.28.0] - 2024-11-18
 
 ### Features added
