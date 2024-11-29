@@ -861,7 +861,8 @@ impl Xot {
 
 fn descendants_to_string(xot: &Xot, node: Node) -> String {
     let texts = xot.descendants(node).filter_map(|n| xot.text_str(n));
-    let mut r = String::new();
+    let (lower_bound, _) = texts.size_hint();
+    let mut r = String::with_capacity(lower_bound);
     for text in texts {
         r.push_str(text);
     }
