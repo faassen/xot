@@ -381,7 +381,7 @@ impl Span {
     }
 }
 
-impl<'a> From<xmlparser::StrSpan<'a>> for Span {
+impl From<xmlparser::StrSpan<'_>> for Span {
     fn from(span: xmlparser::StrSpan) -> Self {
         Span {
             start: span.start(),
@@ -390,7 +390,7 @@ impl<'a> From<xmlparser::StrSpan<'a>> for Span {
     }
 }
 
-impl<'a> From<&xmlparser::StrSpan<'a>> for Span {
+impl From<&xmlparser::StrSpan<'_>> for Span {
     fn from(span: &xmlparser::StrSpan) -> Self {
         Span {
             start: span.start(),

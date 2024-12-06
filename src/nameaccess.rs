@@ -39,7 +39,6 @@ use crate::{xmlname, Value};
 /// other sections: [`Xot::namespaces`], [`Xot::namespaces_mut`], and
 /// [`Xot::get_namespace`], [`Xot::set_namespace`] and
 /// [`Xot::remove_namespace`], and [`Xot::append_namespace_node`].
-
 impl Xot {
     /// Look up name without a namespace.
     ///

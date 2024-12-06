@@ -209,13 +209,13 @@ where
         Some(A::value(self.xot.value(node)))
     }
 
-    fn iter_value(&'a self) -> impl Iterator<Item = &'a Value> + '_ {
+    fn iter_value(&'a self) -> impl Iterator<Item = &'a Value> + 'a {
         self.children().map(move |child| self.xot.value(child))
     }
 
     /// An iterator visiting all key-value pairs in insertion order. The iterator element type is
     /// `(&'a K, &'a V)`.
-    pub fn iter(&'a self) -> impl Iterator<Item = (K, &'a V)> + '_ {
+    pub fn iter(&'a self) -> impl Iterator<Item = (K, &'a V)> + 'a {
         self.iter_value()
             .map(move |value| (A::key(value), A::value(value)))
     }
@@ -226,12 +226,12 @@ where
     }
 
     /// An iterator visiting all keys in insertion order. The iterator element type is `&'a K`.
-    pub fn keys(&'a self) -> impl Iterator<Item = K> + '_ {
+    pub fn keys(&'a self) -> impl Iterator<Item = K> + 'a {
         self.iter_value().map(move |value| A::key(value))
     }
 
     /// An iterator visiting all values in insertion order. The iterator element type is `&'a V`.
-    pub fn values(&'a self) -> impl Iterator<Item = &'a V> + '_ {
+    pub fn values(&'a self) -> impl Iterator<Item = &'a V> + 'a {
         self.iter_value().map(move |value| A::value(value))
     }
 

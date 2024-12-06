@@ -51,21 +51,21 @@ pub struct RefName<'a> {
     prefix_id: PrefixId,
 }
 
-impl<'a> std::hash::Hash for RefName<'a> {
+impl std::hash::Hash for RefName<'_> {
     #[inline]
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.name_id.hash(state);
     }
 }
 
-impl<'a> PartialEq for RefName<'a> {
+impl PartialEq for RefName<'_> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.name_id == other.name_id
     }
 }
 
-impl<'a> Eq for RefName<'a> {}
+impl Eq for RefName<'_> {}
 
 impl<'a> NameStrInfo for RefName<'a> {
     #[inline]

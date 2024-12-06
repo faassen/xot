@@ -369,7 +369,7 @@ assert_eq!(s, "<doc>\u{1E0D}\u{0307}</doc>");
         node: Node,
         parameters: TokenSerializeParameters,
         normalizer: N,
-    ) -> impl Iterator<Item = (Node, Output, OutputToken)> + 'a {
+    ) -> impl Iterator<Item = (Node, Output<'a>, OutputToken)> + 'a {
         let outputs = gen_outputs(self, node);
         let mut serializer = XmlSerializer::new(self, node, parameters, normalizer);
         outputs.map(move |(node, output)| {
@@ -400,7 +400,7 @@ assert_eq!(s, "<doc>\u{1E0D}\u{0307}</doc>");
         parameters: TokenSerializeParameters,
         suppress_elements: &'a [NameId],
         normalizer: N,
-    ) -> impl Iterator<Item = (Node, Output, PrettyOutputToken)> + 'a {
+    ) -> impl Iterator<Item = (Node, Output<'a>, PrettyOutputToken)> + 'a {
         let outputs = gen_outputs(self, node);
         let mut serializer = XmlSerializer::new(self, node, parameters, normalizer);
         let mut pretty = Pretty::new(

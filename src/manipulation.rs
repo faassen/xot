@@ -204,7 +204,7 @@ impl Xot {
     /// let doc_el = xot.document_element(root)?;
     ///
     /// let foo = xot.add_name("foo");
-
+    ///
     /// let node = xot.new_attribute_node(foo, "FOO".to_string());
     /// let added_node = xot.append_attribute_node(doc_el, node)?;
     ///
