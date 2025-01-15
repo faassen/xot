@@ -735,9 +735,11 @@ impl Xot {
                                 version.into(),
                             ));
                         }
-                        if let Some(standalone) = standalone {
-                            if !standalone {
-                                return Err(ParseError::UnsupportedNotStandalone(span.into()));
+                        if !self.ignoring_standalone_declaration {
+                            if let Some(standalone) = standalone {
+                                if !standalone {
+                                    return Err(ParseError::UnsupportedNotStandalone(span.into()));
+                                }
                             }
                         }
                     }
@@ -830,6 +832,27 @@ impl Xot {
     pub fn parse_bytes(&mut self, bytes: &[u8]) -> Result<Node, ParseError> {
         let xml = decode(bytes, None);
         self.parse(&xml)
+    }
+
+    /// Specify whether the parser should accept XML documents with standalone=no.
+    ///
+    /// An XML document may include a standalone document declaration, for example a
+    /// declaration such as
+    ///
+    ///   <?xml version="1.0" standalone="yes"?>
+    ///
+    /// The default value for this is "yes", which indicates that "there are no external markup
+    /// declarations which affect the information passed from the XML processor to the application"
+    /// (as per https://www.w3.org/TR/xml/), or more informally, that the document does not rely for
+    /// parsing and interpretation on any external resources such as a DTD or XSD.
+    ///
+    /// This library defaults to refusing to parse a document with a "standalone=no" declaration,
+    /// because it has no support for supplying a DTD or XSD schema. If toggle is set to true, the
+    /// library will ignore the standalone declaration and not raise an error if a standalone=no
+    /// declaration is present.
+    pub fn ignore_standalone_declaration(mut self, toggle: bool) -> Xot {
+        self.ignoring_standalone_declaration = toggle;
+        self
     }
 }
 

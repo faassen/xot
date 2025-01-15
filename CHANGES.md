@@ -2,6 +2,13 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Features added
+
+- It is possible to tell the parser to accept XML documents with a `standalone=no` document
+  declaration, using function `xot.ignore_standalone_declaration`. The parser currently raises an
+  error when it encounters a document declaration stating that the document is not standalone
+  (meaning that it depends on an external resource such as a DTD or XSD schema).
+
 ### Optimizations
 
 - Use size hint to try to make string value a bit faster.

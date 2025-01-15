@@ -58,6 +58,7 @@ pub struct Xot {
     pub(crate) xml_space_id: NameId,
     pub(crate) xml_id_id: NameId,
     pub(crate) text_consolidation: bool,
+    pub(crate) ignoring_standalone_declaration: bool,
 }
 
 impl Xot {
@@ -84,6 +85,7 @@ impl Xot {
             xml_space_id,
             xml_id_id,
             text_consolidation: true,
+            ignoring_standalone_declaration: false,
         }
     }
 
