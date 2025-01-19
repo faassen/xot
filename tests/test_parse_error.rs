@@ -48,6 +48,32 @@ fn test_unsupported_not_standalone() {
     assert_eq!(err.span(), (0..37).into());
 }
 
+// The order of the version, encoding and standalone attributes in the XML declaration is fixed by
+// the standard.
+#[test]
+fn test_parse_invalid_xml_declaration() {
+    let mut xot = Xot::new();
+    let err = xot.parse(r#"<?xml version="1.0" standalone="yes" encoding="UTF-8"?><a/>"#)
+        .unwrap_err();
+    assert!(matches!(err, xot::ParseError::XmlParser { .. }));
+    match err {
+        xot::ParseError::XmlParser(e, _) => assert!(matches!(e, xmlparser::Error::InvalidDeclaration { .. })),
+        _ => unreachable!(),
+    }
+}
+
+#[test]
+fn test_dont_ignore_standalone_declaration() {
+    let xml = r#"<?xml version="1.0" standalone="no"?><doc></doc>"#;
+    let mut xot = Xot::new().ignore_standalone_declaration(false);
+    let err = xot.parse(xml).unwrap_err();
+    assert!(matches!(
+        err,
+        xot::ParseError::UnsupportedNotStandalone { .. }
+    ));
+    assert_eq!(err.span(), (0..37).into());
+}
+
 #[test]
 fn test_xmlparser_error() {
     let xml = r#"<doc><"#;
