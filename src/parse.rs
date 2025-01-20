@@ -723,22 +723,12 @@ impl Xot {
                             span_info.add(SpanInfoKey::PiContent(node_id.into()), content.into());
                         }
                     }
-                    Declaration {
-                        version,
-                        encoding: _,
-                        standalone,
-                        span,
-                    } => {
+                    Declaration { version, .. } => {
                         if version.as_str() != "1.0" {
                             return Err(ParseError::UnsupportedVersion(
                                 version.to_string(),
                                 version.into(),
                             ));
-                        }
-                        if let Some(standalone) = standalone {
-                            if !standalone {
-                                return Err(ParseError::UnsupportedNotStandalone(span.into()));
-                            }
                         }
                     }
                     DtdStart { span, .. } => {

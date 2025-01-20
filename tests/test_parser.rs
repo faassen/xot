@@ -48,6 +48,20 @@ fn test_parse_xml_declaration() {
 }
 
 #[test]
+fn test_parse_xml_standalone_yes() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><a/>"#);
+    assert!(doc.is_ok());
+}
+
+#[test]
+fn test_parse_xml_standalone_no() {
+    let mut xot = Xot::new();
+    let doc = xot.parse(r#"<?xml version="1.0" encoding="UTF-8" standalone="no"?><a/>"#);
+    assert!(doc.is_ok());
+}
+
+#[test]
 fn test_encoding_lowercase_utf8() {
     let mut xot = Xot::new();
     let doc = xot.parse(r#"<?xml version="1.0" encoding="utf-8"?><a/>"#);
