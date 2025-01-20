@@ -2,6 +2,12 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Features added
+
+- The parser now accepts documents with an XML declaration including `standalone=no`. These
+  documents would previously raise an `UnsupportedNotStandalone` error. The
+  `UnsupportedNotStandalone` error category is now deprecated.
+
 ### Optimizations
 
 - Use size hint to try to make string value a bit faster.

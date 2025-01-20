@@ -36,16 +36,18 @@ fn test_unsupported_version() {
     assert_eq!(err.span(), (15..18).into());
 }
 
+// The order of the version, encoding and standalone attributes in the XML declaration is fixed by
+// the standard.
 #[test]
-fn test_unsupported_not_standalone() {
-    let xml = r#"<?xml version="1.0" standalone="no"?><doc></doc>"#;
+fn test_parse_invalid_xml_declaration() {
     let mut xot = Xot::new();
-    let err = xot.parse(xml).unwrap_err();
-    assert!(matches!(
-        err,
-        xot::ParseError::UnsupportedNotStandalone { .. }
-    ));
-    assert_eq!(err.span(), (0..37).into());
+    let err = xot.parse(r#"<?xml version="1.0" standalone="yes" encoding="UTF-8"?><a/>"#)
+        .unwrap_err();
+    assert!(matches!(err, xot::ParseError::XmlParser { .. }));
+    match err {
+        xot::ParseError::XmlParser(e, _) => assert!(matches!(e, xmlparser::Error::InvalidDeclaration { .. })),
+        _ => unreachable!(),
+    }
 }
 
 #[test]

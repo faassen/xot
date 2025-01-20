@@ -19,7 +19,9 @@ pub enum ParseError {
     DuplicateAttribute(String, Span),
     /// Unsupported XML version. Only 1.0 is supported.
     UnsupportedVersion(String, Span),
-    /// Unsupported standalone declaration. Only `yes` is supported.
+    /// Unsupported standalone declaration. This error is deprecated since version 0.29, and both
+    /// "yes" and "no" values are accepted for the standalone declaration.
+    #[deprecated(since = "0.2.9", note = "The value of the standalone declaration is now ignored")]
     UnsupportedNotStandalone(Span),
     /// XML DTD is not supported.
     DtdUnsupported(Span),
@@ -44,6 +46,7 @@ impl ParseError {
             ParseError::UnknownPrefix(_, span) => *span,
             ParseError::DuplicateAttribute(_, span) => *span,
             ParseError::UnsupportedVersion(_, span) => *span,
+            #[allow(deprecated)]
             ParseError::UnsupportedNotStandalone(span) => *span,
             ParseError::DtdUnsupported(span) => *span,
             ParseError::NoElementAtTopLevel(position) => Span::new(*position, *position),
@@ -176,6 +179,7 @@ impl std::fmt::Display for ParseError {
             ParseError::UnknownPrefix(s, _) => write!(f, "Unknown prefix: {}", s),
             ParseError::DuplicateAttribute(s, _) => write!(f, "Duplicate attribute: {}", s),
             ParseError::UnsupportedVersion(s, _) => write!(f, "Unsupported version: {}", s),
+            #[allow(deprecated)]
             ParseError::UnsupportedNotStandalone(_) => write!(f, "Unsupported standalone"),
             ParseError::DtdUnsupported(_) => write!(f, "DTD is not supported"),
             ParseError::NoElementAtTopLevel(_) => write!(f, "No element at top level"),
