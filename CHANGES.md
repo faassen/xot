@@ -8,6 +8,8 @@
   documents would previously raise an `UnsupportedNotStandalone` error. The
   `UnsupportedNotStandalone` error category is now deprecated.
 
+- `ParseError` is now a `std::error::Error`.
+
 ### Optimizations
 
 - Use size hint to try to make string value a bit faster.

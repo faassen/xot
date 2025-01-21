@@ -192,6 +192,12 @@ impl std::fmt::Display for ParseError {
     }
 }
 
+impl std::error::Error for ParseError {
+    fn description(&self) -> &str {
+        "XML parsing error"
+    }
+}
+
 impl std::error::Error for Error {
     fn description(&self) -> &str {
         "Xot error"
