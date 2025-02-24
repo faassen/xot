@@ -1,5 +1,5 @@
 use crate::xmlvalue::{Namespace, Value, ValueCategory};
-use crate::{NamespaceId, Node, PrefixId, Xot};
+use crate::{NamespaceId, Node, PrefixId, ReadNode, Xot};
 
 use super::core::{category_predicate, MutableNodeMap, NodeMap, ValueAdapter};
 
@@ -10,7 +10,7 @@ impl ValueAdapter<PrefixId, NamespaceId> for NamespaceAdapter {
         matches!(value, Value::Namespace(_))
     }
 
-    fn children(xot: &Xot, node: Node) -> impl Iterator<Item = Node> + '_ {
+    fn children<'a, N: ReadNode + 'a>(xot: &'a Xot, node: N) -> impl Iterator<Item = N> + 'a {
         xot.all_children(node)
             .take_while(category_predicate(xot, ValueCategory::Namespace))
     }
@@ -77,7 +77,7 @@ impl ValueAdapter<PrefixId, NamespaceId> for NamespaceAdapter {
 /// Obtained using [`Xot::namespaces`].
 ///
 /// See [`NodeMap`] for details.
-pub type Namespaces<'a> = NodeMap<'a, PrefixId, NamespaceId, NamespaceAdapter>;
+pub type Namespaces<'a, N: ReadNode> = NodeMap<'a, PrefixId, NamespaceId, NamespaceAdapter, N>;
 
 /// A mutable map of namespace prefixes to namespace ids.
 ///

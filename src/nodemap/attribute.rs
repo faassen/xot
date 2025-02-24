@@ -1,5 +1,5 @@
 use crate::xmlvalue::{Attribute, Value, ValueCategory};
-use crate::{NameId, Node, Xot};
+use crate::{NameId, Node, ReadNode, Xot};
 
 use super::core::{category_predicate, MutableNodeMap, NodeMap, ValueAdapter};
 
@@ -10,7 +10,7 @@ impl ValueAdapter<NameId, String> for AttributeAdapter {
         matches!(value, Value::Attribute(_))
     }
 
-    fn children(xot: &Xot, node: Node) -> impl Iterator<Item = Node> + '_ {
+    fn children<'a, N: ReadNode + 'a>(xot: &'a Xot, node: N) -> impl Iterator<Item = N> + 'a {
         xot.all_children(node)
             .skip_while(category_predicate(xot, ValueCategory::Namespace))
             .take_while(category_predicate(xot, ValueCategory::Attribute))
@@ -84,7 +84,7 @@ impl ValueAdapter<NameId, String> for AttributeAdapter {
 /// Obtained using [`Xot::attributes`].
 ///
 /// See [`NodeMap`] for details.
-pub type Attributes<'a> = NodeMap<'a, NameId, String, AttributeAdapter>;
+pub type Attributes<'a, N: ReadNode> = NodeMap<'a, NameId, String, AttributeAdapter, N>;
 
 /// Mutable attributes of an element.
 ///

@@ -1,4 +1,4 @@
-use crate::{id::NameId, Error, NamespaceId, PrefixId, Xot};
+use crate::{id::NameId, Error, NamespaceId, Node, PrefixId, ReadNode, Xot};
 
 use super::owned::parse_full_name;
 
@@ -44,7 +44,7 @@ impl CreateName {
         prefix: &str,
         local_name: &str,
         lookup_namespace: impl Fn(&str) -> Option<NamespaceId>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, Error<Node>> {
         let namespace =
             lookup_namespace(prefix).ok_or_else(|| Error::UnknownPrefix(prefix.to_string()))?;
         let name_id = xot.add_name_ns(local_name, namespace);
@@ -58,7 +58,7 @@ impl CreateName {
         xot: &mut Xot,
         full_name: &str,
         lookup_namespace: impl Fn(&str) -> Option<NamespaceId>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, Error<Node>> {
         let (prefix, local_name) = parse_full_name(full_name);
         Self::prefixed(xot, prefix, local_name, lookup_namespace)
     }

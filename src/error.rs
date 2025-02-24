@@ -1,4 +1,4 @@
-use crate::{xotdata::Node, Span};
+use crate::{xotdata::Node, ReadNode, Span};
 
 /// An error that occurred during parsing.
 #[derive(Debug, Clone)]
@@ -21,7 +21,10 @@ pub enum ParseError {
     UnsupportedVersion(String, Span),
     /// Unsupported standalone declaration. This error is deprecated since version 0.29, and both
     /// "yes" and "no" values are accepted for the standalone declaration.
-    #[deprecated(since = "0.2.9", note = "The value of the standalone declaration is now ignored")]
+    #[deprecated(
+        since = "0.2.9",
+        note = "The value of the standalone declaration is now ignored"
+    )]
     UnsupportedNotStandalone(Span),
     /// XML DTD is not supported.
     DtdUnsupported(Span),
@@ -59,10 +62,10 @@ impl ParseError {
 
 /// Xot errors
 #[derive(Debug, Clone)]
-pub enum Error {
+pub enum Error<N: ReadNode = Node> {
     // access errors
     /// The node is not a Document node.
-    NotDocument(Node),
+    NotDocument(N),
 
     // manipulation errors
     /// Invalid operation on XML. You get this when
@@ -77,7 +80,7 @@ pub enum Error {
     /// target. Happens if you use `XML` or any case variation of this.
     InvalidTarget(String),
     /// The node you tried to act on is not an element.
-    NotElement(Node),
+    NotElement(N),
     /// Indextree error that can happen during manipulation.
     NodeError(indextree::NodeError),
 
@@ -105,10 +108,10 @@ pub enum Error {
 
     /// Illegal content that can never appear under a document node, such as an
     /// attribute or a namespace node
-    IllegalAtTopLevel(Node),
+    IllegalAtTopLevel(N),
     /// A text node at top level is not allowed in a well formed document,
     /// but it is accepted as a fragment.
-    TextAtTopLevel(Node),
+    TextAtTopLevel(N),
     /// Missing document element at top level
     NoElementAtTopLevel,
     /// Multiple document elements at top level

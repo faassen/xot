@@ -5,7 +5,7 @@ use crate::levelorder::{level_order_traverse, LevelOrder};
 use crate::nodemap::{category_predicate, Attributes, Namespaces};
 use crate::output::NamespaceDeclarations;
 use crate::xmlvalue::{Value, ValueCategory, ValueType};
-use crate::xotdata::{Node, Xot};
+use crate::xotdata::{Node, ReadNode, Xot};
 use crate::{NameId, NamespaceId, PrefixId, Prefixes};
 
 /// Traversal axis.
@@ -187,7 +187,7 @@ impl Xot {
     /// let p_name = xot.name("p").unwrap();
     /// assert_eq!(xot.element(doc_el).unwrap().name(), p_name);
     /// ```
-    pub fn document_element(&self, node: Node) -> Result<Node, Error> {
+    pub fn document_element<N: ReadNode>(&self, node: N) -> Result<N, Error<N>> {
         if self.value_type(node) != ValueType::Document {
             return Err(Error::NotDocument(node));
         }
@@ -221,7 +221,7 @@ impl Xot {
     /// If there is a illegal content (a namespace node, an attribute node
     /// or a document node) at the top level under a document node,
     /// this produces a [`Error::IllegalAtTopLevel`] error.
-    pub fn validate_well_formed_document(&self, node: Node) -> Result<(), Error> {
+    pub fn validate_well_formed_document<N: ReadNode>(&self, node: N) -> Result<(), Error<N>> {
         if self.value_type(node) != ValueType::Document {
             return Err(Error::NotDocument(node));
         }
@@ -256,7 +256,7 @@ impl Xot {
     /// In a XML document fragment this is the top element, but it may
     /// have siblings.
     /// If it's an unattached tree, it's the top node of that tree
-    pub fn top_element(&self, node: Node) -> Node {
+    pub fn top_element<N: ReadNode>(&self, node: N) -> N {
         if self.value_type(node) == ValueType::Document {
             return self.document_element(node).unwrap();
         }
@@ -274,7 +274,7 @@ impl Xot {
     ///
     /// This is the document node if possible (in a document or fragment), but
     /// in an unattached tree this is the root of that tree.
-    pub fn root(&self, node: Node) -> Node {
+    pub fn root<N: ReadNode>(&self, node: N) -> N {
         self.ancestors(node).last().unwrap()
     }
 
@@ -294,7 +294,7 @@ impl Xot {
     /// assert_eq!(xot.to_string(root).unwrap(), "<p/>");
     /// assert!(xot.is_removed(text));
     /// ```
-    pub fn is_removed(&self, node: Node) -> bool {
+    pub fn is_removed<N: ReadNode>(&self, node: N) -> bool {
         self.arena()[node.get()].is_removed()
     }
 
@@ -315,26 +315,35 @@ impl Xot {
     /// assert_eq!(xot.parent(p), Some(root));
     /// assert_eq!(xot.parent(root), None);
     /// ```
-    pub fn parent(&self, node: Node) -> Option<Node> {
-        self.arena()[node.get()].parent().map(Node::new)
+    pub fn parent<N: ReadNode>(&self, node: N) -> Option<N> {
+        self.arena()[node.get()].parent().map(N::new)
     }
 
-    pub(crate) fn all_children(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
-        node.get().children(&self.arena).map(Node::new)
+    pub(crate) fn all_children<'a, N: ReadNode + 'a>(
+        &'a self,
+        node: N,
+    ) -> impl Iterator<Item = N> + 'a {
+        node.get().children(&self.arena).map(N::new)
     }
 
-    pub(crate) fn abnormal_children(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+    pub(crate) fn abnormal_children<'a, N: ReadNode + 'a>(
+        &'a self,
+        node: N,
+    ) -> impl Iterator<Item = N> + 'a {
         node.get()
             .children(&self.arena)
             .take_while(|n| !self.arena[*n].get().is_normal())
-            .map(Node::new)
+            .map(N::new)
     }
 
-    pub(crate) fn normal_children(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+    pub(crate) fn normal_children<'a, N: ReadNode + 'a>(
+        &'a self,
+        node: N,
+    ) -> impl Iterator<Item = N> + 'a {
         node.get()
             .children(&self.arena)
             .skip_while(|n| !self.arena[*n].get().is_normal())
-            .map(Node::new)
+            .map(N::new)
     }
 
     /// Attributes accessor.
@@ -354,7 +363,7 @@ impl Xot {
     ///
     /// assert_eq!(attributes.get(a), Some(&"A".to_string()));
     /// ```
-    pub fn attributes(&self, node: Node) -> Attributes {
+    pub fn attributes<N: ReadNode>(&self, node: N) -> Attributes<N> {
         Attributes::new(self, node)
     }
 
@@ -362,7 +371,7 @@ impl Xot {
     ///
     /// Note that if this is invoked non a non-element it's always going to
     /// return None
-    pub fn get_attribute(&self, node: Node, name: NameId) -> Option<&str> {
+    pub fn get_attribute<N: ReadNode>(&self, node: N, name: NameId) -> Option<&str> {
         self.attributes(node).get(name).map(String::as_str)
     }
 
@@ -384,7 +393,7 @@ impl Xot {
     ///
     /// assert_eq!(namespaces.get(foo_prefix), Some(&foo_ns));
     /// ```
-    pub fn namespaces(&self, node: Node) -> Namespaces {
+    pub fn namespaces<N: ReadNode>(&self, node: N) -> Namespaces<N> {
         Namespaces::new(self, node)
     }
 
@@ -392,7 +401,7 @@ impl Xot {
     ///
     /// Note that if this is invoked non a non-element it's always going to
     /// return None
-    pub fn get_namespace(&self, node: Node, prefix: PrefixId) -> Option<NamespaceId> {
+    pub fn get_namespace<N: ReadNode>(&self, node: N, prefix: PrefixId) -> Option<NamespaceId> {
         self.namespaces(node).get(prefix).copied()
     }
 
@@ -400,7 +409,7 @@ impl Xot {
     ///
     /// Sometimes it's more convenient to work with a hash table of
     /// prefixes as opposed to the dynamic [`Xot::namespaces`] node map.
-    pub fn prefixes(&self, node: Node) -> Prefixes {
+    pub fn prefixes<N: ReadNode>(&self, node: N) -> Prefixes {
         let mut prefixes = Prefixes::new();
         for (prefix, ns) in self.namespaces(node).iter() {
             prefixes.insert(prefix, *ns);
@@ -409,19 +418,22 @@ impl Xot {
     }
 
     /// Copy the namespace declarations as a namespace declarations vec.
-    pub fn namespace_declarations(&self, node: Node) -> NamespaceDeclarations {
+    pub fn namespace_declarations<N: ReadNode>(&self, node: N) -> NamespaceDeclarations {
         self.namespaces(node)
             .iter()
             .map(|(prefix, ns)| (prefix, *ns))
             .collect()
     }
 
-    pub(crate) fn has_namespace_declarations(&self, node: Node) -> bool {
+    pub(crate) fn has_namespace_declarations<N: ReadNode>(&self, node: N) -> bool {
         self.namespaces(node).iter().next().is_some()
     }
 
     /// Access the attribute nodes directly.
-    pub fn attribute_nodes(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+    pub fn attribute_nodes<'a, N: ReadNode + 'a>(
+        &'a self,
+        node: N,
+    ) -> impl Iterator<Item = N> + 'a {
         self.all_children(node)
             .skip_while(category_predicate(self, ValueCategory::Namespace))
             .take_while(category_predicate(self, ValueCategory::Attribute))
@@ -440,17 +452,17 @@ impl Xot {
     /// assert_eq!(xot.first_child(p), Some(text));
     /// assert_eq!(xot.first_child(text), None);
     /// ```
-    pub fn first_child(&self, node: Node) -> Option<Node> {
+    pub fn first_child<N: ReadNode>(&self, node: N) -> Option<N> {
         self.normal_children(node).next()
     }
 
     /// Get last child.
     ///
     /// Returns [`None`] if there are no children.
-    pub fn last_child(&self, node: Node) -> Option<Node> {
+    pub fn last_child<N: ReadNode>(&self, node: N) -> Option<N> {
         let last_child = self.arena[node.get()].last_child()?;
         if self.arena[last_child].get().is_normal() {
-            Some(Node::new(last_child))
+            Some(N::new(last_child))
         } else {
             None
         }
@@ -473,27 +485,27 @@ impl Xot {
     /// let b = xot.next_sibling(a).unwrap();
     /// assert_eq!(xot.next_sibling(b), None);
     /// ```
-    pub fn next_sibling(&self, node: Node) -> Option<Node> {
+    pub fn next_sibling<N: ReadNode>(&self, node: N) -> Option<N> {
         let current_category = self.arena[node.get()].get().value_category();
         let next_sibling = self.arena[node.get()].next_sibling()?;
         let next_category = self.arena[next_sibling].get().value_category();
         if current_category != next_category {
             return None;
         }
-        Some(Node::new(next_sibling))
+        Some(N::new(next_sibling))
     }
 
     /// Get previous sibling.
     ///
     /// Returns [`None`] if there is no previous sibling.
-    pub fn previous_sibling(&self, node: Node) -> Option<Node> {
+    pub fn previous_sibling<N: ReadNode>(&self, node: N) -> Option<N> {
         let current_category = self.arena[node.get()].get().value_category();
         let previous_sibling = self.arena[node.get()].previous_sibling()?;
         let previous_category = self.arena[previous_sibling].get().value_category();
         if current_category != previous_category {
             return None;
         }
-        Some(Node::new(previous_sibling))
+        Some(N::new(previous_sibling))
     }
 
     /// Iterator over ancestor nodes, including this one.
@@ -512,8 +524,8 @@ impl Xot {
     /// let ancestors = xot.ancestors(c).collect::<Vec<_>>();
     /// assert_eq!(ancestors, vec![c, b, a, root]);
     /// ```
-    pub fn ancestors(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
-        node.get().ancestors(self.arena()).map(Node::new)
+    pub fn ancestors<'a, N: ReadNode + 'a>(&'a self, node: N) -> impl Iterator<Item = N> + 'a {
+        node.get().ancestors(self.arena()).map(N::new)
     }
 
     /// Iterator over the child nodes of this node.
@@ -531,7 +543,7 @@ impl Xot {
     ///
     /// assert_eq!(children, vec![a, b]);
     /// ```
-    pub fn children(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+    pub fn children<'a, N: ReadNode + 'a>(&'a self, node: N) -> impl Iterator<Item = N> + 'a {
         self.normal_children(node)
     }
 
@@ -550,7 +562,7 @@ impl Xot {
     /// assert_eq!(xot.child_index(p, b), Some(1));
     /// assert_eq!(xot.child_index(a, b), None);
     /// ```
-    pub fn child_index(&self, parent: Node, child: Node) -> Option<usize> {
+    pub fn child_index<N: ReadNode>(&self, parent: N, child: N) -> Option<usize> {
         if self.parent(child) != Some(parent) {
             return None;
         }
@@ -558,12 +570,15 @@ impl Xot {
     }
 
     /// Iterator over the child nodes of this node, in reverse order.
-    pub fn reverse_children(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+    pub fn reverse_children<'a, N: ReadNode + 'a>(
+        &'a self,
+        node: N,
+    ) -> impl Iterator<Item = N> + 'a {
         node.get()
             .children(self.arena())
             .rev()
             .take_while(|n| self.arena[*n].get().is_normal())
-            .map(Node::new)
+            .map(N::new)
     }
 
     fn normal_filter(&self) -> impl Fn(&indextree::NodeId) -> bool + '_ {
@@ -599,11 +614,11 @@ impl Xot {
     /// let descendants = xot.descendants(a).collect::<Vec<_>>();
     /// assert_eq!(descendants, vec![a, b, c]);
     /// ```
-    pub fn descendants(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+    pub fn descendants<'a, N: ReadNode + 'a>(&'a self, node: N) -> impl Iterator<Item = N> + 'a {
         node.get()
             .descendants(self.arena())
             .filter(self.normal_filter())
-            .map(Node::new)
+            .map(N::new)
     }
 
     /// All the descendants of this node.
@@ -611,8 +626,11 @@ impl Xot {
     /// This includes this one, and namespace and attribute nodes,
     /// all in document order, where namespace nodes come before
     /// attribute nodes and attribute nodes come before normal children
-    pub fn all_descendants(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
-        node.get().descendants(self.arena()).map(Node::new)
+    pub fn all_descendants<'a, N: ReadNode + 'a>(
+        &'a self,
+        node: N,
+    ) -> impl Iterator<Item = N> + 'a {
+        node.get().descendants(self.arena()).map(N::new)
     }
 
     /// Iterator over the following siblings of this node, including this one.
@@ -632,21 +650,27 @@ impl Xot {
     /// let siblings = xot.following_siblings(b).collect::<Vec<_>>();
     /// assert_eq!(siblings, vec![b, c]);
     /// ```
-    pub fn following_siblings(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+    pub fn following_siblings<'a, N: ReadNode + 'a>(
+        &'a self,
+        node: N,
+    ) -> impl Iterator<Item = N> + 'a {
         let current_category = self.arena[node.get()].get().value_category();
         node.get()
             .following_siblings(self.arena())
             .filter(self.category_filter(current_category))
-            .map(Node::new)
+            .map(N::new)
     }
 
     /// Iterator over the preceding siblings of this node.
-    pub fn preceding_siblings(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+    pub fn preceding_siblings<'a, N: ReadNode + 'a>(
+        &'a self,
+        node: N,
+    ) -> impl Iterator<Item = N> + 'a {
         let current_category = self.arena[node.get()].get().value_category();
         node.get()
             .preceding_siblings(self.arena())
             .filter(self.category_filter(current_category))
-            .map(Node::new)
+            .map(N::new)
     }
 
     /// Following nodes in document order
@@ -671,9 +695,9 @@ impl Xot {
     /// let siblings = xot.following(c).collect::<Vec<_>>();
     /// assert_eq!(siblings, vec![d, e, f, g, h]);
     /// ```
-    pub fn following(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+    pub fn following<'a, N: ReadNode + 'a>(&'a self, node: N) -> impl Iterator<Item = N> + 'a {
         // start with an empty iterator
-        let mut joined_iterator: Box<dyn Iterator<Item = Node>> = Box::new(std::iter::empty());
+        let mut joined_iterator: Box<dyn Iterator<Item = N>> = Box::new(std::iter::empty());
         let mut current_parent = Some(node);
         while let Some(parent) = current_parent {
             let mut current_sibling = parent;
@@ -712,9 +736,9 @@ impl Xot {
     /// let siblings = xot.preceding(h).collect::<Vec<_>>();
     /// assert_eq!(siblings, vec![g, e, d, c, b, a]);
     /// ```
-    pub fn preceding(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+    pub fn preceding<'a, N: ReadNode + 'a>(&'a self, node: N) -> impl Iterator<Item = N> + 'a {
         // start with an empty iterator
-        let mut joined_iterator: Box<dyn Iterator<Item = Node>> = Box::new(std::iter::empty());
+        let mut joined_iterator: Box<dyn Iterator<Item = N>> = Box::new(std::iter::empty());
         let mut current_parent = Some(node);
         while let Some(parent) = current_parent {
             let mut current_sibling = parent;
@@ -764,7 +788,7 @@ impl Xot {
     ///  xot::NodeEdge::End(a),
     /// ]);
     /// ```
-    pub fn traverse(&self, node: Node) -> impl Iterator<Item = NodeEdge> + '_ {
+    pub fn traverse<N: ReadNode>(&self, node: N) -> impl Iterator<Item = NodeEdge> + '_ {
         node.get()
             .traverse(self.arena())
             .filter(self.normal_edge_filter())
@@ -775,7 +799,7 @@ impl Xot {
     }
 
     /// Traverse nodes, including namespace and attribute nodes.
-    pub fn all_traverse(&self, node: Node) -> impl Iterator<Item = NodeEdge> + '_ {
+    pub fn all_traverse<N: ReadNode>(&self, node: N) -> impl Iterator<Item = NodeEdge> + '_ {
         node.get().traverse(self.arena()).map(|edge| match edge {
             IndexTreeNodeEdge::Start(node_id) => NodeEdge::Start(Node::new(node_id)),
             IndexTreeNodeEdge::End(node_id) => NodeEdge::End(Node::new(node_id)),
@@ -785,7 +809,7 @@ impl Xot {
     /// Traverse over node edges in reverse order.
     ///
     /// Like [`Xot::traverse`] but in reverse order.
-    pub fn reverse_traverse(&self, node: Node) -> impl Iterator<Item = NodeEdge> + '_ {
+    pub fn reverse_traverse<N: ReadNode>(&self, node: N) -> impl Iterator<Item = NodeEdge> + '_ {
         node.get()
             .reverse_traverse(self.arena())
             .filter(self.normal_edge_filter())
@@ -833,7 +857,10 @@ impl Xot {
     ///   xot::LevelOrder::End,
     /// ]);
     /// ```
-    pub fn level_order(&self, node: Node) -> impl Iterator<Item = LevelOrder> + '_ {
+    pub fn level_order<'a, N: ReadNode + 'a>(
+        &'a self,
+        node: N,
+    ) -> impl Iterator<Item = LevelOrder<N>> + 'a {
         level_order_traverse(self, node)
     }
 
@@ -843,7 +870,11 @@ impl Xot {
     /// XPath.
     ///
     /// `<https://developer.mozilla.org/en-US/docs/Web/XPath/Axes>`
-    pub fn axis(&self, axis: Axis, node: Node) -> Box<dyn Iterator<Item = Node> + '_> {
+    pub fn axis<'a, N: ReadNode + 'a>(
+        &'a self,
+        axis: Axis,
+        node: N,
+    ) -> Box<dyn Iterator<Item = N> + 'a> {
         use Axis::*;
         match axis {
             Child => Box::new(self.children(node)),

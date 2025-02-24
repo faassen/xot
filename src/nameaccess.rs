@@ -8,7 +8,7 @@ use crate::id::{Name, NameId, NamespaceId, PrefixId};
 use crate::output::FullnameSerializer;
 use crate::xmlvalue::Prefixes;
 use crate::xotdata::{Node, Xot};
-use crate::{xmlname, Value};
+use crate::{xmlname, ReadNode, Value};
 
 /// ## Names, namespaces and prefixes.
 ///
@@ -511,7 +511,11 @@ impl Xot {
     /// Find prefix for a namespace in node or ancestors.
     ///
     /// Returns `None` if no prefix is defined for the namespace.
-    pub fn prefix_for_namespace(&self, node: Node, namespace: NamespaceId) -> Option<PrefixId> {
+    pub fn prefix_for_namespace<N: ReadNode>(
+        &self,
+        node: N,
+        namespace: NamespaceId,
+    ) -> Option<PrefixId> {
         let mut seen = HashSet::default();
 
         for ancestor in self.ancestors(node) {

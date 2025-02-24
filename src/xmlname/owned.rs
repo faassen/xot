@@ -1,4 +1,4 @@
-use crate::{Error, Xot};
+use crate::{Error, Node, Xot};
 
 use super::CreateName;
 use super::{reference::NameStrInfo, RefName};
@@ -80,7 +80,7 @@ impl OwnedName {
         local_name: String,
         namespace: String,
         prefix_lookup: impl Fn(&str) -> Option<String>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, Error<Node>> {
         let prefix =
             prefix_lookup(&namespace).ok_or_else(|| Error::MissingPrefix(namespace.clone()))?;
         Ok(Self {
@@ -95,7 +95,7 @@ impl OwnedName {
         prefix: &str,
         local_name: &str,
         lookup_namespace: impl Fn(&str) -> Option<String>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, Error<Node>> {
         let namespace =
             lookup_namespace(prefix).ok_or_else(|| Error::UnknownPrefix(prefix.to_string()))?;
         Ok(Self {
@@ -111,7 +111,7 @@ impl OwnedName {
     pub fn parse_full_name(
         full_name: &str,
         lookup_namespace: impl Fn(&str) -> Option<String>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, Error<Node>> {
         let (prefix, local_name) = parse_full_name(full_name);
         Self::prefixed(prefix, local_name, lookup_namespace)
     }

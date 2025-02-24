@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::id::{NameId, NamespaceId, PrefixId};
 use crate::xotdata::Xot;
-use crate::{Error, Node};
+use crate::{Error, Node, ReadNode};
 
 use super::owned::OwnedName;
 
@@ -112,7 +112,11 @@ impl<'a> RefName<'a> {
         self.prefix_id
     }
 
-    pub(crate) fn from_node(xot: &'a Xot, node: Node, name_id: NameId) -> Result<Self, Error> {
+    pub(crate) fn from_node<N: ReadNode>(
+        xot: &'a Xot,
+        node: N,
+        name_id: NameId,
+    ) -> Result<Self, Error<N>> {
         let namespace_id = xot.namespace_for_name(name_id);
         let prefix_id = if namespace_id != xot.no_namespace() {
             xot.prefix_for_namespace(node, namespace_id)

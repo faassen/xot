@@ -2,13 +2,13 @@
 
 use ahash::AHashMap;
 
-use crate::{xmlvalue::ValueCategory, Node, Value, Xot};
+use crate::{xmlvalue::ValueCategory, Node, ReadNode, Value, Xot};
 
 use super::entry::{Entry, OccupiedEntry, VacantEntry};
 
 pub trait ValueAdapter<K, V> {
     fn matches(value: &Value) -> bool;
-    fn children(xot: &Xot, parent: Node) -> impl Iterator<Item = Node> + '_;
+    fn children<'a, N: ReadNode + 'a>(xot: &'a Xot, parent: N) -> impl Iterator<Item = N> + 'a;
     // new node insertion point is either node whether it should be inserted after,
     // or if None, prepend in the beginning
     fn insertion_point(xot: &Xot, parent: Node) -> Option<Node>;
@@ -24,34 +24,36 @@ pub trait ValueAdapter<K, V> {
 ///
 /// You obtain one through the APIs [`Xot::attributes`] and [`Xot::namespaces`].
 #[derive(Debug)]
-pub struct NodeMap<'a, K, V, A: ValueAdapter<K, V>>
+pub struct NodeMap<'a, K, V, A: ValueAdapter<K, V>, N: ReadNode>
 where
     K: PartialEq + Eq + Clone + Copy,
     V: Clone,
 {
     xot: &'a Xot,
-    parent: Node,
+    parent: N,
     _k: std::marker::PhantomData<K>,
     _v: std::marker::PhantomData<V>,
     _a: std::marker::PhantomData<A>,
+    _n: std::marker::PhantomData<N>,
 }
 
-impl<'a, K, V, A: ValueAdapter<K, V>> NodeMap<'a, K, V, A>
+impl<'a, K, V, A: ValueAdapter<K, V>, N: ReadNode> NodeMap<'a, K, V, A, N>
 where
     K: PartialEq + Eq + Clone + Copy + std::hash::Hash,
     V: Clone + 'a,
 {
-    pub(crate) fn new(xot: &'a Xot, parent: Node) -> Self {
+    pub(crate) fn new(xot: &'a Xot, parent: N) -> Self {
         Self {
             xot,
             parent,
             _k: std::marker::PhantomData,
             _v: std::marker::PhantomData,
             _a: std::marker::PhantomData,
+            _n: std::marker::PhantomData,
         }
     }
 
-    fn children(&self) -> impl Iterator<Item = Node> + '_ {
+    fn children(&self) -> impl Iterator<Item = N> + '_ {
         A::children(self.xot, self.parent)
     }
 
@@ -59,7 +61,7 @@ where
     ///
     /// This is an attribute or namespace node. This node has the
     /// element node as a parent, even though it's not in `xot.children(parent)`.
-    pub fn get_node(&self, key: impl Into<K> + Copy) -> Option<Node> {
+    pub fn get_node(&self, key: impl Into<K> + Copy) -> Option<N> {
         self.children()
             .find(|&child| A::key(self.xot.value(child)) == key.into())
     }
@@ -119,7 +121,7 @@ where
     }
 
     /// An iterator visiting all the nodes in insertion order.
-    pub fn nodes(&self) -> impl Iterator<Item = Node> + '_ {
+    pub fn nodes(&self) -> impl Iterator<Item = N> + '_ {
         self.children()
     }
 
@@ -367,10 +369,10 @@ where
     }
 }
 
-pub(crate) fn category_predicate(
+pub(crate) fn category_predicate<N: ReadNode>(
     xot: &Xot,
     category: ValueCategory,
-) -> impl Fn(&Node) -> bool + '_ {
+) -> impl Fn(&N) -> bool + '_ {
     move |node| xot.value(*node).value_category() == category
 }
 

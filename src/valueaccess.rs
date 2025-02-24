@@ -3,7 +3,7 @@ use crate::xmlvalue::{
     Attribute, Comment, Element, Namespace, ProcessingInstruction, Text, Value, ValueType,
 };
 use crate::xotdata::{Node, Xot};
-use crate::NameId;
+use crate::{NameId, ReadNode};
 
 /// ## Value and type access
 impl Xot {
@@ -31,7 +31,7 @@ impl Xot {
     /// only interested in a single type, you can use the convenience
     /// methods like [`Xot::element`].
     #[inline]
-    pub fn value(&self, node_id: Node) -> &Value {
+    pub fn value<N: ReadNode>(&self, node_id: N) -> &Value {
         self.arena[node_id.get()].get()
     }
 
@@ -65,7 +65,7 @@ impl Xot {
     }
 
     /// Get the [`ValueType`](crate::xmlvalue::ValueType) of a node.
-    pub fn value_type(&self, node: Node) -> ValueType {
+    pub fn value_type<N: ReadNode>(&self, node: N) -> ValueType {
         self.value(node).value_type()
     }
 

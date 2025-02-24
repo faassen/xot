@@ -29,6 +29,28 @@ impl From<NodeId> for Node {
     }
 }
 
+pub trait ReadNode: std::fmt::Debug + Copy + Clone + PartialEq + Eq + std::hash::Hash {
+    fn new(node_id: NodeId) -> Self;
+
+    fn get(&self) -> NodeId;
+}
+
+pub trait WriteNode: ReadNode {}
+
+impl ReadNode for Node {
+    #[inline]
+    fn new(node_id: NodeId) -> Self {
+        Node(node_id)
+    }
+
+    #[inline]
+    fn get(&self) -> NodeId {
+        self.0
+    }
+}
+
+impl WriteNode for Node {}
+
 /// The `Xot` struct manages all XML tree data in your program. It lets you
 /// access and manipulate one or more XML documents and
 /// fragments, as well as unattached trees of nodes.

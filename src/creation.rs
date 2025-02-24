@@ -63,7 +63,7 @@ impl Xot {
     /// assert_eq!(xot.to_string(document)?, "<doc>Hello, world!</doc>");
     /// # Ok::<(), xot::Error>(())
     /// ```
-    pub fn new_document_with_element(&mut self, node: Node) -> Result<Node, Error> {
+    pub fn new_document_with_element(&mut self, node: Node) -> Result<Node, Error<Node>> {
         if !self.is_element(node) {
             return Err(Error::InvalidOperation(
                 "You must supply an element node".to_string(),

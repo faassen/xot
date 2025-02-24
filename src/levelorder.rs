@@ -3,22 +3,28 @@ use genawaiter::yield_;
 
 use std::collections::VecDeque;
 
-use crate::xotdata::{Node, Xot};
+use crate::{
+    xotdata::{Node, Xot},
+    ReadNode,
+};
 
 /// Node in level order
 ///
 /// Used by [`Xot::level_order`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum LevelOrder {
+pub enum LevelOrder<N: ReadNode> {
     /// A node
-    Node(Node),
+    Node(N),
     /// The end of a sequence of nodes.
     End,
 }
 
 // traverse the tree in level order, meaning subsequent children are traversed first
 // when a sequence of children comes to an end, a LevelOrder::End is yielded
-pub(crate) fn level_order_traverse(xot: &Xot, node: Node) -> impl Iterator<Item = LevelOrder> + '_ {
+pub(crate) fn level_order_traverse<'a, N: ReadNode + 'a>(
+    xot: &'a Xot,
+    node: N,
+) -> impl Iterator<Item = LevelOrder<N>> + 'a {
     gen!({
         let mut queue = VecDeque::new();
         queue.push_back(node);

@@ -94,4 +94,4 @@ pub use serialize::Html5;
 pub use xmlvalue::{
     Attribute, Comment, Element, Namespace, Prefixes, ProcessingInstruction, Text, Value, ValueType,
 };
-pub use xotdata::{Node, Xot};
+pub use xotdata::{Node, ReadNode, WriteNode, Xot};

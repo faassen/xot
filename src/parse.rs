@@ -7,7 +7,7 @@ use crate::entity::{parse_attribute, parse_text};
 use crate::error::ParseError;
 use crate::id::{Name, NameId, PrefixId};
 use crate::xmlvalue::{Attribute, Comment, Element, Namespace, ProcessingInstruction, Text, Value};
-use crate::xotdata::{Node, Xot};
+use crate::xotdata::{Node, ReadNode, Xot};
 use crate::NamespaceId;
 
 type Namespaces = Vec<(PrefixId, NamespaceId)>;
@@ -768,6 +768,10 @@ impl Xot {
     /// # Ok::<(), xot::Error>(())
     /// ```
     pub fn parse(&mut self, xml: &str) -> Result<Node, ParseError> {
+        self.parse_with_span_info(xml).map(|(node, _)| node)
+    }
+
+    pub fn parse_readonly(&mut self, xml: &str) -> Result<impl ReadNode, ParseError> {
         self.parse_with_span_info(xml).map(|(node, _)| node)
     }
 
