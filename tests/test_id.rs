@@ -58,8 +58,30 @@ fn test_id_no_duplicates_in_doc() {
 }
 
 #[test]
+fn test_id_that_are_not_duplicates() {
+    let mut xot = Xot::new();
+    let r = xot.parse(r#"<doc><a xml:id="FOO"/><b xml:id="BAR"/></doc>"#);
+    assert!(r.is_ok());
+}
+
+#[test]
 fn test_other_duplicate_attributes_are_fine() {
     let mut xot = Xot::new();
     let r = xot.parse(r#"<doc><a x="FOO"/><b x="FOO"/></doc>"#);
     assert!(r.is_ok());
+}
+
+#[test]
+fn xml_id_node() {
+    let mut xot = Xot::new();
+    let root = xot
+        .parse(r#"<doc><a xml:id="FOO"/><b xml:id="BAR"/></doc>"#)
+        .unwrap();
+    let doc = xot.document_element(root).unwrap();
+    let a = xot.first_child(doc).unwrap();
+    let b = xot.next_sibling(a).unwrap();
+
+    assert_eq!(xot.xml_id_node(root, "FOO"), Some(a));
+    assert_eq!(xot.xml_id_node(root, "BAR"), Some(b));
+    assert_eq!(xot.xml_id_node(root, "QUX"), None);
 }

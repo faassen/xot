@@ -892,4 +892,13 @@ impl Xot {
             Attribute => Box::new(self.attribute_nodes(node)),
         }
     }
+
+    /// Get (element) node in a document node that has an xml:id attribute of
+    /// given value.
+    ///
+    /// If that id does not exist, returns [`None`].
+    pub fn xml_id_node(&self, document_node: Node, value: &str) -> Option<Node> {
+        let value_nodes = self.id_nodes_map.get(&document_node.get())?;
+        value_nodes.get(value).map(|node_id| Node::new(*node_id))
+    }
 }

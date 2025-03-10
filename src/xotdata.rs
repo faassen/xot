@@ -49,8 +49,8 @@ impl From<NodeId> for Node {
 #[derive(Debug, Clone)]
 pub struct Xot {
     pub(crate) arena: XmlArena,
-    // a mapping of document node to vectors of id attributes (in document order)
-    pub(crate) id_nodes: HashMap<Node, Vec<Node>>,
+    // a mapping of document node, to hashmap of node value to node with that id
+    pub(crate) id_nodes_map: HashMap<NodeId, HashMap<String, NodeId>>,
     pub(crate) namespace_lookup: NamespaceLookup,
     pub(crate) prefix_lookup: PrefixLookup,
     pub(crate) name_lookup: NameLookup,
@@ -77,7 +77,7 @@ impl Xot {
         let xml_id_id = name_lookup.get_id_mut(&Name::new("id", xml_namespace_id));
         Xot {
             arena: XmlArena::new(),
-            id_nodes: HashMap::new(),
+            id_nodes_map: HashMap::new(),
             namespace_lookup,
             prefix_lookup,
             name_lookup,

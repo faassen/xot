@@ -49,6 +49,7 @@ struct DocumentBuilder {
     name_id_builder: NameIdBuilder,
     element_builder: Option<ElementBuilder>,
     seen_ids: HashSet<String>,
+    id_nodes: HashMap<String, NodeId>,
     xml_id_id: NameId,
 }
 
@@ -64,6 +65,7 @@ impl DocumentBuilder {
             name_id_builder,
             element_builder: None,
             seen_ids: HashSet::new(),
+            id_nodes: HashMap::new(),
             xml_id_id: xot.xml_id_id,
         }
     }
@@ -164,6 +166,8 @@ impl DocumentBuilder {
                 attribute_builder.prefix_span,
                 xot,
             )?;
+            // if we see xml:id, check that they aren't a duplicate
+            // and keep track of all node ids that have an xml:id
             if name_id == self.xml_id_id {
                 if self.seen_ids.contains(&attribute_builder.value) {
                     return Err(ParseError::DuplicateId(
@@ -172,6 +176,9 @@ impl DocumentBuilder {
                     ));
                 }
                 self.seen_ids.insert(attribute_builder.value.clone());
+                // use entry api to add node id for the value given
+                self.id_nodes
+                    .insert(attribute_builder.value.clone(), node_id);
             }
 
             let attribute_node = xot.arena.new_node(Value::Attribute(Attribute {
@@ -587,6 +594,8 @@ impl Xot {
                         .unwrap(),
                 ));
             }
+            self.id_nodes_map
+                .insert(document_node.get(), builder.id_nodes);
             Ok((document_node, span_info))
         } else {
             let current_node = Node::new(builder.current_node_id);
@@ -623,6 +632,8 @@ impl Xot {
         let (span_info, builder) = self._parse(tokenizer)?;
         if builder.is_current_node_document(self) {
             let document_node = Node::new(builder.tree);
+            self.id_nodes_map
+                .insert(document_node.get(), builder.id_nodes);
             Ok((document_node, span_info))
         } else {
             let current_node = Node::new(builder.current_node_id);
