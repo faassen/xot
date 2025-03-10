@@ -1,4 +1,4 @@
-use xot::{Error, ParseError, Xot};
+use xot::{ParseError, Xot};
 
 #[test]
 fn test_id_normalized_prefix_postfix() {
@@ -84,4 +84,12 @@ fn xml_id_node() {
     assert_eq!(xot.xml_id_node(root, "FOO"), Some(a));
     assert_eq!(xot.xml_id_node(root, "BAR"), Some(b));
     assert_eq!(xot.xml_id_node(root, "QUX"), None);
+}
+
+#[test]
+fn xml_id_node_none_available() {
+    let mut xot = Xot::new();
+    let root = xot.parse(r#"<doc></doc>"#).unwrap();
+
+    assert_eq!(xot.xml_id_node(root, "FOO"), None);
 }
