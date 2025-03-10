@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.28.1] - 2025-03-10
+
 ### Features added
 
 - The parser now accepts documents with an XML declaration including `standalone=no`. These
@@ -869,7 +871,8 @@ Processing instruction `target` is now a `xot::NameId`, not a string.
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.28.0...HEAD
+[Unreleased]: https://github.com/faassen/xot/compare/v0.28.1...HEAD
+[0.28.1]: https://github.com/faassen/xot/compare/v0.28.0...v0.28.1
 [0.28.0]: https://github.com/faassen/xot/compare/v0.27.1...v0.28.0
 [0.27.1]: https://github.com/faassen/xot/compare/v0.27.0...v0.27.1
 [0.27.0]: https://github.com/faassen/xot/compare/v0.26.0...v0.27.0
