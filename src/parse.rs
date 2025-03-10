@@ -1,4 +1,4 @@
-use ahash::{HashMap, HashMapExt};
+use ahash::{HashMap, HashMapExt, HashSet, HashSetExt};
 use indextree::NodeId;
 use xmlparser::{ElementEnd, StrSpan, Token, Tokenizer};
 
@@ -48,6 +48,8 @@ struct DocumentBuilder {
     current_node_id: NodeId,
     name_id_builder: NameIdBuilder,
     element_builder: Option<ElementBuilder>,
+    seen_ids: HashSet<String>,
+    xml_id_id: NameId,
 }
 
 impl DocumentBuilder {
@@ -61,6 +63,8 @@ impl DocumentBuilder {
             current_node_id: document,
             name_id_builder,
             element_builder: None,
+            seen_ids: HashSet::new(),
+            xml_id_id: xot.xml_id_id,
         }
     }
 
@@ -160,6 +164,16 @@ impl DocumentBuilder {
                 attribute_builder.prefix_span,
                 xot,
             )?;
+            if name_id == self.xml_id_id {
+                if self.seen_ids.contains(&attribute_builder.value) {
+                    return Err(ParseError::DuplicateId(
+                        attribute_builder.value,
+                        attribute_builder.value_span,
+                    ));
+                }
+                self.seen_ids.insert(attribute_builder.value.clone());
+            }
+
             let attribute_node = xot.arena.new_node(Value::Attribute(Attribute {
                 name_id,
                 value: attribute_builder.value,

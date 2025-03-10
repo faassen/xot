@@ -21,7 +21,10 @@ pub enum ParseError {
     UnsupportedVersion(String, Span),
     /// Unsupported standalone declaration. This error is deprecated since version 0.29, and both
     /// "yes" and "no" values are accepted for the standalone declaration.
-    #[deprecated(since = "0.2.9", note = "The value of the standalone declaration is now ignored")]
+    #[deprecated(
+        since = "0.2.9",
+        note = "The value of the standalone declaration is now ignored"
+    )]
     UnsupportedNotStandalone(Span),
     /// XML DTD is not supported.
     DtdUnsupported(Span),
@@ -31,6 +34,8 @@ pub enum ParseError {
     MultipleElementsAtTopLevel(Span),
     /// Text at top level is not allowed in a well-formed document.
     TextAtTopLevel(Span),
+    /// Duplicate xml:id is not allowed
+    DuplicateId(String, Span),
     /// xmlparser error
     XmlParser(xmlparser::Error, usize),
 }
@@ -52,6 +57,7 @@ impl ParseError {
             ParseError::NoElementAtTopLevel(position) => Span::new(*position, *position),
             ParseError::MultipleElementsAtTopLevel(span) => *span,
             ParseError::TextAtTopLevel(span) => *span,
+            ParseError::DuplicateId(_, span) => *span,
             ParseError::XmlParser(_, position) => Span::new(*position, *position),
         }
     }
@@ -187,6 +193,7 @@ impl std::fmt::Display for ParseError {
                 write!(f, "Multiple elements at top level")
             }
             ParseError::TextAtTopLevel(_) => write!(f, "Text at top level"),
+            ParseError::DuplicateId(s, _) => write!(f, "Duplicate xml:id: {}", s),
             ParseError::XmlParser(e, _position) => write!(f, "Parser error: {}", e),
         }
     }

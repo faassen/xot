@@ -1,4 +1,4 @@
-use xot::Xot;
+use xot::{Error, ParseError, Xot};
 
 #[test]
 fn test_id_normalized_prefix_postfix() {
@@ -39,4 +39,27 @@ fn test_id_normalized_newline() {
     // newline is cleaned up due to normal attribute value processing,
     // then subsequently cleaned up with xml:id processing
     assert_eq!(id, "FOO");
+}
+
+#[test]
+fn test_id_no_duplicates_in_doc() {
+    let mut xot = Xot::new();
+    let err = xot
+        .parse(r#"<doc><a xml:id="FOO"/><b xml:id="FOO"/></doc>"#)
+        //        012345678901234567890123456789012345678901234567
+        .unwrap_err();
+    match err {
+        ParseError::DuplicateId(value, span) => {
+            assert_eq!(value, "FOO");
+            assert_eq!(span, (33..36).into());
+        }
+        _ => panic!("unexpected error"),
+    }
+}
+
+#[test]
+fn test_other_duplicate_attributes_are_fine() {
+    let mut xot = Xot::new();
+    let r = xot.parse(r#"<doc><a x="FOO"/><b x="FOO"/></doc>"#);
+    assert!(r.is_ok());
 }
