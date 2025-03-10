@@ -2,6 +2,13 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Features added
+
+- Duplicate `xml:id` in a document is rejected by the parser with an error.
+
+- A new `xot::xml_id_node` method that given a document node and a value
+  returns the element node with that id in the document, if available.
+
 ## [0.28.1] - 2025-03-10
 
 ### Features added
