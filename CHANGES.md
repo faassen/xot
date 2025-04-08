@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.31.0] - 2025-04-08
+
 ### Features added
 
 - Added `all_following` that can traverse all following nodes in preorder.
@@ -901,7 +903,8 @@ Processing instruction `target` is now a `xot::NameId`, not a string.
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.30.0...HEAD
+[Unreleased]: https://github.com/faassen/xot/compare/v0.31.0...HEAD
+[0.31.0]: https://github.com/faassen/xot/compare/v0.30.0...v0.31.0
 [0.30.0]: https://github.com/faassen/xot/compare/v0.29.0...v0.30.0
 [0.29.0]: https://github.com/faassen/xot/compare/v0.28.1...v0.29.0
 [0.28.1]: https://github.com/faassen/xot/compare/v0.28.0...v0.28.1
