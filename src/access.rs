@@ -456,6 +456,10 @@ impl Xot {
         }
     }
 
+    pub(crate) fn internal_last_child(&self, node: Node) -> Option<Node> {
+        Some(Node::new(self.arena[node.get()].last_child()?))
+    }
+
     /// Get next sibling.
     ///
     /// Returns [`None`] if there is no next sibling.
@@ -494,6 +498,10 @@ impl Xot {
             return None;
         }
         Some(Node::new(previous_sibling))
+    }
+
+    pub(crate) fn internal_previous_sibling(&self, node: Node) -> Option<Node> {
+        Some(Node::new(self.arena[node.get()].previous_sibling()?))
     }
 
     /// Iterator over ancestor nodes, including this one.
@@ -570,6 +578,10 @@ impl Xot {
         |node_id| self.arena[*node_id].get().is_normal()
     }
 
+    fn normal_node_filter(&self) -> impl Fn(Node) -> bool + '_ {
+        move |node| self.arena[node.get()].get().is_normal()
+    }
+
     fn normal_edge_filter(&self) -> impl Fn(&indextree::NodeEdge) -> bool + '_ {
         move |edge| {
             let node_id = match edge {
@@ -613,6 +625,26 @@ impl Xot {
     /// attribute nodes and attribute nodes come before normal children
     pub fn all_descendants(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
         node.get().descendants(self.arena()).map(Node::new)
+    }
+
+    /// Reverse preorder traversal from node.
+    ///
+    /// This starts with the given node, and then back to the root of the tree,
+    /// in reverse preorder (document order) traversal. This means all nodes
+    /// that exist previously in preorder are visited. It can be seen as
+    /// the inverse of a descendants traversal.
+    ///
+    /// Namespace and attribute nodes are not included in the traversal.
+    pub fn reverse_preorder(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+        ReversePreorder::new(self, node, self.normal_node_filter())
+    }
+
+    /// Reverse preorder traversal from node for all nodes.
+    ///
+    /// Like [`Xot::reverse_preorder`] but includes namespace and
+    /// attribute nodes too.
+    pub fn all_reverse_preorder(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+        ReversePreorder::new(self, node, |_| true)
     }
 
     /// Iterator over the following siblings of this node, including this one.
@@ -785,10 +817,25 @@ impl Xot {
     /// Traverse over node edges in reverse order.
     ///
     /// Like [`Xot::traverse`] but in reverse order.
+    ///
+    /// Note that you still have to start with a top-level node, it just traverses through
+    /// its descendants in a reverse order.
     pub fn reverse_traverse(&self, node: Node) -> impl Iterator<Item = NodeEdge> + '_ {
         node.get()
             .reverse_traverse(self.arena())
             .filter(self.normal_edge_filter())
+            .map(|edge| match edge {
+                IndexTreeNodeEdge::Start(node_id) => NodeEdge::Start(Node::new(node_id)),
+                IndexTreeNodeEdge::End(node_id) => NodeEdge::End(Node::new(node_id)),
+            })
+    }
+
+    /// Traverse nodes, including namespace and attribute nodes, in reverse order.
+    ///
+    /// This is like [`Xot::all_traverse`] but includes namespace and
+    pub fn reverse_all_traverse(&self, node: Node) -> impl Iterator<Item = NodeEdge> + '_ {
+        node.get()
+            .reverse_traverse(self.arena())
             .map(|edge| match edge {
                 IndexTreeNodeEdge::Start(node_id) => NodeEdge::Start(Node::new(node_id)),
                 IndexTreeNodeEdge::End(node_id) => NodeEdge::End(Node::new(node_id)),
@@ -900,5 +947,49 @@ impl Xot {
     pub fn xml_id_node(&self, document_node: Node, value: &str) -> Option<Node> {
         let value_nodes = self.id_nodes_map.get(&document_node.get())?;
         value_nodes.get(value).map(|node_id| Node::new(*node_id))
+    }
+}
+
+struct ReversePreorder<'a, F: Fn(Node) -> bool> {
+    xot: &'a Xot,
+    current: Option<Node>,
+    filter: F,
+}
+
+impl<'a, F: Fn(Node) -> bool> ReversePreorder<'a, F> {
+    fn new(xot: &'a Xot, current: Node, filter: F) -> Self {
+        Self {
+            xot,
+            current: Some(current),
+            filter,
+        }
+    }
+}
+
+impl<F: Fn(Node) -> bool> Iterator for ReversePreorder<'_, F> {
+    type Item = Node;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(current) = self.current {
+            // if we have a previous sibling, go to the rightmost deepest descendant
+            let previous = self.xot.internal_previous_sibling(current);
+            let next = if let Some(mut node) = previous {
+                while let Some(last_child) = self.xot.internal_last_child(node) {
+                    node = last_child;
+                }
+                Some(node)
+            } else {
+                // if we don't have a previous sibling, go to parent
+                self.xot.parent(current)
+            };
+            self.current = next;
+            // if we don't pass the filter, go to the next node
+            if !(self.filter)(current) {
+                return self.next();
+            }
+            Some(current)
+        } else {
+            None
+        }
     }
 }

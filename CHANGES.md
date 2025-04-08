@@ -2,6 +2,14 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Features added
+
+- Add `reverse_all_traverse`, which is like `reverse_traverse` but does not skip attribute and namespace nodes.
+
+- Add `reverse_preorder` and `all_reverse_preorder`. Iterate back to the root
+ in reverse preorder fashion, so that all nodes that were before this one
+ in preorder are visited.
+
 ## [0.29.0] - 2025-03-11
 
 ### Features added
