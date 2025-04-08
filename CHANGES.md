@@ -2,6 +2,14 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Features added
+
+- Added `all_following` that can traverse all following nodes in preorder.
+
+### Other changes
+
+- `following` uses a more optimized custom iterator now.
+
 ## [0.30.0] - 2025-04-08
 
 ### Features added

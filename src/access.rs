@@ -444,6 +444,10 @@ impl Xot {
         self.normal_children(node).next()
     }
 
+    pub(crate) fn internal_first_child(&self, node: Node) -> Option<Node> {
+        Some(Node::new(self.arena[node.get()].first_child()?))
+    }
+
     /// Get last child.
     ///
     /// Returns [`None`] if there are no children.
@@ -485,6 +489,10 @@ impl Xot {
             return None;
         }
         Some(Node::new(next_sibling))
+    }
+
+    pub(crate) fn internal_next_sibling(&self, node: Node) -> Option<Node> {
+        Some(Node::new(self.arena[node.get()].next_sibling()?))
     }
 
     /// Get previous sibling.
@@ -704,20 +712,19 @@ impl Xot {
     /// assert_eq!(siblings, vec![d, e, f, g, h]);
     /// ```
     pub fn following(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
-        // start with an empty iterator
-        let mut joined_iterator: Box<dyn Iterator<Item = Node>> = Box::new(std::iter::empty());
-        let mut current_parent = Some(node);
-        while let Some(parent) = current_parent {
-            let mut current_sibling = parent;
-            while let Some(current) = self.next_sibling(current_sibling) {
-                // add descendants of next sibling
-                joined_iterator =
-                    Box::new(joined_iterator.chain(Box::new(self.descendants(current))));
-                current_sibling = current;
-            }
-            current_parent = self.parent(parent);
-        }
-        joined_iterator
+        let mut following = Following::new(self, node, self.normal_node_filter());
+        following.next();
+        following
+    }
+
+    /// Following nodes in document order.
+    ///
+    /// Like [`Xot::following`] but includes namespace and
+    /// attribute nodes too.
+    pub fn all_following(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
+        let mut following = Following::new(self, node, |_| true);
+        following.next();
+        following
     }
 
     /// Preceding nodes in document order
@@ -991,5 +998,56 @@ impl<F: Fn(Node) -> bool> Iterator for ReversePreorder<'_, F> {
         } else {
             None
         }
+    }
+}
+
+struct Following<'a, F> {
+    xot: &'a Xot,
+    current: Option<Node>,
+    filter: F,
+}
+
+impl<'a, F: Fn(Node) -> bool> Following<'a, F> {
+    fn new(xot: &'a Xot, current: Node, filter: F) -> Self {
+        Self {
+            xot,
+            current: Some(current),
+            filter,
+        }
+    }
+
+    fn following(node: Node, xot: &Xot) -> Option<Node> {
+        if let Some(next_sibling) = xot.internal_next_sibling(node) {
+            Some(next_sibling)
+        } else {
+            let mut current = node;
+            while let Some(parent) = xot.parent(current) {
+                let sibling = xot.internal_next_sibling(parent);
+                if let Some(sibling) = sibling {
+                    return Some(sibling);
+                } else {
+                    current = parent;
+                }
+            }
+            None
+        }
+    }
+}
+
+impl<F: Fn(Node) -> bool> Iterator for Following<'_, F> {
+    type Item = Node;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let node = self.current?;
+        self.current = if let Some(first_child) = self.xot.internal_first_child(node) {
+            Some(first_child)
+        } else {
+            Self::following(node, self.xot)
+        };
+        // if we don't pass the filter, then we do the next one
+        if !(self.filter)(node) {
+            return self.next();
+        }
+        Some(node)
     }
 }
