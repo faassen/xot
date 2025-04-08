@@ -10,6 +10,9 @@
 
 - `following` uses a more optimized custom iterator now.
 
+- Updated the `zerovec` and `futures-util` indirect dependencies to newer
+  versions, as the versions in the lock file were yanked.
+
 ## [0.30.0] - 2025-04-08
 
 ### Features added
