@@ -712,9 +712,7 @@ impl Xot {
     /// assert_eq!(siblings, vec![d, e, f, g, h]);
     /// ```
     pub fn following(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
-        let mut following = Following::new(self, node, self.normal_node_filter());
-        following.next();
-        following
+        Following::new(self, self.next_sibling(node), self.normal_node_filter())
     }
 
     /// Following nodes in document order.
@@ -722,9 +720,7 @@ impl Xot {
     /// Like [`Xot::following`] but includes namespace and
     /// attribute nodes too.
     pub fn all_following(&self, node: Node) -> impl Iterator<Item = Node> + '_ {
-        let mut following = Following::new(self, node, |_| true);
-        following.next();
-        following
+        Following::new(self, self.internal_next_sibling(node), |_| true)
     }
 
     /// Preceding nodes in document order
@@ -1008,10 +1004,10 @@ struct Following<'a, F> {
 }
 
 impl<'a, F: Fn(Node) -> bool> Following<'a, F> {
-    fn new(xot: &'a Xot, current: Node, filter: F) -> Self {
+    fn new(xot: &'a Xot, current: Option<Node>, filter: F) -> Self {
         Self {
             xot,
-            current: Some(current),
+            current,
             filter,
         }
     }

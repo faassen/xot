@@ -147,3 +147,45 @@ fn test_all_following() {
     let siblings = xot.all_following(c).collect::<Vec<_>>();
     assert_eq!(siblings, vec![d, foo, e, f, g, h]);
 }
+
+#[test]
+fn test_all_following2() {
+    let mut xot = xot::Xot::new();
+    let foo = xot.add_name("foo");
+    let root = xot
+        .parse(r#"<p><a/><b><c>content</c><d foo="FOO"/><e/></b><f><g/><h/></f></p>"#)
+        .unwrap();
+    let p = xot.document_element(root).unwrap();
+    let a = xot.first_child(p).unwrap();
+    let b = xot.next_sibling(a).unwrap();
+    let c = xot.first_child(b).unwrap();
+    let d = xot.next_sibling(c).unwrap();
+    let foo = xot.attributes(d).get_node(foo).unwrap();
+    let e = xot.next_sibling(d).unwrap();
+    let f = xot.next_sibling(b).unwrap();
+    let g = xot.first_child(f).unwrap();
+    let h = xot.next_sibling(g).unwrap();
+    let siblings = xot.all_following(c).collect::<Vec<_>>();
+    assert_eq!(siblings, vec![d, foo, e, f, g, h]);
+}
+
+#[test]
+fn test_all_following_attribute() {
+    let mut xot = xot::Xot::new();
+    let foo = xot.add_name("foo");
+    let root = xot
+        .parse(r#"<p><a/><b><c bar="BAR"/><d foo="FOO"/><e/></b><f><g/><h/></f></p>"#)
+        .unwrap();
+    let p = xot.document_element(root).unwrap();
+    let a = xot.first_child(p).unwrap();
+    let b = xot.next_sibling(a).unwrap();
+    let c = xot.first_child(b).unwrap();
+    let d = xot.next_sibling(c).unwrap();
+    let foo = xot.attributes(d).get_node(foo).unwrap();
+    let e = xot.next_sibling(d).unwrap();
+    let f = xot.next_sibling(b).unwrap();
+    let g = xot.first_child(f).unwrap();
+    let h = xot.next_sibling(g).unwrap();
+    let siblings = xot.all_following(c).collect::<Vec<_>>();
+    assert_eq!(siblings, vec![d, foo, e, f, g, h]);
+}

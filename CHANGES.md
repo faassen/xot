@@ -2,6 +2,11 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Bugs fixed
+
+- There was a bug in the new implementation of `following`; child nodes of the
+  node in question were returned as well, which was in error.
+
 ## [0.31.0] - 2025-04-08
 
 ### Features added
