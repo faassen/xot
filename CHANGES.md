@@ -2,6 +2,11 @@
 
 ## [Unreleased] - ReleaseDate
 
+### Bugs fixed
+
+- There was another bug in the new implementation of `following`: if there was
+  a following node to a parent it would not be found and it should be.
+
 ## [0.31.1] - 2025-04-09
 
 ### Bugs fixed

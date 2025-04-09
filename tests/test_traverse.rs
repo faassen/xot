@@ -170,6 +170,18 @@ fn test_all_following2() {
 }
 
 #[test]
+fn test_all_following3() {
+    let mut xot = xot::Xot::new();
+    let root = xot.parse(r#"<p><a><b/></a><c/></p>"#).unwrap();
+    let p = xot.document_element(root).unwrap();
+    let a = xot.first_child(p).unwrap();
+    let b = xot.first_child(a).unwrap();
+    let c = xot.next_sibling(a).unwrap();
+    let siblings = xot.all_following(b).collect::<Vec<_>>();
+    assert_eq!(siblings, vec![c]);
+}
+
+#[test]
 fn test_all_following_attribute() {
     let mut xot = xot::Xot::new();
     let foo = xot.add_name("foo");
