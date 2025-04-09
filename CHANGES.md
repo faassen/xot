@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.31.1] - 2025-04-09
+
 ### Bugs fixed
 
 - There was a bug in the new implementation of `following`; child nodes of the
@@ -908,7 +910,8 @@ Processing instruction `target` is now a `xot::NameId`, not a string.
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.31.0...HEAD
+[Unreleased]: https://github.com/faassen/xot/compare/v0.31.1...HEAD
+[0.31.1]: https://github.com/faassen/xot/compare/v0.31.0...v0.31.1
 [0.31.0]: https://github.com/faassen/xot/compare/v0.30.0...v0.31.0
 [0.30.0]: https://github.com/faassen/xot/compare/v0.29.0...v0.30.0
 [0.29.0]: https://github.com/faassen/xot/compare/v0.28.1...v0.29.0
