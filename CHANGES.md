@@ -2,6 +2,8 @@
 
 ## [Unreleased] - ReleaseDate
 
+## [0.31.2] - 2025-04-09
+
 ### Bugs fixed
 
 - There was another bug in the new implementation of `following`: if there was
@@ -915,7 +917,8 @@ Processing instruction `target` is now a `xot::NameId`, not a string.
 Initial public release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/faassen/xot/compare/v0.31.1...HEAD
+[Unreleased]: https://github.com/faassen/xot/compare/v0.31.2...HEAD
+[0.31.2]: https://github.com/faassen/xot/compare/v0.31.1...v0.31.2
 [0.31.1]: https://github.com/faassen/xot/compare/v0.31.0...v0.31.1
 [0.31.0]: https://github.com/faassen/xot/compare/v0.30.0...v0.31.0
 [0.30.0]: https://github.com/faassen/xot/compare/v0.29.0...v0.30.0
